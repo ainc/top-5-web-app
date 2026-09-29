@@ -59,10 +59,135 @@ Admins do not edit anyone else's tasks or checks. The first super admin is grant
 - Supabase for Postgres, Auth, and Row Level Security
 - Cloudflare Workers
 
-The browser talks to Supabase with the anon key. There is no custom API. Leaderboard and streak numbers are calculated in SQL.
+The list above is the target stack. The app in this repository currently runs the AG Grid scorecard in [This build](#this-build).
+
+The browser talks to Supabase with the anon key. There is no custom API. Leaderboard and streak numbers are calculated in SQL. The `day_scores` view is the daily total: completed tasks times points per task, plus the bonus values stored when those boxes were checked.
 
 Signed-in users can read community data. Writes to tasks, notes, and checks are limited to the signed-in user. Season, team, and scoring writes require an admin or super-admin role.
 
+That access rule is the target. This build has no sign-in yet, so the current policies let the publishable key read and write the scorecard. Tighten them when authentication lands.
+
 ## Data
 
-`profiles`, `user_roles`, `seasons`, `teams`, `team_members`, `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time).
+`profiles`, `user_roles`, `seasons`, `teams`, `team_members`, `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time). `week_meta` stores the label for a week, such as a CSV file name. `profiles.auth_user_id` stays empty until that person signs up.
+
+## This build
+
+The screen is the AG Grid scorecard. TanStack Start, Tailwind, shadcn/ui, and Cloudflare Workers are not installed. Vite, React, AG Grid Community, and Supabase are.
+
+There is no sign-in yet, so My week has a menu for whose rows to edit. Logan Zakeri is the admin once sign-in exists. That role is separate from his group. The first super admin is still a SQL insert after that person signs up:
+
+```sql
+insert into public.user_roles (profile_id, role)
+select id, 'super_admin' from public.profiles where auth_user_id = '<user uuid>';
+```
+
+### Groups
+
+The colored bars on the sheet are three groups on one scorecard. Each person still has the same five days and the same points.
+
+| Group | Who |
+|---|---|
+| ACES | The ACES section of the sheet |
+| Alpha | Team Alpha, the internship program. The sheet banner reads ALPHIAS |
+| Awesomes | Full-time Awesome Inc staff |
+
+### Points in the grid
+
+Daily points still use the sheet formula. Priority checkboxes do not add points, because `scoring_rules.points_per_task` starts at 0.
+
+```
+=SUM(IF(Top5=TRUE,+15,+0)+IF(Exercise=TRUE,+5,+0)+IF(Reading=TRUE,+5,+0))
+```
+
+| Checkbox | Points |
+|---|---|
+| Top 5 | 15 |
+| Exercise | 5 |
+| Reading | 5 |
+
+A finished day is 25. A finished week is 125, Monday through Friday. Checking a bonus stores that point value on `bonus_checks`. The grid still displays 15 / 5 / 5, which matches the seeded bonuses.
+
+### Run locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open the URL Vite prints, usually http://localhost:5173.
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Start the local site |
+| `npm run build` | Typecheck and build the static site |
+| `npm run preview` | Serve the production build locally |
+| `npm run db:apply` | Apply the Supabase migration using `.env.local` |
+
+`.env` holds the Supabase URL and publishable key and is safe to commit. `.env.local` holds the service role and database URL. Do not commit `.env.local`.
+
+Apply `supabase/migrations/20260929160000_initial_schema.sql` to the Supabase project before the first run. It opens one season starting Monday, September 28, 2026, twelve weeks long, with ACES, Alpha, and Awesomes, and the three bonuses above.
+
+### Pages
+
+The week control sits under the title and applies to both pages. **Next week** stays disabled on the current week. **Previous week** opens the Monday before. If that week has no saved rows, the same people appear with blank days. Import CSV fills whichever week is selected.
+
+**My week** (`/`) edits one person. The menu at the top picks who. Checking Top 5, Exercise, or Reading updates that day's points and the weekly total.
+
+**Dashboard** (`/dashboard`) is read-only. The top grid is one row per person, with Monday through Friday and the week total. The grid below is the full task list. The filter box searches both grids.
+
+Leaderboard, streaks, and admin from the spec above are not screens yet.
+
+**Load sample** puts the bundled sample sheet on the current week and saves it. **Import CSV** replaces only the week you are looking at.
+
+### Import the Google Sheet
+
+1. Open the scorecard tab.
+2. File → Download → Comma-separated values (.csv).
+3. In the app, select the week that file belongs to.
+4. Click Import CSV and choose the file.
+
+Checkboxes arrive as `TRUE` or `FALSE`. The app ignores the Daily Points and Total Points cells and recalculates from the three scoring checkboxes. If a person's name is filled in only on the first of their five rows, the importer copies that name down.
+
+The sheet layout the importer expects:
+
+| Column | Contents |
+|---|---|
+| A | Person name, or a group banner (`ACES`, `ALPHIAS`, `AWESOMES`) on its own row |
+| Then five pairs | A checkbox column and a text column for Top, High, Medium, Medium, and Low |
+| Notes | Free text |
+| Top 5 | Checkbox worth 15 |
+| Exercise | Checkbox worth 5 |
+| Reading | Checkbox worth 5 |
+
+A group banner has to be the only text in its row. `public/sample-top5.csv` is a small file in that shape.
+
+### Where the data lives
+
+Edits go to Supabase. Another browser on the same project sees them. Checks from other people refresh the grids live.
+
+If Supabase has no days yet, a browser that still has the old `localStorage` board (`top5-board-v2`) copies that board up once. After that, Supabase is the copy that wins.
+
+### Project layout
+
+```
+src/
+  main.tsx            Starts React, routing, AG Grid, and the saved board
+  App.tsx             Header, week switcher, and the two routes
+  supabaseClient.ts   Publishable-key Supabase client
+  remoteBoard.ts      Load and save person-days as roster, tasks, notes, and bonuses
+  types.ts            A person-day row and the three groups
+  points.ts           The 15 / 5 / 5 formula and weekly totals
+  weeks.ts            Monday dates, blank weeks, and the roster copy
+  parseSheetCsv.ts    Turns a Google Sheets CSV into rows
+  cells.tsx           Checkbox and task-text cells inside the grid
+  columns.tsx         Column definitions for the task grid
+  board.tsx           Selected week, import, and the shared AG Grid
+  pages/MyWeek.tsx    Editable scorecard for one person
+  pages/Dashboard.tsx Read-only standings and the full task grid
+public/
+  sample-top5.csv     Sample scorecard
+supabase/migrations/  Tables, open policies, and the day_scores view
+```
+
+AG Grid Community is the free edition. The grids use sorting, filtering, and custom cells. Row grouping is a paid feature, so the dashboard sorts by group instead of grouping rows.
