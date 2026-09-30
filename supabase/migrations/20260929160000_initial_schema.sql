@@ -1,7 +1,9 @@
 -- Scorecard tables for the AG Grid app.
 -- Profiles are the people on the roster. auth_user_id stays empty until sign-in exists.
+-- The open season scores individuals. teams and team_members stay empty until a commissioner turns team scoring on.
 -- Writes are open to the publishable key for now, because the person menu can edit any row.
 -- Replace those policies with per-user checks when authentication is added.
+-- The developer is not a row in user_roles. That access is the Supabase service role.
 
 create table if not exists public.seasons (
   id uuid primary key default gen_random_uuid(),
@@ -23,13 +25,14 @@ create table if not exists public.profiles (
 
 create table if not exists public.user_roles (
   profile_id uuid primary key references public.profiles (id) on delete cascade,
-  role text not null check (role in ('member', 'admin', 'super_admin'))
+  role text not null check (role in ('member', 'admin', 'commissioner'))
 );
 
+-- Optional. A commissioner fills this only when seasons.scoring_mode is teams.
 create table if not exists public.teams (
   id uuid primary key default gen_random_uuid(),
   season_id uuid not null references public.seasons (id) on delete cascade,
-  name text not null check (name in ('ACES', 'Alpha', 'Awesomes')),
+  name text not null,
   unique (season_id, name)
 );
 
@@ -40,6 +43,14 @@ create table if not exists public.team_members (
   profile_id uuid not null references public.profiles (id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (season_id, profile_id)
+);
+
+-- Everyone on the board, with or without a team.
+create table if not exists public.season_members (
+  season_id uuid not null references public.seasons (id) on delete cascade,
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (season_id, profile_id)
 );
 
 create table if not exists public.scoring_rules (
@@ -130,13 +141,6 @@ insert into public.scoring_rules (season_id, points_per_task)
 select id, 0 from public.seasons where is_open
 on conflict (season_id) do nothing;
 
-insert into public.teams (season_id, name)
-select s.id, t.name
-from public.seasons s
-cross join (values ('ACES'), ('Alpha'), ('Awesomes')) as t(name)
-where s.is_open
-on conflict (season_id, name) do nothing;
-
 insert into public.bonus_definitions (season_id, key, name, points)
 select s.id, b.key, b.name, b.points
 from public.seasons s
@@ -156,6 +160,7 @@ grant select, insert, update, delete on
   public.seasons,
   public.teams,
   public.team_members,
+  public.season_members,
   public.scoring_rules,
   public.bonus_definitions,
   public.day_entries,
@@ -170,7 +175,7 @@ declare
   t text;
 begin
   foreach t in array array[
-    'profiles', 'user_roles', 'seasons', 'teams', 'team_members',
+    'profiles', 'user_roles', 'seasons', 'teams', 'team_members', 'season_members',
     'scoring_rules', 'bonus_definitions', 'day_entries', 'tasks',
     'bonus_checks', 'week_meta'
   ]
@@ -217,8 +222,11 @@ begin
   end loop;
 end $$;
 
--- After someone signs up, grant the first super admin with:
+-- After someone signs up, grant the commissioner (season operator) with:
 -- insert into public.user_roles (profile_id, role)
--- select id, 'super_admin' from public.profiles where auth_user_id = '<user uuid>';
+-- select id, 'commissioner' from public.profiles where auth_user_id = '<commissioner auth user uuid>';
+-- Logan's product role is admin, not commissioner:
+-- insert into public.user_roles (profile_id, role)
+-- select id, 'admin' from public.profiles where auth_user_id = '<Logan auth user uuid>';
 
 notify pgrst, 'reload schema';

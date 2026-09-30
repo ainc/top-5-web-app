@@ -1,14 +1,14 @@
 // Editable scorecard for one person. Sign-in does not exist yet, so the menu picks who.
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
-import { MAX_WEEK_POINTS, weekPoints } from "../points";
+import { MAX_WEEK_POINTS, personKey, weekPoints } from "../points";
 
 export function MyWeek() {
   const { rows, people, ready } = useBoard();
   const [selectedKey, setSelectedKey] = useState("");
   const selected = people.some((person) => person.key === selectedKey) ? selectedKey : (people[0]?.key ?? "");
   const person = people.find((item) => item.key === selected);
-  const mine = useMemo(() => rows.filter((row) => `${row.team}|${row.person}` === selected), [rows, selected]);
+  const mine = useMemo(() => rows.filter((row) => personKey(row) === selected), [rows, selected]);
   const total = person ? weekPoints(rows, person.key) : 0;
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
@@ -30,7 +30,7 @@ export function MyWeek() {
         <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
           {people.map((item) => (
             <option key={item.key} value={item.key}>
-              {item.person} · {item.team}
+              {item.team ? `${item.person} · ${item.team}` : item.person}
             </option>
           ))}
         </select>

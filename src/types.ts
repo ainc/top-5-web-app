@@ -1,14 +1,13 @@
 // Shared shapes for one person-day.
 // Points are not stored on DayRow. GridRow adds daily and week when the grid renders.
 
-export type Team = "ACES" | "Alpha" | "Awesomes";
-
 // A single weekday for one person. The five priority slots are the task list.
 // top5, exercise, and reading are the only boxes that add points.
+// team is null while the season scores individuals. A commissioner can assign one later.
 export type DayRow = {
   id: string;
   person: string;
-  team: Team;
+  team: string | null;
   day: string;
   topLabel: string;
   topDone: boolean;

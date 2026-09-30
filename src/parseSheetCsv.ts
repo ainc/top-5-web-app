@@ -1,10 +1,11 @@
 // Reads a Google Sheets CSV export of the scorecard tab.
-// Group banners (ACES, ALPHIAS, AWESOMES) must be the only text in their row.
+// A row with only one filled cell is a section banner and is skipped.
+// This season scores individuals, so those banners are not teams.
 // Each priority is a checkbox column followed by a text column.
 // Daily and weekly totals in the file are ignored and recalculated.
 
 import { DAY_NAMES, personKey } from "./points";
-import type { DayRow, Team } from "./types";
+import type { DayRow } from "./types";
 
 type Pair = { check: number; label: number };
 
@@ -55,15 +56,6 @@ function parseCsv(text: string): string[][] {
   return rows;
 }
 
-// Sheet banners are not spelled the same way every time. ALPHIAS is Team Alpha.
-function normalizeTeam(value: string): Team | null {
-  const name = value.trim().toLowerCase();
-  if (name === "ace" || name === "aces") return "ACES";
-  if (name === "alpha" || name === "alphas" || name === "alphias") return "Alpha";
-  if (name === "awesome" || name === "awesomes") return "Awesomes";
-  return null;
-}
-
 // Google Sheets exports a checked box as TRUE.
 function isChecked(value: string | undefined): boolean {
   const normalized = (value ?? "").trim().toLowerCase();
@@ -81,11 +73,9 @@ function slug(value: string): string {
     .replace(/(^-|-$)/g, "");
 }
 
-// A group banner is one cell, such as "ACES", with the rest of the row empty.
-function isSectionRow(cells: string[]): Team | null {
-  const filled = cells.map((cell) => cell.trim()).filter(Boolean);
-  if (filled.length !== 1) return null;
-  return normalizeTeam(filled[0]);
+// A section banner is the only text in its row. It separates people on the sheet and is not a person.
+function isBannerRow(cells: string[]): boolean {
+  return cells.map((cell) => cell.trim()).filter(Boolean).length === 1;
 }
 
 // Merged headers put the title on the checkbox column and leave the text column blank.
@@ -161,26 +151,16 @@ export function parseSheetCsv(text: string): DayRow[] {
 
   const rows: DayRow[] = [];
   const dayCount = new Map<string, number>();
-  let team: Team = "Awesomes";
   let person = "";
 
   for (const source of table.slice(dataStart)) {
-    const section = isSectionRow(source);
-    if (section) {
-      team = section;
+    if (isBannerRow(source)) {
       person = "";
       continue;
     }
 
     const name = cell(source, 0);
-    const namedTeam = normalizeTeam(name);
-    if (namedTeam && source.slice(1).every((value) => value.trim() === "")) {
-      team = namedTeam;
-      person = "";
-      continue;
-    }
-
-    if (name && name.length > 1 && !namedTeam) person = name;
+    if (name && name.length > 1) person = name;
     if (!person || person.length < 2) continue;
 
     const labels = pairs.map((pair) => cell(source, pair.label));
@@ -192,14 +172,14 @@ export function parseSheetCsv(text: string): DayRow[] {
     const hasTask = labels.some(Boolean) || dones.some(Boolean) || top5 || exercise || reading || notes.length > 0;
     if (!hasTask) continue;
 
-    const key = `${team}|${person}`;
+    const key = person;
     const dayNumber = (dayCount.get(key) ?? 0) + 1;
     dayCount.set(key, dayNumber);
 
     const row: DayRow = {
-      id: `${slug(team)}-${slug(person)}-${dayNumber}`,
+      id: `${slug(person)}-${dayNumber}`,
       person,
-      team,
+      team: null,
       day: DAY_NAMES[dayNumber - 1] ?? `Day ${dayNumber}`,
       topLabel: "",
       topDone: false,

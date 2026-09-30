@@ -319,7 +319,8 @@ type ScoreGridProps = {
 export function ScoreGrid({ rows, canEdit, showWeek = false, height, quickFilter }: ScoreGridProps) {
   const { onPatch, selectedWeek } = useBoard();
   const gridRows = useMemo(() => toGridRows(rows), [rows]);
-  const columnDefs = useMemo(() => buildColumns(showWeek), [showWeek]);
+  const showGroup = rows.some((row) => row.team);
+  const columnDefs = useMemo(() => buildColumns(showWeek, showGroup), [showGroup, showWeek]);
   const context = useMemo<GridContext>(() => ({ canEdit, onPatch }), [canEdit, onPatch]);
 
   return (

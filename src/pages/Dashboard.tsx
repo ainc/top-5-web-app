@@ -1,85 +1,105 @@
-// Read-only view of the selected week. Standings are one row per person.
-// The task grid underneath is the same data, with editing turned off.
+// Read-only week, laid out like the Google Sheet scorecard.
+// Each person has five day rows: tasks finished, tasks written, and a color.
+// Standings and the bar chart use bonus points, not the task count.
 
-import { themeQuartz, type ColDef } from "ag-grid-community";
-import { AgGridReact } from "ag-grid-react";
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
-import { DAY_NAMES, dailyPoints, peopleInOrder } from "../points";
-import type { Team } from "../types";
+import { DAY_NAMES, dailyPoints, peopleInOrder, personKey } from "../points";
+import type { DayRow } from "../types";
 
-type Standing = {
-  id: string;
+const TASKS: Array<[label: keyof DayRow, done: keyof DayRow]> = [
+  ["topLabel", "topDone"],
+  ["highLabel", "highDone"],
+  ["med1Label", "med1Done"],
+  ["med2Label", "med2Done"],
+  ["lowLabel", "lowDone"],
+];
+
+type DayScore = { completed: number; total: number };
+type PersonScore = {
+  key: string;
   person: string;
-  team: Team;
-  mon: number;
-  tue: number;
-  wed: number;
-  thu: number;
-  fri: number;
-  week: number;
+  team: string | null;
+  days: DayScore[];
+  completed: number;
+  total: number;
+  points: number;
 };
 
-const standingsTheme = themeQuartz.withParams({
-  fontFamily: '"Segoe UI", sans-serif',
-  headerBackgroundColor: "#1c1917",
-  headerTextColor: "#fffdfb",
-  backgroundColor: "#fffdfb",
-  oddRowBackgroundColor: "#fbf7f4",
-  accentColor: "#9f1239",
-  borderColor: "#eadfd6",
-  fontSize: 13,
-});
+function dayScore(row: DayRow | undefined): DayScore {
+  if (!row) return { completed: 0, total: 0 };
+  let completed = 0;
+  let total = 0;
+  for (const [label, done] of TASKS) {
+    const written = String(row[label] ?? "").trim().length > 0;
+    const checked = Boolean(row[done]);
+    if (!written && !checked) continue;
+    total += 1;
+    if (checked) completed += 1;
+  }
+  return { completed, total };
+}
 
-// Sort ACES, then Alpha, then Awesomes. Week points break ties, highest first.
-const teamRank: Record<Team, number> = { ACES: 0, Alpha: 1, Awesomes: 2 };
+function heatClass(score: DayScore): string {
+  if (score.total > 0 && score.completed === score.total) return "heat-done";
+  return "heat-open";
+}
 
-const standingColumns: ColDef<Standing>[] = [
-  {
-    field: "team",
-    headerName: "Group",
-    width: 130,
-    sort: "asc",
-    sortIndex: 0,
-    comparator: (a: Team, b: Team) => teamRank[a] - teamRank[b],
-  },
-  { field: "person", headerName: "Person", flex: 1, minWidth: 140 },
-  { field: "mon", headerName: "Mon", width: 90, type: "rightAligned" },
-  { field: "tue", headerName: "Tue", width: 90, type: "rightAligned" },
-  { field: "wed", headerName: "Wed", width: 90, type: "rightAligned" },
-  { field: "thu", headerName: "Thu", width: 90, type: "rightAligned" },
-  { field: "fri", headerName: "Fri", width: 90, type: "rightAligned" },
-  {
-    field: "week",
-    headerName: "Week",
-    width: 100,
-    type: "rightAligned",
-    sort: "desc",
-    sortIndex: 1,
-    cellClass: "points-cell week-cell",
-  },
-];
+function percentLabel(completed: number, total: number): string {
+  if (total === 0) return "—";
+  return `${((completed / total) * 100).toFixed(2)}%`;
+}
+
+function placeLabel(place: number): string {
+  const mod100 = place % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${place}th`;
+  switch (place % 10) {
+    case 1:
+      return `${place}st`;
+    case 2:
+      return `${place}nd`;
+    case 3:
+      return `${place}rd`;
+    default:
+      return `${place}th`;
+  }
+}
 
 export function Dashboard() {
   const { rows, ready, selectedWeek } = useBoard();
   const [query, setQuery] = useState("");
-  const standings = useMemo<Standing[]>(() => {
-    return peopleInOrder(rows).map((person) => {
-      const days = rows.filter((row) => row.person === person.person && row.team === person.team);
-      const byDay = Object.fromEntries(days.map((row) => [row.day, dailyPoints(row)])) as Record<string, number>;
-      return {
-        id: person.key,
-        person: person.person,
-        team: person.team,
-        mon: byDay.Mon ?? 0,
-        tue: byDay.Tue ?? 0,
-        wed: byDay.Wed ?? 0,
-        thu: byDay.Thu ?? 0,
-        fri: byDay.Fri ?? 0,
-        week: DAY_NAMES.reduce((sum, day) => sum + (byDay[day] ?? 0), 0),
-      };
+  const needle = query.trim().toLowerCase();
+
+  const people = useMemo<PersonScore[]>(() => {
+    return peopleInOrder(rows)
+      .filter((person) => person.person.toLowerCase().includes(needle) || (person.team ?? "").toLowerCase().includes(needle))
+      .map((person) => {
+        const mine = rows.filter((row) => personKey(row) === person.key);
+        const byDay = new Map(mine.map((row) => [row.day, row]));
+        const days = DAY_NAMES.map((day) => dayScore(byDay.get(day)));
+        return {
+          key: person.key,
+          person: person.person,
+          team: person.team,
+          days,
+          completed: days.reduce((sum, day) => sum + day.completed, 0),
+          total: days.reduce((sum, day) => sum + day.total, 0),
+          points: mine.reduce((sum, row) => sum + dailyPoints(row), 0),
+        };
+      });
+  }, [needle, rows]);
+
+  const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
+  const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
+  const ranked = useMemo(() => {
+    const sorted = [...people].sort((a, b) => b.points - a.points || a.person.localeCompare(b.person));
+    let place = 1;
+    return sorted.map((person, index) => {
+      if (index > 0 && person.points < sorted[index - 1].points) place = index + 1;
+      return { ...person, place };
     });
-  }, [rows]);
+  }, [people]);
+  const topPoints = ranked.reduce((max, person) => Math.max(max, person.points), 0);
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
 
@@ -88,28 +108,109 @@ export function Dashboard() {
       <div className="page-head">
         <div>
           <h1>Dashboard</h1>
-          <p>Everyone’s points for the week. The task grid below is the same scorecard, read only.</p>
+          <p>Finished tasks are green. An open day is red. Standings use Top 5, Exercise, and Reading points.</p>
         </div>
         <input
           className="filter"
           value={query}
-          placeholder="Filter people or tasks"
+          placeholder="Filter people"
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-      <div className="grid-wrap standings" style={{ height: Math.max(180, 58 + standings.length * 42) }}>
-        <AgGridReact<Standing>
-          theme={standingsTheme}
-          rowData={standings}
-          columnDefs={standingColumns}
-          getRowId={(params) => params.data.id}
-          key={selectedWeek}
-          quickFilterText={query}
-          defaultColDef={{ sortable: true, resizable: true, suppressMovable: true }}
-          headerHeight={42}
-          rowHeight={40}
-        />
+
+      <div className="dashboard-top" key={selectedWeek}>
+        <div className="scorecard-wrap">
+          <table className="scorecard">
+            <thead>
+              <tr>
+                <th>Names</th>
+                <th>Day</th>
+                <th>Completed</th>
+                <th>Total</th>
+                <th>Percentage</th>
+              </tr>
+              <tr className="scorecard-summary">
+                <th colSpan={2}>This week</th>
+                <th>{weekCompleted}</th>
+                <th>{weekTotal}</th>
+                <th>{percentLabel(weekCompleted, weekTotal)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {people.length === 0 ? (
+                <tr>
+                  <td className="scorecard-empty" colSpan={5}>
+                    No one matches that filter.
+                  </td>
+                </tr>
+              ) : (
+                people.flatMap((person) =>
+                  DAY_NAMES.map((day, index) => {
+                    const score = person.days[index];
+                    const tone = heatClass(score);
+                    return (
+                      <tr key={`${person.key}-${day}`} className={index === 0 ? "person-start" : undefined}>
+                        <th scope="row">{person.person}</th>
+                        <td>{day}</td>
+                        <td className={tone}>{score.completed}</td>
+                        <td className={tone}>{score.total}</td>
+                        <td />
+                      </tr>
+                    );
+                  }),
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <aside className="standings-card">
+          <h2>Standings</h2>
+          {ranked.length === 0 ? (
+            <p className="status">No scores for this week yet.</p>
+          ) : (
+            <ol className="rank-list">
+              {ranked.map((person) => (
+                <li key={person.key}>
+                  <span className="place">{placeLabel(person.place)}</span>
+                  <span className="rank-name">
+                    {person.person}
+                    {person.team ? <small>{person.team}</small> : null}
+                  </span>
+                  <span className="rank-points">{person.points.toFixed(1)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </aside>
       </div>
+
+      <div className="chart-card">
+        <h2>Points this week</h2>
+        {ranked.length === 0 ? (
+          <p className="status">No scores to chart yet.</p>
+        ) : (
+          <div className="bars">
+            {ranked.map((person) => {
+              const width = topPoints === 0 ? 0 : (person.points / topPoints) * 100;
+              return (
+                <div className="bar-row" key={person.key}>
+                  <span className="bar-name">{person.person}</span>
+                  <div
+                    className="bar-track"
+                    role="img"
+                    aria-label={`${person.person}, ${person.points} points`}
+                  >
+                    <div className="bar-fill" style={{ width: `${width}%` }} />
+                  </div>
+                  <span className="bar-value">{person.points.toFixed(1)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <h2>Tasks</h2>
       <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />
     </section>

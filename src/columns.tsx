@@ -3,7 +3,7 @@
 
 import { themeQuartz, type ColDef } from "ag-grid-community";
 import { BoolCell, TaskCell } from "./cells";
-import type { GridRow, Team } from "./types";
+import type { GridRow } from "./types";
 
 export const gridTheme = themeQuartz.withParams({
   fontFamily: '"Segoe UI", sans-serif',
@@ -18,12 +18,6 @@ export const gridTheme = themeQuartz.withParams({
   fontSize: 13,
   cellHorizontalPadding: 10,
 });
-
-const teamColor: Record<Team, string> = {
-  ACES: "#6d28d9",
-  Alpha: "#0f766e",
-  Awesomes: "#9f1239",
-};
 
 // The value joins done + label so AG Grid refreshes the cell when either one changes.
 function taskColumn(
@@ -61,22 +55,14 @@ function scoreColumn(field: "top5" | "exercise" | "reading", headerName: string)
 
 // showWeek is on for the dashboard detail grid and off for My week,
 // where the big total already sits above the grid.
-export function buildColumns(showWeek: boolean): ColDef<GridRow>[] {
-  const columns: ColDef<GridRow>[] = [
-    {
-      field: "team",
-      headerName: "Group",
-      width: 120,
-      pinned: "left",
-      cellStyle: (params) => {
-        const team = params.value as Team | undefined;
-        return {
-          color: team ? teamColor[team] : "#1c1917",
-          fontWeight: 700,
-        };
-      },
-    },
-    { field: "person", headerName: "Person", width: 120, pinned: "left" },
+// showGroup is on only when this season scores teams.
+export function buildColumns(showWeek: boolean, showGroup: boolean): ColDef<GridRow>[] {
+  const columns: ColDef<GridRow>[] = [];
+  if (showGroup) {
+    columns.push({ field: "team", headerName: "Team", width: 140, pinned: "left" });
+  }
+  columns.push(
+    { field: "person", headerName: "Person", width: 140, pinned: "left" },
     { field: "day", headerName: "Day", width: 84, pinned: "left" },
     taskColumn("Top priority", "topDone", "topLabel"),
     taskColumn("High priority", "highDone", "highLabel"),
@@ -94,7 +80,7 @@ export function buildColumns(showWeek: boolean): ColDef<GridRow>[] {
       type: "rightAligned",
       cellClass: "points-cell",
     },
-  ];
+  );
 
   if (showWeek) {
     columns.push({

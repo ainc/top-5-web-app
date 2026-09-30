@@ -1,7 +1,7 @@
 // Weeks are identified by Monday as YYYY-MM-DD. That string sorts in calendar order.
 
 import { DAY_NAMES, peopleInOrder } from "./points";
-import type { DayRow, Team } from "./types";
+import type { DayRow } from "./types";
 
 // One saved scorecard. source is the label under the title, such as a CSV file name.
 export type WeekRecord = {
@@ -77,10 +77,14 @@ export function withWeekIds(rows: DayRow[], weekId: string): DayRow[] {
 }
 
 // A week that has not been imported yet. Same people, empty tasks, no points.
-export function blankWeek(people: Array<{ person: string; team: Team }>, weekId: string): DayRow[] {
+function personSlug(person: { person: string; team: string | null }): string {
+  return person.team ? `${slug(person.team)}-${slug(person.person)}` : slug(person.person);
+}
+
+export function blankWeek(people: Array<{ person: string; team: string | null }>, weekId: string): DayRow[] {
   return people.flatMap((person) =>
     DAY_NAMES.map((day, index) => ({
-      id: `${weekId}-${slug(person.team)}-${slug(person.person)}-${index + 1}`,
+      id: `${weekId}-${personSlug(person)}-${index + 1}`,
       person: person.person,
       team: person.team,
       day,
@@ -127,7 +131,10 @@ export function weekIsEmpty(rows: DayRow[]): boolean {
 }
 
 // People to copy onto a new blank week. Prefer the week the user is leaving.
-export function rosterFrom(weeks: Record<string, WeekRecord>, preferredWeek: string): Array<{ person: string; team: Team }> {
+export function rosterFrom(
+  weeks: Record<string, WeekRecord>,
+  preferredWeek: string,
+): Array<{ person: string; team: string | null }> {
   const preferred = weeks[preferredWeek]?.rows ?? [];
   if (preferred.length > 0) return peopleInOrder(preferred);
   const ids = Object.keys(weeks).sort().reverse();

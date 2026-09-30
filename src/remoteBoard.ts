@@ -5,7 +5,7 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { DAY_NAMES } from "./points";
 import { getSupabase } from "./supabaseClient";
-import type { DayRow, Team } from "./types";
+import type { DayRow } from "./types";
 import {
   addDays,
   blankWeek,
@@ -18,9 +18,6 @@ import {
 
 const STORAGE_KEY = "top5-board-v2";
 const LEGACY_KEY = "top5-board-v1";
-
-const TEAMS: Team[] = ["ACES", "Alpha", "Awesomes"];
-const TEAM_RANK: Record<Team, number> = { ACES: 0, Alpha: 1, Awesomes: 2 };
 
 const TASK_SLOTS = [
   { slot: 1, label: "topLabel", done: "topDone" },
@@ -38,16 +35,19 @@ const BONUS_FIELDS = [
 
 type BonusKey = (typeof BONUS_FIELDS)[number]["key"];
 
+type ScoringMode = "individual" | "teams";
+
 type PersonRecord = {
   id: string;
   person: string;
-  team: Team;
+  team: string | null;
   createdAt: string;
 };
 
 type Catalog = {
   seasonId: string;
-  teams: Record<Team, string>;
+  scoringMode: ScoringMode;
+  teams: Map<string, string>;
   bonuses: Record<BonusKey, { id: string; points: number }>;
   people: Map<string, PersonRecord>;
 };
@@ -60,7 +60,7 @@ type WeekWrite = {
 
 export type LoadedBoard = {
   weeks: Record<string, WeekRecord>;
-  roster: Array<{ person: string; team: Team }>;
+  roster: Array<{ person: string; team: string | null }>;
   migratedFromBrowser: boolean;
   empty: boolean;
 };
@@ -78,12 +78,12 @@ function fail(error: { message: string } | null, action: string): void {
   if (error) throw new Error(`${action}: ${error.message}`);
 }
 
-function personKey(person: string, team: Team): string {
-  return `${team}|${person}`;
+function rosterKey(person: string, team: string | null): string {
+  return team ? `${team}|${person}` : person;
 }
 
-function isTeam(value: string): value is Team {
-  return TEAMS.includes(value as Team);
+function assignedTeam(cat: Catalog, team: string | null): string | null {
+  return cat.scoringMode === "teams" ? team : null;
 }
 
 function isBonusKey(value: string): value is BonusKey {
@@ -108,9 +108,13 @@ function dayOffset(monday: string, date: string): number {
   return Math.round((current - start) / 86_400_000);
 }
 
+function identitySlug(person: string, team: string | null): string {
+  return team ? `${slug(team)}-${slug(person)}` : slug(person);
+}
+
 function emptyRow(person: PersonRecord, monday: string, offset: number): DayRow {
   return {
-    id: `${monday}-${slug(person.team)}-${slug(person.person)}-${offset + 1}`,
+    id: `${monday}-${identitySlug(person.person, person.team)}-${offset + 1}`,
     person: person.person,
     team: person.team,
     day: DAY_NAMES[offset],
@@ -186,25 +190,30 @@ async function selectAll(
   return rows;
 }
 
+function comparePeople(a: PersonRecord, b: PersonRecord): number {
+  if (a.team !== b.team) {
+    if (!a.team) return 1;
+    if (!b.team) return -1;
+    return a.team.localeCompare(b.team);
+  }
+  return a.createdAt.localeCompare(b.createdAt) || a.person.localeCompare(b.person);
+}
+
 async function refreshCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   const { data: season, error: seasonError } = await supabase
     .from("seasons")
-    .select("id")
+    .select("id, scoring_mode")
     .eq("is_open", true)
     .maybeSingle();
   fail(seasonError, "read season");
   if (!season) throw new Error("No open season in Supabase. Apply the migration in supabase/migrations first.");
+  const scoringMode: ScoringMode = season.scoring_mode === "teams" ? "teams" : "individual";
 
   const { data: teamRows, error: teamError } = await supabase.from("teams").select("id, name").eq("season_id", season.id);
   fail(teamError, "read teams");
-  const teams = {} as Record<Team, string>;
-  for (const row of teamRows ?? []) {
-    if (isTeam(row.name)) teams[row.name] = row.id;
-  }
-  for (const name of TEAMS) {
-    if (!teams[name]) throw new Error(`Team ${name} is missing from the open season.`);
-  }
+  const teams = new Map<string, string>();
+  for (const row of teamRows ?? []) teams.set(String(row.name), String(row.id));
 
   const { data: bonusRows, error: bonusError } = await supabase
     .from("bonus_definitions")
@@ -222,86 +231,104 @@ async function refreshCatalog(): Promise<Catalog> {
   }
 
   const { data: members, error: memberError } = await supabase
-    .from("team_members")
-    .select("profile_id, profiles(display_name, created_at), teams(name)")
+    .from("season_members")
+    .select("profile_id, profiles(display_name, created_at)")
     .eq("season_id", season.id);
   fail(memberError, "read roster");
 
+  const teamByProfile = new Map<string, string>();
+  if (scoringMode === "teams") {
+    const { data: assignments, error: assignmentError } = await supabase
+      .from("team_members")
+      .select("profile_id, teams(name)")
+      .eq("season_id", season.id);
+    fail(assignmentError, "read team assignments");
+    for (const assignment of assignments ?? []) {
+      const team = one(assignment.teams as { name: string } | { name: string }[] | null);
+      if (team?.name) teamByProfile.set(String(assignment.profile_id), team.name);
+    }
+  }
+
   const people = new Map<string, PersonRecord>();
   for (const member of members ?? []) {
-    const profile = one(member.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null);
-    const team = one(member.teams as { name: string } | { name: string }[] | null);
-    if (!profile || !team || !isTeam(team.name)) continue;
-    people.set(personKey(profile.display_name, team.name), {
-      id: member.profile_id,
+    const profile = one(
+      member.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null,
+    );
+    if (!profile) continue;
+    const team = teamByProfile.get(String(member.profile_id)) ?? null;
+    people.set(rosterKey(profile.display_name, team), {
+      id: String(member.profile_id),
       person: profile.display_name,
-      team: team.name,
+      team,
       createdAt: profile.created_at,
     });
   }
 
-  catalog = { seasonId: season.id, teams, bonuses, people };
+  catalog = { seasonId: season.id, scoringMode, teams, bonuses, people };
   return catalog;
 }
 
-async function ensurePerson(person: string, team: Team, cat: Catalog): Promise<PersonRecord> {
-  const key = personKey(person, team);
+async function ensurePerson(person: string, team: string | null, cat: Catalog): Promise<PersonRecord> {
+  const key = rosterKey(person, team);
   const cached = cat.people.get(key);
   if (cached) return cached;
 
   const supabase = getSupabase();
   const { data: existing, error: findError } = await supabase
-    .from("team_members")
-    .select("profile_id, profiles!inner(display_name, created_at), teams!inner(name)")
+    .from("season_members")
+    .select("profile_id, profiles!inner(display_name, created_at)")
     .eq("season_id", cat.seasonId)
     .eq("profiles.display_name", person)
-    .eq("teams.name", team)
     .maybeSingle();
   fail(findError, "find person");
+
+  let profileId: string;
+  let createdAt: string;
   if (existing) {
-    const profile = one(existing.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null);
-    const record: PersonRecord = {
-      id: existing.profile_id,
-      person,
-      team,
-      createdAt: profile?.created_at ?? new Date().toISOString(),
-    };
-    cat.people.set(key, record);
-    return record;
+    const profile = one(
+      existing.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null,
+    );
+    profileId = String(existing.profile_id);
+    createdAt = profile?.created_at ?? new Date().toISOString();
+  } else {
+    const { data: inserted, error: insertError } = await supabase
+      .from("profiles")
+      .insert({ display_name: person })
+      .select("id, created_at")
+      .single();
+    fail(insertError, "add person");
+    if (!inserted) throw new Error("add person: no profile returned");
+    const { error: memberError } = await supabase.from("season_members").insert({
+      season_id: cat.seasonId,
+      profile_id: inserted.id,
+    });
+    if (memberError) {
+      await supabase.from("profiles").delete().eq("id", inserted.id);
+      throw new Error(`add roster: ${memberError.message}`);
+    }
+    profileId = inserted.id;
+    createdAt = inserted.created_at;
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from("profiles")
-    .insert({ display_name: person })
-    .select("id, created_at")
-    .single();
-  fail(insertError, "add person");
-  if (!inserted) throw new Error("add person: no profile returned");
-  const { error: memberError } = await supabase.from("team_members").insert({
-    season_id: cat.seasonId,
-    team_id: cat.teams[team],
-    profile_id: inserted.id,
-  });
-  if (memberError) {
-    await supabase.from("profiles").delete().eq("id", inserted.id);
-    throw new Error(`add roster: ${memberError.message}`);
+  if (team) {
+    const teamId = cat.teams.get(team);
+    if (teamId) {
+      const { error: teamError } = await supabase.from("team_members").upsert(
+        { season_id: cat.seasonId, team_id: teamId, profile_id: profileId },
+        { onConflict: "season_id,profile_id" },
+      );
+      fail(teamError, "assign team");
+    }
   }
-  const record: PersonRecord = {
-    id: inserted.id,
-    person,
-    team,
-    createdAt: inserted.created_at,
-  };
+
+  const record: PersonRecord = { id: profileId, person, team, createdAt };
   cat.people.set(key, record);
   return record;
 }
 
-function rosterFromCatalog(cat: Catalog): Array<{ person: string; team: Team }> {
+function rosterFromCatalog(cat: Catalog): Array<{ person: string; team: string | null }> {
   return [...cat.people.values()]
-    .sort(
-      (a, b) =>
-        TEAM_RANK[a.team] - TEAM_RANK[b.team] || a.createdAt.localeCompare(b.createdAt) || a.person.localeCompare(b.person),
-    )
+    .sort(comparePeople)
     .map((person) => ({ person: person.person, team: person.team }));
 }
 
@@ -371,13 +398,10 @@ async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
   const weeks: Record<string, WeekRecord> = {};
   for (const [weekId, rows] of grouped) {
     rows.sort((a, b) => {
-      const teamDelta = TEAM_RANK[a.team] - TEAM_RANK[b.team];
-      if (teamDelta !== 0) return teamDelta;
-      const created =
-        (cat.people.get(personKey(a.person, a.team))?.createdAt ?? "").localeCompare(
-          cat.people.get(personKey(b.person, b.team))?.createdAt ?? "",
-        ) || a.person.localeCompare(b.person);
-      if (created !== 0) return created;
+      const left = cat.people.get(rosterKey(a.person, a.team));
+      const right = cat.people.get(rosterKey(b.person, b.team));
+      const peopleDelta = left && right ? comparePeople(left, right) : a.person.localeCompare(b.person);
+      if (peopleDelta !== 0) return peopleDelta;
       return DAY_NAMES.indexOf(a.day as (typeof DAY_NAMES)[number]) - DAY_NAMES.indexOf(b.day as (typeof DAY_NAMES)[number]);
     });
     weeks[weekId] = { rows, source: sources.get(weekId) ?? "Supabase" };
@@ -416,8 +440,9 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
 
   const people = new Map<string, PersonRecord>();
   for (const row of rows) {
-    const key = personKey(row.person, row.team);
-    if (!people.has(key)) people.set(key, await ensurePerson(row.person, row.team, cat));
+    const team = assignedTeam(cat, row.team);
+    const key = rosterKey(row.person, team);
+    if (!people.has(key)) people.set(key, await ensurePerson(row.person, team, cat));
   }
 
   const dayEntries: Array<{ season_id: string; profile_id: string; entry_date: string; notes: string }> = [];
@@ -441,7 +466,7 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
   for (const row of rows) {
     const offset = DAY_NAMES.indexOf(row.day as (typeof DAY_NAMES)[number]);
     if (offset < 0) continue;
-    const person = people.get(personKey(row.person, row.team));
+    const person = people.get(rosterKey(row.person, assignedTeam(cat, row.team)));
     if (!person) continue;
     const entryDate = addDays(weekId, offset);
     dayEntries.push({

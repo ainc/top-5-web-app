@@ -273,10 +273,176 @@ button:disabled {
   color: #9f1239;
 }
 
+/* Sheet-style scorecard, standings, and the points chart. */
+.dashboard-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.scorecard-wrap,
+.standings-card,
+.chart-card {
+  background: #fffdfb;
+  border: 1px solid #eadfd6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.scorecard {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.scorecard th,
+.scorecard td {
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 1px solid #f3eae3;
+}
+
+.scorecard thead th {
+  background: #1c1917;
+  color: #fffdfb;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.scorecard-summary th {
+  background: #292524;
+  font-variant-numeric: tabular-nums;
+}
+
+.scorecard tbody th {
+  text-align: left;
+  font-weight: 650;
+  background: #fffdfb;
+}
+
+.scorecard .person-start th,
+.scorecard .person-start td {
+  border-top: 2px solid #1c1917;
+}
+
+.heat-done {
+  background: #b7e4c7;
+  font-weight: 700;
+}
+
+.heat-open {
+  background: #f4c2c2;
+  font-weight: 700;
+}
+
+.scorecard-empty {
+  text-align: left;
+  color: #57534e;
+  padding: 16px;
+}
+
+.standings-card,
+.chart-card {
+  padding: 14px 16px 16px;
+}
+
+.standings-card h2,
+.chart-card h2,
+.page h2 {
+  margin: 0 0 10px;
+}
+
+.rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rank-list li {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.place {
+  color: #9f1239;
+  font-weight: 720;
+  font-size: 13px;
+}
+
+.rank-name {
+  display: flex;
+  flex-direction: column;
+  font-weight: 650;
+}
+
+.rank-name small {
+  color: #78716c;
+  font-weight: 550;
+}
+
+.rank-points,
+.bar-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 52px;
+  gap: 10px;
+  align-items: center;
+}
+
+.bar-name {
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  height: 16px;
+  background: #f3eae3;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #9f1239;
+  border-radius: 999px;
+  min-width: 0;
+}
+
+.bar-value {
+  text-align: right;
+}
+
 @media (max-width: 800px) {
   .topbar,
-  .page-head {
+  .page-head,
+  .dashboard-top {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .dashboard-top {
+    display: flex;
+  }
+
+  .bar-row {
+    grid-template-columns: 88px 1fr 48px;
   }
 }

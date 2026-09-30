@@ -1,14 +1,14 @@
 # 5 Across Top 5
 
-A community tracker for daily Top 5 tasks. Each person plans five tasks for every weekday, checks them off, and picks up bonus points. Teams compete across a season of a few weeks.
+A community tracker for daily Top 5 tasks. Each person plans five tasks for every weekday, checks them off, and picks up bonus points. This season scores individuals. A later season can score teams when a commissioner turns that on.
 
 Everyone can see the board. You can only change your own tasks, notes, and checks.
 
 ## Season
 
-A super admin opens a season with a name, a Monday start date, and a length in weeks. Each week is Monday through Friday. People can fill in any weekday in the season, including days that have not happened yet.
+A commissioner opens a season with a name, a Monday start date, and a length in weeks. Each week is Monday through Friday. People can fill in any weekday in the season, including days that have not happened yet.
 
-A season has competing teams. A person is on at most one team in that season. Only people on a roster show up on the board and the leaderboards.
+The open season scores individuals. Only people on the roster show up on the board and the leaderboards. A commissioner can switch a season to team scoring, name the teams, and place each person on at most one team. ACES, Alpha, and Awesomes are not teams. They were section labels on the old sheet.
 
 ## A day
 
@@ -24,7 +24,7 @@ Each slot is a task title and a done checkbox. The day also has a notes field.
 
 ## Scoring
 
-Points come from bonuses. Checking a task marks it done. A super admin can also award points for each completed task; that value starts at 0.
+Points come from bonuses. Checking a task marks it done. A commissioner can also award points for each completed task; that value starts at 0.
 
 A new season starts with these bonuses:
 
@@ -40,18 +40,18 @@ Checking a bonus saves the point value from that moment. A later change to the b
 
 ## Roles
 
-- **Member.** Sign up, then get assigned to a team. Edit your own tasks, notes, and bonus checks. Read everyone's board, leaderboard, and streaks.
-- **Admin.** Create, edit, and retire bonus definitions for a season.
-- **Super admin.** Everything an admin can do, plus seasons, teams, the roster, points per completed task, and granting roles.
+- **Member.** On the season roster. Edit your own tasks, notes, and bonus checks. Read everyone's board, leaderboard, and streaks.
+- **Admin.** Logan's role. Create, edit, and retire bonus definitions for a season. Admins do not edit anyone else's tasks or checks, and they do not open seasons or manage teams.
+- **Commissioner.** Opens seasons, chooses individual or team scoring, manages the roster and teams, sets points per completed task, and grants member and admin roles.
 
-Admins do not edit anyone else's tasks or checks. The first super admin is granted with a SQL insert after that person signs up.
+The developer is not one of these roles. Full database access is the Supabase service role, and that key stays out of the app. A commissioner is a signed-in person, granted in `user_roles` after they sign up.
 
 ## Screens
 
-- **Week board** (`/`). Pick a week in the current season. People are grouped by team. Your rows are editable. Everyone else's are read-only. Each day shows the five tasks, notes, bonus checks, and daily points. On a phone, you edit "my week" and browse everyone else as a read-only list. Checks from other people show up live.
-- **Leaderboard** (`/leaderboard`). Current-week leader, team standings, and individual standings. Team rows show rank, team, this week, and season total. Individual rows show rank, name, team, earlier weeks, this week, and season total. Each past week lists its top scorer and score.
+- **Week board** (`/`). Pick a week in the current season. People are listed individually. Your rows are editable. Everyone else's are read-only. Each day shows the five tasks, notes, bonus checks, and daily points. On a phone, you edit "my week" and browse everyone else as a read-only list. Checks from other people show up live. When a season uses teams, people are grouped by team.
+- **Leaderboard** (`/leaderboard`). Current-week leader and individual standings. Individual rows show rank, name, earlier weeks, this week, and season total. Each past week lists its top scorer and score. Team standings appear only when that season scores teams: rank, team, this week, and season total.
 - **Streaks** (`/streaks`). Current streak and longest streak. A streak is consecutive weekdays with points. Weekends do not break it. A missed weekday does.
-- **Admin** (`/admin`). Seasons, teams, roster, bonuses, and points per completed task. Admins can edit bonuses. Season and team controls are super-admin only.
+- **Admin** (`/admin`). Bonuses for admins. Seasons, scoring mode, teams, roster, and points per completed task for the commissioner.
 
 ## Stack
 
@@ -63,34 +63,29 @@ The list above is the target stack. The app in this repository currently runs th
 
 The browser talks to Supabase with the anon key. There is no custom API. Leaderboard and streak numbers are calculated in SQL. The `day_scores` view is the daily total: completed tasks times points per task, plus the bonus values stored when those boxes were checked.
 
-Signed-in users can read community data. Writes to tasks, notes, and checks are limited to the signed-in user. Season, team, and scoring writes require an admin or super-admin role.
+Signed-in users can read community data. Writes to tasks, notes, and checks are limited to the signed-in user. Bonus writes require an admin or commissioner. Season, roster, team, and scoring writes require a commissioner.
 
 That access rule is the target. This build has no sign-in yet, so the current policies let the publishable key read and write the scorecard. Tighten them when authentication lands.
 
 ## Data
 
-`profiles`, `user_roles`, `seasons`, `teams`, `team_members`, `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time). `week_meta` stores the label for a week, such as a CSV file name. `profiles.auth_user_id` stays empty until that person signs up.
+`profiles`, `user_roles` (`member`, `admin`, `commissioner`), `seasons` (`scoring_mode` is `individual` or `teams`), `season_members` (the roster), `teams`, `team_members` (used only when scoring mode is `teams`), `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time). `week_meta` stores the label for a week, such as a CSV file name. `profiles.auth_user_id` stays empty until that person signs up.
 
 ## This build
 
 The screen is the AG Grid scorecard. TanStack Start, Tailwind, shadcn/ui, and Cloudflare Workers are not installed. Vite, React, AG Grid Community, and Supabase are.
 
-There is no sign-in yet, so My week has a menu for whose rows to edit. Logan Zakeri is the admin once sign-in exists. That role is separate from his group. The first super admin is still a SQL insert after that person signs up:
+There is no sign-in yet, so My week has a menu for whose rows to edit. The open season is individual scoring, so the grid has no team column. Logan Zakeri is the admin once he signs up. The commissioner is a different person. Grant those roles after sign-up:
 
 ```sql
 insert into public.user_roles (profile_id, role)
-select id, 'super_admin' from public.profiles where auth_user_id = '<user uuid>';
+select id, 'admin' from public.profiles where auth_user_id = '<Logan auth user uuid>';
+
+insert into public.user_roles (profile_id, role)
+select id, 'commissioner' from public.profiles where auth_user_id = '<commissioner auth user uuid>';
 ```
 
-### Groups
-
-The colored bars on the sheet are three groups on one scorecard. Each person still has the same five days and the same points.
-
-| Group | Who |
-|---|---|
-| ACES | The ACES section of the sheet |
-| Alpha | Team Alpha, the internship program. The sheet banner reads ALPHIAS |
-| Awesomes | Full-time Awesome Inc staff |
+The service role in `.env.local` is the developer key. It is not a commissioner account.
 
 ### Points in the grid
 
@@ -126,7 +121,7 @@ Open the URL Vite prints, usually http://localhost:5173.
 
 `.env` holds the Supabase URL and publishable key and is safe to commit. `.env.local` holds the service role and database URL. Do not commit `.env.local`.
 
-Apply `supabase/migrations/20260929160000_initial_schema.sql` to the Supabase project before the first run. It opens one season starting Monday, September 28, 2026, twelve weeks long, with ACES, Alpha, and Awesomes, and the three bonuses above.
+`npm run db:apply` runs any pending file in `supabase/migrations`. The open season starts Monday, September 28, 2026, runs twelve weeks, scores individuals, and starts with the three bonuses above. No teams are seeded.
 
 ### Pages
 
@@ -153,14 +148,14 @@ The sheet layout the importer expects:
 
 | Column | Contents |
 |---|---|
-| A | Person name, or a group banner (`ACES`, `ALPHIAS`, `AWESOMES`) on its own row |
+| A | Person name. A row whose only text is a section banner is skipped. It is not a team. |
 | Then five pairs | A checkbox column and a text column for Top, High, Medium, Medium, and Low |
 | Notes | Free text |
 | Top 5 | Checkbox worth 15 |
 | Exercise | Checkbox worth 5 |
 | Reading | Checkbox worth 5 |
 
-A group banner has to be the only text in its row. `public/sample-top5.csv` is a small file in that shape.
+`public/sample-top5.csv` still has those old section banners. The importer skips them and keeps the people.
 
 ### Where the data lives
 
@@ -176,7 +171,7 @@ src/
   App.tsx             Header, week switcher, and the two routes
   supabaseClient.ts   Publishable-key Supabase client
   remoteBoard.ts      Load and save person-days as roster, tasks, notes, and bonuses
-  types.ts            A person-day row and the three groups
+  types.ts            A person-day row. Team is empty unless the season uses teams.
   points.ts           The 15 / 5 / 5 formula and weekly totals
   weeks.ts            Monday dates, blank weeks, and the roster copy
   parseSheetCsv.ts    Turns a Google Sheets CSV into rows
@@ -190,4 +185,4 @@ public/
 supabase/migrations/  Tables, open policies, and the day_scores view
 ```
 
-AG Grid Community is the free edition. The grids use sorting, filtering, and custom cells. Row grouping is a paid feature, so the dashboard sorts by group instead of grouping rows.
+AG Grid Community is the free edition. The grids use sorting, filtering, and custom cells. Row grouping is a paid feature, so a team season sorts by team name instead of grouping rows. This season has no team column. The dashboard sorts by week points.
