@@ -65,17 +65,24 @@ The browser talks to Supabase with the anon key. There is no custom API. Leaderb
 
 Signed-in users can read community data. Writes to tasks, notes, and checks are limited to the signed-in user. Bonus writes require an admin or commissioner. Season, roster, team, and scoring writes require a commissioner.
 
-That access rule is the target. This build has no sign-in yet, so the current policies let the publishable key read and write the scorecard. Tighten them when authentication lands.
+That access rule is the target. This build signs in with Google and adds that person to the current week's roster. The policies still let the publishable key read and write every row, and My week can still open another person's days. Tighten the policies when edits should belong only to the signed-in user.
 
 ## Data
 
-`profiles`, `user_roles` (`member`, `admin`, `commissioner`), `seasons` (`scoring_mode` is `individual` or `teams`), `season_members` (the roster), `teams`, `team_members` (used only when scoring mode is `teams`), `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time). `week_meta` stores the label for a week, such as a CSV file name. `profiles.auth_user_id` stays empty until that person signs up.
+`profiles`, `user_roles` (`member`, `admin`, `commissioner`), `seasons` (`scoring_mode` is `individual` or `teams`), `season_members` (the roster), `teams`, `team_members` (used only when scoring mode is `teams`), `scoring_rules`, `bonus_definitions`, `day_entries` (notes), `tasks` (one row per person, date, and slot), and `bonus_checks` (checked flag plus the point value saved at check time). `week_meta` stores the label for a week, such as a CSV file name. `profiles.auth_user_id` is filled when that person signs in with Google. A matching display name reuses the existing profile.
 
 ## This build
 
-The screen is the AG Grid scorecard. TanStack Start, Tailwind, shadcn/ui, and Cloudflare Workers are not installed. Vite, React, AG Grid Community, and Supabase are.
+The screen is the AG Grid scorecard. TanStack Start, Tailwind, shadcn/ui, and Cloudflare Workers are not installed. Vite, React, AG Grid Community, and Supabase are. The published site is https://top-5-web-app.netlify.app.
 
-There is no sign-in yet, so My week has a menu for whose rows to edit. The open season is individual scoring, so the grid has no team column. Logan Zakeri is the admin once he signs up. The commissioner is a different person. Grant those roles after sign-up:
+**Sign in with Google** sends the browser to Google and back to this site. Supabase stores the session. The Google account's name is added to the open season and to the current Monday–Friday roster, with blank days if that person has none yet. An existing roster row with the same name is linked instead of duplicated. My week opens on that person. The person menu remains, because writes are not limited to the signed-in user yet.
+
+Set `VITE_GOOGLE_WORKSPACE_DOMAIN` (for example `awesomeinc.org`) to ask Google for that Workspace and to reject other email domains. Leave it unset to allow any Google account. In the Supabase project, enable the Google provider and add these redirect URLs:
+
+- `http://localhost:5173`
+- `https://top-5-web-app.netlify.app`
+
+The open season is individual scoring, so the grid has no team column. Logan Zakeri is the admin once he signs up. The commissioner is a different person. Grant those roles after sign-up:
 
 ```sql
 insert into public.user_roles (profile_id, role)
@@ -125,15 +132,17 @@ Open the URL Vite prints, usually http://localhost:5173.
 
 ### Pages
 
-The week control sits under the title and applies to both pages. **Next week** stays disabled on the current week. **Previous week** opens the Monday before. If that week has no saved rows, the same people appear with blank days. Import CSV fills whichever week is selected.
+The week control sits under the title and applies to both pages. **This week** is the Monday through Friday that contains today. When that Monday arrives and the week is not saved yet, the app creates it from the current roster with blank days. A week someone made ahead of time stays in the menu, and it is not labeled This week. **Previous week** opens the Monday before. **Next week** moves forward through a week that already exists, or through any Monday that is not in the future. **New week** still starts a later blank week on purpose.
 
-**My week** (`/`) edits one person. The menu at the top picks who. Checking Top 5, Exercise, or Reading updates that day's points and the weekly total.
+**My week** (`/`) edits one person. The menu at the top picks who, and a Google sign-in selects that person. Checking Top 5, Exercise, or Reading updates that day's points and the weekly total.
 
-**Dashboard** (`/dashboard`) is read-only. The top grid is one row per person, with Monday through Friday and the week total. The grid below is the full task list. The filter box searches both grids.
+**Dashboard** (`/dashboard`) is read-only. The top grid is one row per person, with Monday through Friday and the week total. Below that are the season leaderboard and the streak tracker, then the full task list. The filter box searches the scorecard, the leaderboard, the streaks, and the task grid.
 
-Leaderboard, streaks, and admin from the spec above are not screens yet.
+Season total is weekly points plus streak bonus. A streak is consecutive weekdays with points. Weekends do not break it. A missed weekday does. Today stays open until it has points. Milestone bonuses visible on the sheet, and paid again on each new run, are day 3, 5, and 8 for 5 points, day 10 for 10, day 15 for 20, and days 20 and 25 for 25. The sheet did not show a milestone after day 25.
 
-**Load sample** puts the bundled sample sheet on the current week and saves it. **Import CSV** replaces only the week you are looking at.
+The separate leaderboard and streaks routes are `/leaderboard` and `/streaks`. The same tables stay on the Dashboard. **Admin** (`/admin`) edits the open season, bonuses, roster, team assignments, points per finished task, and roles. It does not require a Google account. Own-row editing still waits on Google sign-in being turned on in Supabase.
+
+**Import CSV** replaces only the week you are looking at.
 
 ### Import the Google Sheet
 
@@ -167,10 +176,12 @@ If Supabase has no days yet, a browser that still has the old `localStorage` boa
 
 ```
 src/
-  main.tsx            Starts React, routing, AG Grid, and the saved board
-  App.tsx             Header, week switcher, and the two routes
+  main.tsx            Starts React, routing, AG Grid, auth, and the saved board
+  App.tsx             Header, Google sign-in, week switcher, and the two routes
+  auth.tsx            Google sign-in session
   supabaseClient.ts   Publishable-key Supabase client
-  remoteBoard.ts      Load and save person-days as roster, tasks, notes, and bonuses
+  remoteBoard.ts      Load and save person-days, and add a signed-in person to this week
+  streaks.ts          Season totals, streak runs, and the milestone ladder
   types.ts            A person-day row. Team is empty unless the season uses teams.
   points.ts           The 15 / 5 / 5 formula and weekly totals
   weeks.ts            Monday dates, blank weeks, and the roster copy
@@ -179,7 +190,9 @@ src/
   columns.tsx         Column definitions for the task grid
   board.tsx           Selected week, import, and the shared AG Grid
   pages/MyWeek.tsx    Editable scorecard for one person
-  pages/Dashboard.tsx Read-only standings and the full task grid
+  pages/Dashboard.tsx Read-only scorecard, standings, and the task grid
+  pages/SeasonBoards.tsx  Season leaderboard and streak tracker
+  pages/Admin.tsx     Season, bonuses, roster, teams, and roles
 public/
   sample-top5.csv     Sample scorecard
 supabase/migrations/  Tables, open policies, and the day_scores view

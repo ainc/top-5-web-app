@@ -67,7 +67,7 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks } = useBoard();
+  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode } = useBoard();
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
 
@@ -85,10 +85,10 @@ export function Dashboard() {
           days,
           completed: days.reduce((sum, day) => sum + day.completed, 0),
           total: days.reduce((sum, day) => sum + day.total, 0),
-          points: mine.reduce((sum, row) => sum + dailyPoints(row), 0),
+          points: mine.reduce((sum, row) => sum + dailyPoints(row, rates), 0),
         };
       });
-  }, [needle, rows]);
+  }, [needle, rates, rows]);
 
   const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
   const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
@@ -155,7 +155,7 @@ export function Dashboard() {
                         <td>{day}</td>
                         <td className={tone}>{score.completed}</td>
                         <td className={tone}>{score.total}</td>
-                        <td />
+                        <td className={tone}>{percentLabel(score.completed, score.total)}</td>
                       </tr>
                     );
                   }),
@@ -212,7 +212,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <SeasonBoards weeks={weeks} needle={needle} />
+      <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} />
 
       <h2>Tasks</h2>
       <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />

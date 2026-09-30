@@ -3,6 +3,7 @@
 
 import { themeQuartz, type ColDef } from "ag-grid-community";
 import { BoolCell, TaskCell } from "./cells";
+import { DEFAULT_RATES, type ScoreRates } from "./points";
 import type { GridRow } from "./types";
 
 export const gridTheme = themeQuartz.withParams({
@@ -56,7 +57,7 @@ function scoreColumn(field: "top5" | "exercise" | "reading", headerName: string)
 // showWeek is on for the dashboard detail grid and off for My week,
 // where the big total already sits above the grid.
 // showGroup is on only when this season scores teams.
-export function buildColumns(showWeek: boolean, showGroup: boolean): ColDef<GridRow>[] {
+export function buildColumns(showWeek: boolean, showGroup: boolean, rates: ScoreRates = DEFAULT_RATES): ColDef<GridRow>[] {
   const columns: ColDef<GridRow>[] = [];
   if (showGroup) {
     columns.push({ field: "team", headerName: "Team", width: 140, pinned: "left" });
@@ -70,9 +71,9 @@ export function buildColumns(showWeek: boolean, showGroup: boolean): ColDef<Grid
     taskColumn("Medium 2", "med2Done", "med2Label"),
     taskColumn("Low priority", "lowDone", "lowLabel"),
     { field: "notes", headerName: "Notes", minWidth: 140, flex: 0.6, editable: (params) => params.context.canEdit },
-    scoreColumn("top5", "Top 5 (15)"),
-    scoreColumn("exercise", "Exercise (5)"),
-    scoreColumn("reading", "Reading (5)"),
+    scoreColumn("top5", `Top 5 (${rates.top5})`),
+    scoreColumn("exercise", `Exercise (${rates.exercise})`),
+    scoreColumn("reading", `Reading (${rates.reading})`),
     // rightAligned's cell class is dropped when cellClass is set, which left
     // "Daily" on the right of the header and the number on the left of the cell.
     {

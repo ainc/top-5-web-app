@@ -6,8 +6,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildColumns, gridTheme } from "./columns";
 import type { GridContext } from "./cells";
 import { importSummary, parseSheetCsv } from "./parseSheetCsv";
-import { dailyPoints, peopleInOrder, personKey, weekPoints } from "./points";
-import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
+import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, type ScoreRates } from "./points";
+import { useAuth } from "./auth";
+import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import type { DayRow, GridRow } from "./types";
 import {
   addDays,
@@ -34,9 +35,10 @@ type BoardValue = {
   weekIds: string[];
   weeks: Record<string, WeekRecord>;
   weekIsBlank: boolean;
+  scoringMode: "individual" | "teams";
+  rates: ScoreRates;
   onPatch: GridContext["onPatch"];
   importCsv: (file: File) => Promise<void>;
-  loadSample: () => Promise<void>;
   selectWeek: (weekId: string) => void;
   goToPreviousWeek: () => void;
   goToNextWeek: () => void;
@@ -62,22 +64,19 @@ function ensureWeek(weeks: Record<string, WeekRecord>, weekId: string, fromWeek:
   };
 }
 
-async function fetchSample(): Promise<DayRow[]> {
-  const response = await fetch("/sample-top5.csv");
-  if (!response.ok) throw new Error("Could not load the sample sheet.");
-  return parseSheetCsv(await response.text());
-}
-
 function textIsEditing(): boolean {
   const active = document.activeElement;
   return active instanceof HTMLInputElement && active.type === "text";
 }
 
 export function BoardProvider({ children }: { children: ReactNode }) {
+  const { ready: authReady, user } = useAuth();
   const [selectedWeek, setSelectedWeek] = useState(currentMonday());
   const [weeks, setWeeks] = useState<Record<string, WeekRecord>>({});
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [scoringMode, setScoringMode] = useState<"individual" | "teams">("individual");
+  const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
   const weeksRef = useRef(weeks);
   const selectedRef = useRef(selectedWeek);
   selectedRef.current = selectedWeek;
@@ -100,19 +99,26 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     [commitWeeks],
   );
 
-  // First paint reads Supabase. The screen stays on "Loading" until that
-  // returns, so a checkbox cannot save against an empty local copy.
+  // Wait for the Google session before the first read. A signed-in person is
+  // added to this week's roster first, then the board loads that week.
+  const userId = user?.id;
   useEffect(() => {
+    if (!authReady) return;
     let cancel = false;
-    loadBoardState()
+    // userId, not the user object: a token refresh must not reload the week
+    // and jump the person back to This week while they are editing.
+    const load = user ? enrollSignedInUser(user).then(() => loadBoardState()) : loadBoardState();
+    load
       .then((state) => {
         if (cancel) return;
         applyLoaded(state, false);
+        setScoringMode(state.scoringMode);
+        setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
         setReady(true);
         if (state.empty) {
           setNotice({
             tone: "info",
-            text: "No scorecard in Supabase yet. Load the sample sheet or import a CSV.",
+            text: "No scorecard in Supabase yet. Import a CSV to fill a week.",
           });
         } else if (state.migratedFromBrowser) {
           setNotice({ tone: "ok", text: "Saved weeks from this browser are now in Supabase." });
@@ -126,7 +132,54 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     return () => {
       cancel = true;
     };
-  }, [applyLoaded]);
+  }, [applyLoaded, authReady, userId]);
+
+  // While the tab stays open, a new Monday creates that week and selects it.
+  // Future weeks made with New week stay in the menu, but they are not "this week".
+  useEffect(() => {
+    if (!ready) return;
+    let seen = currentMonday();
+    const watch = () => {
+      const monday = currentMonday();
+      if (monday === seen) return;
+      seen = monday;
+      loadBoardState()
+        .then((state) => {
+          applyLoaded(state, false);
+          setScoringMode(state.scoringMode);
+          setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
+          setNotice({ tone: "ok", text: `This week is now ${formatWeekLabel(monday)}.` });
+        })
+        .catch((error: unknown) => {
+          setNotice({ tone: "error", text: errorText(error, "Could not open the new week.") });
+        });
+    };
+    const timer = window.setInterval(watch, 60_000);
+    window.addEventListener("focus", watch);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", watch);
+    };
+  }, [applyLoaded, ready]);
+
+  // Admin saves seasons and bonuses in the same database. Reload so a new
+  // point value shows up without a full browser refresh.
+  useEffect(() => {
+    if (!ready) return;
+    const reload = () => {
+      loadBoardState()
+        .then((state) => {
+          applyLoaded(state, true);
+          setScoringMode(state.scoringMode);
+          setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
+        })
+        .catch((error: unknown) => {
+          setNotice({ tone: "error", text: errorText(error, "Could not reload the scorecard.") });
+        });
+    };
+    window.addEventListener("top5-reload", reload);
+    return () => window.removeEventListener("top5-reload", reload);
+  }, [applyLoaded, ready]);
 
   // A remote change reloads the week, but not while our own save is still
   // in flight and not while a task title is focused. Otherwise the reload
@@ -194,20 +247,6 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     },
     [commitWeeks, selectedWeek],
   );
-
-  const loadSample = useCallback(async () => {
-    try {
-      const weekId = currentMonday();
-      const next = withWeekIds(await fetchSample(), weekId);
-      setSelectedWeek(weekId);
-      selectedRef.current = weekId;
-      commitWeeks({ ...weeksRef.current, [weekId]: { rows: next, source: "Sample sheet" } });
-      await saveDays(weekId, next, "Sample sheet", true);
-      setNotice({ tone: "ok", text: `Sample sheet loaded. ${importSummary(next)}` });
-    } catch (error: unknown) {
-      setNotice({ tone: "error", text: errorText(error, "Could not load the sample sheet.") });
-    }
-  }, [commitWeeks]);
 
   const selectWeek = useCallback((weekId: string) => {
     setSelectedWeek(weekId);
@@ -290,9 +329,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weekIds,
       weeks,
       weekIsBlank,
+      scoringMode,
+      rates,
       onPatch,
       importCsv,
-      loadSample,
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
@@ -311,9 +351,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weekIds,
       weeks,
       weekIsBlank,
+      scoringMode,
+      rates,
       onPatch,
       importCsv,
-      loadSample,
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
@@ -332,16 +373,16 @@ export function useBoard(): BoardValue {
 }
 
 // Attach daily and weekly totals so the grid can show them as ordinary columns.
-export function toGridRows(rows: DayRow[]): GridRow[] {
+export function toGridRows(rows: DayRow[], rates: ScoreRates = DEFAULT_RATES): GridRow[] {
   const totals = new Map<string, number>();
   for (const row of rows) {
     const key = personKey(row);
-    totals.set(key, (totals.get(key) ?? 0) + dailyPoints(row));
+    totals.set(key, (totals.get(key) ?? 0) + dailyPoints(row, rates));
   }
   return rows.map((row) => ({
     ...row,
-    daily: dailyPoints(row),
-    week: totals.get(personKey(row)) ?? weekPoints(rows, personKey(row)),
+    daily: dailyPoints(row, rates),
+    week: totals.get(personKey(row)) ?? weekPoints(rows, personKey(row), rates),
   }));
 }
 
@@ -355,10 +396,10 @@ type ScoreGridProps = {
 
 // key={selectedWeek} remounts the grid so a week change cannot leave stale checkboxes.
 export function ScoreGrid({ rows, canEdit, showWeek = false, height, quickFilter }: ScoreGridProps) {
-  const { onPatch, selectedWeek } = useBoard();
-  const gridRows = useMemo(() => toGridRows(rows), [rows]);
+  const { onPatch, selectedWeek, rates } = useBoard();
+  const gridRows = useMemo(() => toGridRows(rows, rates), [rates, rows]);
   const showGroup = rows.some((row) => row.team);
-  const columnDefs = useMemo(() => buildColumns(showWeek, showGroup), [showGroup, showWeek]);
+  const columnDefs = useMemo(() => buildColumns(showWeek, showGroup, rates), [rates, showGroup, showWeek]);
   const context = useMemo<GridContext>(() => ({ canEdit, onPatch }), [canEdit, onPatch]);
 
   return (

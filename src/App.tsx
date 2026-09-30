@@ -2,9 +2,12 @@
 // The selected week lives in BoardProvider, so My week and Dashboard stay in sync.
 
 import { NavLink, Route, Routes } from "react-router-dom";
+import { useAuth } from "./auth";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
+import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
+import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
 import { addDays, formatWeekOption, currentMonday } from "./weeks";
 
 export function App() {
@@ -12,16 +15,17 @@ export function App() {
     source,
     notice,
     importCsv,
-    loadSample,
     selectedWeek,
     weekIds,
     weekIsBlank,
+    rates,
     selectWeek,
     goToPreviousWeek,
     goToNextWeek,
     goToCurrentWeek,
     createNewWeek,
   } = useBoard();
+  const { displayName, error: authError, signInWithGoogle, signOut, user } = useAuth();
   const nextWeekId = addDays(selectedWeek, 7);
   const canGoNext = nextWeekId <= currentMonday() || weekIds.includes(nextWeekId);
 
@@ -38,11 +42,20 @@ export function App() {
             My week
           </NavLink>
           <NavLink to="/dashboard">Dashboard</NavLink>
+          <NavLink to="/leaderboard">Leaderboard</NavLink>
+          <NavLink to="/streaks">Streaks</NavLink>
+          <NavLink to="/admin">Admin</NavLink>
         </nav>
         <div className="actions">
-          <button type="button" onClick={() => void loadSample()}>
-            Load sample
-          </button>
+          {user ? (
+            <button type="button" onClick={() => void signOut()}>
+              Sign out {displayName}
+            </button>
+          ) : (
+            <button type="button" onClick={() => void signInWithGoogle()}>
+              Sign in with Google
+            </button>
+          )}
           <label className="button">
             Import CSV
             <input
@@ -82,18 +95,23 @@ export function App() {
           New week
         </button>
       </div>
+      {authError ? <p className="banner error">{authError}</p> : null}
       {notice ? <p className={`banner ${notice.tone}`}>{notice.text}</p> : null}
       {weekIsBlank ? (
         <p className="banner">No tasks for this week yet. Import that week’s CSV, or fill the grid in on My week.</p>
       ) : null}
       <p className="legend">
         Daily points are 15 for Top 5, 5 for Exercise, and 5 for Reading. A full day is 25, and a full week is 125.
-        The priority checkboxes mark tasks done. They do not add points.
+        The priority checkboxes mark tasks done.
+        {rates.pointsPerTask > 0 ? ` Each finished priority task adds ${rates.pointsPerTask} points.` : " They do not add points."}
       </p>
       {/* My week edits one person. Dashboard is the same week, read only. */}
       <Routes>
         <Route path="/" element={<MyWeek />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/streaks" element={<StreaksPage />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </div>
   );

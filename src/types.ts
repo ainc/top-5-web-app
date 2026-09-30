@@ -23,6 +23,10 @@ export type DayRow = {
   top5: boolean;
   exercise: boolean;
   reading: boolean;
+  // Points copied onto the check when it was saved. Missing means "use today's bonus value".
+  top5Awarded?: number;
+  exerciseAwarded?: number;
+  readingAwarded?: number;
 };
 
 // DayRow plus the numbers the grid displays. Those numbers are derived, not saved.

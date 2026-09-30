@@ -1,15 +1,19 @@
-// Editable scorecard for one person. Sign-in does not exist yet, so the menu picks who.
+// Editable scorecard for one person. A Google sign-in opens that person's rows.
+// The menu stays until row writes are limited to the signed-in user.
 import { useMemo, useState } from "react";
+import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
 import { MAX_WEEK_POINTS, personKey, weekPoints } from "../points";
 
 export function MyWeek() {
-  const { rows, people, ready } = useBoard();
+  const { rows, people, ready, rates } = useBoard();
+  const { displayName } = useAuth();
   const [selectedKey, setSelectedKey] = useState("");
-  const selected = people.some((person) => person.key === selectedKey) ? selectedKey : (people[0]?.key ?? "");
+  const signedInKey = people.find((person) => person.person === displayName)?.key ?? "";
+  const selected = people.some((person) => person.key === selectedKey) ? selectedKey : signedInKey || (people[0]?.key ?? "");
   const person = people.find((item) => item.key === selected);
   const mine = useMemo(() => rows.filter((row) => personKey(row) === selected), [rows, selected]);
-  const total = person ? weekPoints(rows, person.key) : 0;
+  const total = person ? weekPoints(rows, person.key, rates) : 0;
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
 

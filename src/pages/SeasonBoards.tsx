@@ -2,7 +2,9 @@
 // Numbers come from saved weeks. People who only exist on the old sheet are absent until those weeks are imported.
 
 import { useMemo } from "react";
-import { currentWeekLeader, seasonBoard, streakTone, weekWinners } from "../streaks";
+import { useBoard } from "../board";
+import { DEFAULT_RATES, type ScoreRates } from "../points";
+import { currentWeekLeader, seasonBoard, streakTone, teamStandings, weekWinners } from "../streaks";
 import type { WeekRecord } from "../weeks";
 
 function placeLabel(place: number): string {
@@ -20,13 +22,29 @@ function placeLabel(place: number): string {
   }
 }
 
-export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekRecord>; needle: string }) {
+export function SeasonBoards({
+  weeks,
+  needle,
+  rates = DEFAULT_RATES,
+  scoringMode = "individual",
+  part = "all",
+}: {
+  weeks: Record<string, WeekRecord>;
+  needle: string;
+  rates?: ScoreRates;
+  scoringMode?: "individual" | "teams";
+  part?: "all" | "leaderboard" | "streaks";
+}) {
   const people = useMemo(
-    () => seasonBoard(weeks).filter((person) => person.person.toLowerCase().includes(needle) || (person.team ?? "").toLowerCase().includes(needle)),
-    [needle, weeks],
+    () =>
+      seasonBoard(weeks, undefined, rates).filter(
+        (person) => person.person.toLowerCase().includes(needle) || (person.team ?? "").toLowerCase().includes(needle),
+      ),
+    [needle, rates, weeks],
   );
-  const winners = useMemo(() => weekWinners(weeks), [weeks]);
-  const current = useMemo(() => currentWeekLeader(weeks), [weeks]);
+  const winners = useMemo(() => weekWinners(weeks, undefined, rates), [rates, weeks]);
+  const current = useMemo(() => currentWeekLeader(weeks, undefined, rates), [rates, weeks]);
+  const teams = useMemo(() => (scoringMode === "teams" ? teamStandings(people) : []), [people, scoringMode]);
   const ranked = useMemo(() => {
     let place = 1;
     return people.map((person, index) => {
@@ -35,9 +53,14 @@ export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekReco
     });
   }, [people]);
 
+  const showLeaderboard = part === "all" || part === "leaderboard";
+  const showStreaks = part === "all" || part === "streaks";
+
   return (
     <>
-      <h2>Season leaderboard</h2>
+      {showLeaderboard ? <h2>Season leaderboard</h2> : null}
+      {showLeaderboard ? (
+      <>
       <div className="season-layout">
         <div className="scorecard-wrap">
           <p className="current-week-banner">
@@ -49,15 +72,16 @@ export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekReco
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
-                <th>Season total</th>
-                <th>Weekly points</th>
+                <th>Earlier weeks</th>
+                <th>This week</th>
                 <th>Streak bonus</th>
+                <th>Season total</th>
               </tr>
             </thead>
             <tbody>
               {ranked.length === 0 ? (
                 <tr>
-                  <td className="scorecard-empty" colSpan={5}>
+                  <td className="scorecard-empty" colSpan={6}>
                     No season scores yet.
                   </td>
                 </tr>
@@ -66,9 +90,10 @@ export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekReco
                   <tr key={person.key}>
                     <td>{placeLabel(person.place)}</td>
                     <th scope="row">{person.person}</th>
-                    <td>{person.seasonTotal}</td>
-                    <td>{person.weeklyPoints}</td>
+                    <td>{person.earlierWeeks}</td>
+                    <td>{person.thisWeek}</td>
                     <td>{person.streakBonus}</td>
+                    <td>{person.seasonTotal}</td>
                   </tr>
                 ))
               )}
@@ -105,8 +130,35 @@ export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekReco
           </table>
         </div>
       </div>
+      {teams.length > 0 ? (
+        <div className="scorecard-wrap">
+          <table className="scorecard">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>This week</th>
+                <th>Season total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teams.map((team, index) => (
+                <tr key={team.team}>
+                  <td>{placeLabel(index + 1)}</td>
+                  <th scope="row">{team.team}</th>
+                  <td>{team.thisWeek}</td>
+                  <td>{team.seasonTotal}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      </>
+      ) : null}
 
-      <h2>Streak tracker</h2>
+      {showStreaks ? <h2>Streak tracker</h2> : null}
+      {showStreaks ? (
       <div className="scorecard-wrap">
         <table className="scorecard streak-table">
           <thead>
@@ -148,6 +200,27 @@ export function SeasonBoards({ weeks, needle }: { weeks: Record<string, WeekReco
           <span className="streak-gold">Gold, 21+ day streak</span>
         </p>
       </div>
+      ) : null}
     </>
+  );
+}
+
+export function LeaderboardPage() {
+  const { weeks, rates, scoringMode, ready } = useBoard();
+  if (!ready) return <p className="status">Loading the scorecard…</p>;
+  return (
+    <section className="page">
+      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} part="leaderboard" />
+    </section>
+  );
+}
+
+export function StreaksPage() {
+  const { weeks, rates, ready } = useBoard();
+  if (!ready) return <p className="status">Loading the scorecard…</p>;
+  return (
+    <section className="page">
+      <SeasonBoards weeks={weeks} needle="" rates={rates} part="streaks" />
+    </section>
   );
 }

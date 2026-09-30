@@ -14,7 +14,8 @@
 // ignored. The teams tables stay empty until a commissioner turns team
 // scoring on.
 
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { RealtimeChannel, User } from "@supabase/supabase-js";
+import { googleDisplayName } from "./auth";
 import { DAY_NAMES } from "./points";
 import { getSupabase } from "./supabaseClient";
 import type { DayRow } from "./types";
@@ -59,6 +60,9 @@ type PersonRecord = {
 type Catalog = {
   seasonId: string;
   scoringMode: ScoringMode;
+  startsOn: string;
+  lengthWeeks: number;
+  pointsPerTask: number;
   teams: Map<string, string>;
   bonuses: Record<BonusKey, { id: string; points: number }>;
   people: Map<string, PersonRecord>;
@@ -75,6 +79,9 @@ export type LoadedBoard = {
   roster: Array<{ person: string; team: string | null }>;
   migratedFromBrowser: boolean;
   empty: boolean;
+  scoringMode: ScoringMode;
+  pointsPerTask: number;
+  bonusPoints: { top5: number; exercise: number; reading: number };
 };
 
 let catalog: Catalog | null = null;
@@ -222,12 +229,19 @@ async function refreshCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   const { data: season, error: seasonError } = await supabase
     .from("seasons")
-    .select("id, scoring_mode")
+    .select("id, scoring_mode, starts_on, length_weeks")
     .eq("is_open", true)
     .maybeSingle();
   fail(seasonError, "read season");
   if (!season) throw new Error("No open season in Supabase. Apply the migration in supabase/migrations first.");
   const scoringMode: ScoringMode = season.scoring_mode === "teams" ? "teams" : "individual";
+  const { data: rules, error: rulesError } = await supabase
+    .from("scoring_rules")
+    .select("points_per_task")
+    .eq("season_id", season.id)
+    .maybeSingle();
+  fail(rulesError, "read scoring rules");
+  const pointsPerTask = Number(rules?.points_per_task ?? 0);
 
   const { data: teamRows, error: teamError } = await supabase.from("teams").select("id, name").eq("season_id", season.id);
   fail(teamError, "read teams");
@@ -245,8 +259,10 @@ async function refreshCatalog(): Promise<Catalog> {
     const key = String(row.key);
     if (isBonusKey(key)) bonuses[key] = { id: String(row.id), points: Number(row.points) };
   }
+  // A retired bonus is absent here. Keep the key with no id so the board still
+  // opens, and skip writing checks for it. Points for that box are 0.
   for (const field of BONUS_FIELDS) {
-    if (!bonuses[field.key]) throw new Error(`Bonus ${field.key} is missing from the open season.`);
+    if (!bonuses[field.key]) bonuses[field.key] = { id: "", points: 0 };
   }
 
   const { data: members, error: memberError } = await supabase
@@ -283,7 +299,16 @@ async function refreshCatalog(): Promise<Catalog> {
     });
   }
 
-  catalog = { seasonId: season.id, scoringMode, teams, bonuses, people };
+  catalog = {
+    seasonId: season.id,
+    scoringMode,
+    startsOn: String(season.starts_on),
+    lengthWeeks: Number(season.length_weeks),
+    pointsPerTask,
+    teams,
+    bonuses,
+    people,
+  };
   return catalog;
 }
 
@@ -395,7 +420,14 @@ async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
     const row = draftFor(String(check.profile_id), String(check.entry_date));
     const field = bonusField.get(String(check.bonus_id));
     if (!row || !field) continue;
-    row[field] = Boolean(check.checked);
+    const checked = Boolean(check.checked);
+    row[field] = checked;
+    if (checked) {
+      const awarded = Number(check.points_awarded);
+      if (field === "top5") row.top5Awarded = awarded;
+      if (field === "exercise") row.exerciseAwarded = awarded;
+      if (field === "reading") row.readingAwarded = awarded;
+    }
   }
 
   const sources = new Map<string, string>();
@@ -505,6 +537,7 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
       });
     }
     for (const bonus of BONUS_FIELDS) {
+      if (!cat.bonuses[bonus.key].id) continue;
       const checked = row[bonus.field];
       checkRows.push({
         season_id: cat.seasonId,
@@ -594,7 +627,10 @@ async function loadOnce(): Promise<LoadedBoard> {
   const weeks = await fetchWeeks(cat);
   const roster = rosterFromCatalog(cat);
   const today = currentMonday();
-  if (!weeks[today] && roster.length > 0) {
+  // The calendar creates this week, not the New week button. Stop after the
+  // season's last Monday so a 12-week season does not grow forever.
+  const seasonEnd = addDays(mondayOf(parseISODate(cat.startsOn)), (cat.lengthWeeks - 1) * 7);
+  if (!weeks[today] && roster.length > 0 && today <= seasonEnd) {
     const rows = blankWeek(roster, today);
     await writeJob(today, {
       replace: false,
@@ -609,7 +645,77 @@ async function loadOnce(): Promise<LoadedBoard> {
     roster,
     migratedFromBrowser,
     empty: Object.keys(weeks).length === 0,
+    scoringMode: cat.scoringMode,
+    pointsPerTask: cat.pointsPerTask,
+    bonusPoints: {
+      top5: cat.bonuses.top5.points,
+      exercise: cat.bonuses.exercise.points,
+      reading: cat.bonuses.reading.points,
+    },
   };
+}
+
+function workspaceDomain(): string {
+  return String(import.meta.env.VITE_GOOGLE_WORKSPACE_DOMAIN ?? "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+// Google tells us who they are. The scorecard still needs a profile, a roster
+// row, and five blank days on the current Monday. An unsigned profile with the
+// same name is reused, so a second "Logan" is not created when Logan signs up.
+export async function enrollSignedInUser(user: User): Promise<void> {
+  const domain = workspaceDomain();
+  const email = (user.email ?? "").toLowerCase();
+  if (domain && !email.endsWith(`@${domain}`)) {
+    await getSupabase().auth.signOut();
+    throw new Error(`Use a @${domain} Google Workspace account to join the roster.`);
+  }
+
+  const supabase = getSupabase();
+  const googleName = googleDisplayName(user);
+  const { data: linked, error: linkedError } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  fail(linkedError, "find signed-in profile");
+
+  let rosterName = linked?.display_name ?? googleName;
+  if (!linked) {
+    const { data: unclaimed, error: claimError } = await supabase
+      .from("profiles")
+      .select("id, display_name")
+      .is("auth_user_id", null)
+      .ilike("display_name", googleName)
+      .limit(1);
+    fail(claimError, "match roster name");
+    const claim = unclaimed?.[0];
+    if (claim) {
+      const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
+      fail(error, "link roster name");
+      rosterName = claim.display_name;
+    } else {
+      const { error } = await supabase.from("profiles").insert({ display_name: googleName, auth_user_id: user.id });
+      fail(error, "add signed-in profile");
+    }
+  }
+
+  const cat = await refreshCatalog();
+  const person = await ensurePerson(rosterName, null, cat);
+  const monday = currentMonday();
+  const friday = addDays(monday, 4);
+  const { count, error: countError } = await supabase
+    .from("day_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", person.id)
+    .gte("entry_date", monday)
+    .lte("entry_date", friday);
+  fail(countError, "check this week");
+  // Leave a week that already has their days alone. A blank insert would wipe tasks.
+  if ((count ?? 0) > 0) return;
+  await saveDays(monday, blankWeek([{ person: rosterName, team: null }], monday), "Google sign-in");
 }
 
 // Loads share the same queue as saves. A refresh that started before a save

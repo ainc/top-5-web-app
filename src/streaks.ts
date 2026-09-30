@@ -5,8 +5,8 @@
 // Milestone points are the ones visible on the streak sheet. Each new run can earn them again.
 // The sheet screenshot stops at day 25. A longer run keeps counting, and the next milestone stays blank.
 
-import { DAY_NAMES, dailyPoints, personKey } from "./points";
-import { addDays, currentMonday, formatISODate, formatWeekLabel, parseISODate, type WeekRecord } from "./weeks";
+import { DAY_NAMES, dailyPoints, DEFAULT_RATES, personKey, type ScoreRates } from "./points";
+import { addDays, currentMonday, formatISODate, formatWeekLabel, mondayOf, parseISODate, type WeekRecord } from "./weeks";
 
 export const STREAK_MILESTONES = [
   { day: 3, points: 5 },
@@ -24,6 +24,8 @@ export type PersonSeason = {
   key: string;
   person: string;
   team: string | null;
+  earlierWeeks: number;
+  thisWeek: number;
   weeklyPoints: number;
   streakBonus: number;
   seasonTotal: number;
@@ -67,7 +69,10 @@ function nextMilestoneLabel(current: number): string {
 
 type DatedPoints = { date: string; points: number };
 
-function datedPoints(weeks: Record<string, WeekRecord>): Map<string, { person: string; team: string | null; days: DatedPoints[] }> {
+function datedPoints(
+  weeks: Record<string, WeekRecord>,
+  rates: ScoreRates,
+): Map<string, { person: string; team: string | null; days: DatedPoints[] }> {
   const people = new Map<string, { person: string; team: string | null; days: DatedPoints[] }>();
   const weekIds = Object.keys(weeks).sort();
   for (const weekId of weekIds) {
@@ -76,7 +81,7 @@ function datedPoints(weeks: Record<string, WeekRecord>): Map<string, { person: s
       if (offset < 0) continue;
       const key = personKey(row);
       const record = people.get(key) ?? { person: row.person, team: row.team, days: [] };
-      record.days.push({ date: addDays(weekId, offset), points: dailyPoints(row) });
+      record.days.push({ date: addDays(weekId, offset), points: dailyPoints(row, rates) });
       people.set(key, record);
     }
   }
@@ -86,7 +91,17 @@ function datedPoints(weeks: Record<string, WeekRecord>): Map<string, { person: s
 function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key" | "person" | "team"> {
   const end = streakEnd(today);
   const scored = new Set(days.filter((day) => day.points > 0 && day.date <= end).map((day) => day.date));
-  const weeklyPoints = days.reduce((sum, day) => (day.date <= today ? sum + day.points : sum), 0);
+  // Earlier weeks and this week are the README split. Season total also adds
+  // the streak bonus, which is how the sheet's season leaderboard adds up.
+  const thisMonday = currentMonday();
+  let earlierWeeks = 0;
+  let thisWeek = 0;
+  for (const day of days) {
+    if (day.date > today) continue;
+    if (mondayOf(parseISODate(day.date)) === thisMonday) thisWeek += day.points;
+    else earlierWeeks += day.points;
+  }
+  const weeklyPoints = earlierWeeks + thisWeek;
   const first = [...scored].sort()[0];
   const awards: StreakAward[] = [];
   let run = 0;
@@ -121,6 +136,8 @@ function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key"
     .at(-1);
 
   return {
+    earlierWeeks,
+    thisWeek,
     weeklyPoints,
     streakBonus: awards.reduce((sum, award) => sum + award.points, 0),
     seasonTotal: weeklyPoints + awards.reduce((sum, award) => sum + award.points, 0),
@@ -132,13 +149,13 @@ function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key"
   };
 }
 
-export function seasonBoard(weeks: Record<string, WeekRecord>, today = todayISO()): PersonSeason[] {
-  return [...datedPoints(weeks).entries()]
+export function seasonBoard(weeks: Record<string, WeekRecord>, today = todayISO(), rates: ScoreRates = DEFAULT_RATES): PersonSeason[] {
+  return [...datedPoints(weeks, rates).entries()]
     .map(([key, record]) => ({ key, person: record.person, team: record.team, ...summarize(record.days, today) }))
     .sort((a, b) => b.seasonTotal - a.seasonTotal || a.person.localeCompare(b.person));
 }
 
-export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO()): WeekWinner[] {
+export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO(), rates: ScoreRates = DEFAULT_RATES): WeekWinner[] {
   const currentWeek = currentMonday();
   return Object.keys(weeks)
     .filter((weekId) => weekId <= currentWeek)
@@ -153,7 +170,7 @@ export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO(
         if (date > today) continue;
         const key = personKey(row);
         const current = totals.get(key) ?? { name: row.person, points: 0 };
-        current.points += dailyPoints(row);
+        current.points += dailyPoints(row, rates);
         totals.set(key, current);
       }
       const ranked = [...totals.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
@@ -170,6 +187,21 @@ export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO(
     .filter((week) => week.current || week.points > 0);
 }
 
+export type TeamStanding = { team: string; thisWeek: number; seasonTotal: number };
+
+// Team rows exist only in a team season. People with no team are left out.
+export function teamStandings(people: PersonSeason[]): TeamStanding[] {
+  const teams = new Map<string, TeamStanding>();
+  for (const person of people) {
+    if (!person.team) continue;
+    const row = teams.get(person.team) ?? { team: person.team, thisWeek: 0, seasonTotal: 0 };
+    row.thisWeek += person.thisWeek;
+    row.seasonTotal += person.seasonTotal;
+    teams.set(person.team, row);
+  }
+  return [...teams.values()].sort((a, b) => b.seasonTotal - a.seasonTotal || a.team.localeCompare(b.team));
+}
+
 export function streakTone(length: number): string {
   if (length >= 21) return "streak-gold";
   if (length >= 7) return "streak-green";
@@ -177,9 +209,13 @@ export function streakTone(length: number): string {
   return "";
 }
 
-export function currentWeekLeader(weeks: Record<string, WeekRecord>, today = todayISO()): { label: string; detail: string } {
+export function currentWeekLeader(
+  weeks: Record<string, WeekRecord>,
+  today = todayISO(),
+  rates: ScoreRates = DEFAULT_RATES,
+): { label: string; detail: string } {
   const weekId = currentMonday();
-  const winner = weekWinners({ [weekId]: weeks[weekId] ?? { rows: [], source: "" } }, today)[0];
+  const winner = weekWinners({ [weekId]: weeks[weekId] ?? { rows: [], source: "" } }, today, rates)[0];
   return {
     label: `This week · ${formatWeekLabel(weekId)}`,
     detail: winner && winner.points > 0 ? `${winner.names} — ${winner.points} pts` : "No points yet",
