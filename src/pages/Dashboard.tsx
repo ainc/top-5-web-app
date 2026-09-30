@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
+import { SeasonBoards } from "./SeasonBoards";
 import { DAY_NAMES, dailyPoints, peopleInOrder, personKey } from "../points";
 import type { DayRow } from "../types";
 
@@ -66,7 +67,7 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, ready, selectedWeek } = useBoard();
+  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks } = useBoard();
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
 
@@ -130,7 +131,7 @@ export function Dashboard() {
                 <th>Percentage</th>
               </tr>
               <tr className="scorecard-summary">
-                <th colSpan={2}>This week</th>
+                <th colSpan={2}>{isCurrentWeek ? `${weekLabel} (This week)` : weekLabel}</th>
                 <th>{weekCompleted}</th>
                 <th>{weekTotal}</th>
                 <th>{percentLabel(weekCompleted, weekTotal)}</th>
@@ -210,6 +211,8 @@ export function Dashboard() {
           </div>
         )}
       </div>
+
+      <SeasonBoards weeks={weeks} needle={needle} />
 
       <h2>Tasks</h2>
       <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />

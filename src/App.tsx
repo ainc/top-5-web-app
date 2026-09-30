@@ -5,7 +5,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { MyWeek } from "./pages/MyWeek";
-import { addDays, formatWeekLabel, currentMonday } from "./weeks";
+import { addDays, formatWeekOption, currentMonday } from "./weeks";
 
 export function App() {
   const {
@@ -19,6 +19,7 @@ export function App() {
     selectWeek,
     goToPreviousWeek,
     goToNextWeek,
+    goToCurrentWeek,
     createNewWeek,
   } = useBoard();
   const nextWeekId = addDays(selectedWeek, 7);
@@ -66,12 +67,14 @@ export function App() {
           <select value={weekIds.includes(selectedWeek) ? selectedWeek : ""} onChange={(event) => selectWeek(event.target.value)}>
             {weekIds.map((weekId) => (
               <option key={weekId} value={weekId}>
-                {formatWeekLabel(weekId)}
-                {weekId === currentMonday() ? " (This week)" : ""}
+                {formatWeekOption(weekId)}
               </option>
             ))}
           </select>
         </label>
+        <button type="button" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
+          This week
+        </button>
         <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
           Next week
         </button>

@@ -32,6 +32,7 @@ type BoardValue = {
   weekLabel: string;
   isCurrentWeek: boolean;
   weekIds: string[];
+  weeks: Record<string, WeekRecord>;
   weekIsBlank: boolean;
   onPatch: GridContext["onPatch"];
   importCsv: (file: File) => Promise<void>;
@@ -39,6 +40,7 @@ type BoardValue = {
   selectWeek: (weekId: string) => void;
   goToPreviousWeek: () => void;
   goToNextWeek: () => void;
+  goToCurrentWeek: () => void;
   createNewWeek: () => void;
 };
 
@@ -235,6 +237,16 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     openWeek(previous, selectedWeek);
   }, [openWeek, selectedWeek]);
 
+  const goToCurrentWeek = useCallback(() => {
+    const today = currentMonday();
+    setNotice(null);
+    if (weeksRef.current[today]) {
+      setSelectedWeek(today);
+      return;
+    }
+    openWeek(today, selectedWeek);
+  }, [openWeek, selectedWeek]);
+
   const goToNextWeek = useCallback(() => {
     const next = addDays(selectedWeek, 7);
     // A future week is only opened once New week has saved it. Next week does not create one.
@@ -276,6 +288,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weekLabel,
       isCurrentWeek,
       weekIds,
+      weeks,
       weekIsBlank,
       onPatch,
       importCsv,
@@ -283,6 +296,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
+      goToCurrentWeek,
       createNewWeek,
     }),
     [
@@ -295,6 +309,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weekLabel,
       isCurrentWeek,
       weekIds,
+      weeks,
       weekIsBlank,
       onPatch,
       importCsv,
@@ -302,6 +317,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
+      goToCurrentWeek,
       createNewWeek,
     ],
   );

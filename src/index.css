@@ -143,7 +143,7 @@ select,
 }
 
 .week-switcher select {
-  min-width: 220px;
+  min-width: 340px;
   font-weight: 650;
   color: #1c1917;
 }
@@ -440,6 +440,68 @@ button:disabled {
   text-align: right;
 }
 
+.season-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.current-week-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 14px;
+  background: #9f1239;
+  color: #fffdfb;
+}
+
+.winner-current td {
+  background: #44403c;
+  color: #fffdfb;
+  font-weight: 650;
+}
+
+.streak-table .log {
+  text-align: left;
+  font-weight: 500;
+  white-space: normal;
+  min-width: 240px;
+}
+
+.streak-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  font-size: 13px;
+}
+
+.streak-legend span,
+.streak-blue,
+.streak-green,
+.streak-gold {
+  border-radius: 6px;
+}
+
+.streak-legend span {
+  padding: 2px 8px;
+}
+
+.streak-blue {
+  background: #c5d8f6;
+}
+
+.streak-green {
+  background: #b7e4c7;
+}
+
+.streak-gold {
+  background: #f6d98a;
+}
+
 @media (max-width: 800px) {
   .topbar,
   .page-head,
@@ -448,8 +510,10 @@ button:disabled {
     align-items: stretch;
   }
 
-  .dashboard-top {
+  .dashboard-top,
+  .season-layout {
     display: flex;
+    flex-direction: column;
   }
 
   .bar-row {

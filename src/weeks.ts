@@ -47,16 +47,24 @@ export function currentMonday(): string {
   return mondayOf(new Date());
 }
 
-// "Sep 28 – Oct 2" when the week crosses a month, otherwise "Sep 21 – 25".
-export function formatWeekLabel(mondayIso: string): string {
-  const monday = parseISODate(mondayIso);
-  const friday = parseISODate(addDays(mondayIso, 4));
-  const mondayText = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const fridayText =
-    monday.getMonth() === friday.getMonth()
-      ? String(friday.getDate())
-      : friday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return `${mondayText} – ${fridayText}`;
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function shortDate(iso: string): string {
+  const date = parseISODate(iso);
+  return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+// Always Monday through Friday, even if a stored id is some other day of that week.
+// "This week" is the Monday that contains today's date, not the latest week someone opened.
+export function formatWeekLabel(iso: string): string {
+  const monday = mondayOf(parseISODate(iso));
+  return `${shortDate(monday)} – ${shortDate(addDays(monday, 4))}`;
+}
+
+export function formatWeekOption(iso: string, today = currentMonday()): string {
+  const label = formatWeekLabel(iso);
+  return mondayOf(parseISODate(iso)) === today ? `${label} (This week)` : label;
 }
 
 function slug(value: string): string {
