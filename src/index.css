@@ -264,9 +264,19 @@ button:disabled {
   color: #78716c;
 }
 
+/* Header and value share the right edge. The cell value is a flex child, so it needs the auto margin AG Grid uses for a right-aligned column. */
+.points-header .ag-header-cell-label {
+  flex-direction: row-reverse;
+}
+
 .points-cell {
+  text-align: right;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
+}
+
+.points-cell .ag-cell-value {
+  margin-left: auto;
 }
 
 .week-cell {

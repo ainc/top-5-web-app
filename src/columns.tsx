@@ -73,11 +73,13 @@ export function buildColumns(showWeek: boolean, showGroup: boolean): ColDef<Grid
     scoreColumn("top5", "Top 5 (15)"),
     scoreColumn("exercise", "Exercise (5)"),
     scoreColumn("reading", "Reading (5)"),
+    // rightAligned's cell class is dropped when cellClass is set, which left
+    // "Daily" on the right of the header and the number on the left of the cell.
     {
       field: "daily",
       headerName: "Daily",
       width: 90,
-      type: "rightAligned",
+      headerClass: "points-header",
       cellClass: "points-cell",
     },
   );
@@ -87,7 +89,7 @@ export function buildColumns(showWeek: boolean, showGroup: boolean): ColDef<Grid
       field: "week",
       headerName: "Week",
       width: 90,
-      type: "rightAligned",
+      headerClass: "points-header",
       cellClass: "points-cell week-cell",
     });
   }

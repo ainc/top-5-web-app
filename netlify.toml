@@ -1,0 +1,19 @@
+# Static host for the Vite app. There is no Netlify function: the browser
+# talks to Supabase with the publishable key, which Vite inlines at build time.
+# Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in the Netlify UI
+# (or leave .env in the build environment). .env.local must never be set here.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Vite 8 needs a current Node. Netlify's default is older than the one this app uses locally.
+  NODE_VERSION = "22"
+
+# React Router owns / and /dashboard. Without this, a refresh on Dashboard
+# asks Netlify for a file that does not exist and returns 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

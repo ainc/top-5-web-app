@@ -39,6 +39,7 @@ type BoardValue = {
   selectWeek: (weekId: string) => void;
   goToPreviousWeek: () => void;
   goToNextWeek: () => void;
+  createNewWeek: () => void;
 };
 
 const BoardContext = createContext<BoardValue | null>(null);
@@ -235,11 +236,24 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   }, [openWeek, selectedWeek]);
 
   const goToNextWeek = useCallback(() => {
-    const today = currentMonday();
     const next = addDays(selectedWeek, 7);
-    if (next > today) return;
+    // A future week is only opened once New week has saved it. Next week does not create one.
+    if (next > currentMonday() && !weeksRef.current[next]) return;
     setNotice(null);
     openWeek(next, selectedWeek);
+  }, [openWeek, selectedWeek]);
+
+  // The season is filled in ahead of time. This copies the roster onto the
+  // following Monday, including a Monday that has not started yet.
+  const createNewWeek = useCallback(() => {
+    const following = addDays(selectedWeek, 7);
+    const latest = Object.keys(weeksRef.current).sort().at(-1) ?? selectedWeek;
+    const target = weeksRef.current[following] ? addDays(latest, 7) : following;
+    setNotice({
+      tone: "ok",
+      text: `New week started for ${formatWeekLabel(target)}. The roster is blank until you fill it in.`,
+    });
+    openWeek(target, selectedWeek);
   }, [openWeek, selectedWeek]);
 
   const rows = weeks[selectedWeek]?.rows ?? [];
@@ -269,6 +283,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
+      createNewWeek,
     }),
     [
       rows,
@@ -287,6 +302,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       selectWeek,
       goToPreviousWeek,
       goToNextWeek,
+      createNewWeek,
     ],
   );
 

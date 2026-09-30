@@ -5,7 +5,7 @@ import { NavLink, Route, Routes } from "react-router-dom";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { MyWeek } from "./pages/MyWeek";
-import { formatWeekLabel, currentMonday } from "./weeks";
+import { addDays, formatWeekLabel, currentMonday } from "./weeks";
 
 export function App() {
   const {
@@ -15,12 +15,14 @@ export function App() {
     loadSample,
     selectedWeek,
     weekIds,
-    isCurrentWeek,
     weekIsBlank,
     selectWeek,
     goToPreviousWeek,
     goToNextWeek,
+    createNewWeek,
   } = useBoard();
+  const nextWeekId = addDays(selectedWeek, 7);
+  const canGoNext = nextWeekId <= currentMonday() || weekIds.includes(nextWeekId);
 
   return (
     <div className="app">
@@ -54,7 +56,7 @@ export function App() {
           </label>
         </div>
       </header>
-      {/* Both pages read this week. Next week cannot move past the current Monday. */}
+      {/* Both pages read this week. New week can start a Monday that has not arrived yet. */}
       <div className="week-switcher">
         <button type="button" onClick={goToPreviousWeek}>
           Previous week
@@ -70,8 +72,11 @@ export function App() {
             ))}
           </select>
         </label>
-        <button type="button" onClick={goToNextWeek} disabled={isCurrentWeek}>
+        <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
           Next week
+        </button>
+        <button type="button" onClick={createNewWeek}>
+          New week
         </button>
       </div>
       {notice ? <p className={`banner ${notice.tone}`}>{notice.text}</p> : null}
