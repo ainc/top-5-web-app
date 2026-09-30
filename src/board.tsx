@@ -97,6 +97,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     [commitWeeks],
   );
 
+  // First paint reads Supabase. The screen stays on "Loading" until that
+  // returns, so a checkbox cannot save against an empty local copy.
   useEffect(() => {
     let cancel = false;
     loadBoardState()
@@ -123,6 +125,9 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     };
   }, [applyLoaded]);
 
+  // A remote change reloads the week, but not while our own save is still
+  // in flight and not while a task title is focused. Otherwise the reload
+  // would wipe the letters still being typed.
   useEffect(() => {
     if (!ready) return;
     let timer = 0;
@@ -154,7 +159,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Update one row on the week currently on screen, then upsert that day.
+  // The grid updates immediately. The Supabase write follows that day only,
+  // so editing Mack's Monday does not resend the rest of the week.
   const onPatch = useCallback(
     (id: string, patch: Partial<GridRow>) => {
       const week = weeksRef.current[selectedWeek];

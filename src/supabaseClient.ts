@@ -1,4 +1,8 @@
-// Browser client. Uses the publishable key only. The service role stays in .env.local.
+// One browser client for the whole app.
+// Vite only exposes env vars that start with VITE_, so the publishable key is
+// named that way in .env. The service role and database URL stay in .env.local
+// and never reach this file. There is no custom API server: supabase-js calls
+// PostgREST in the browser, and Row Level Security is what limits those calls.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 

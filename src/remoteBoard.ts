@@ -1,6 +1,18 @@
 // Loads and saves the scorecard through Supabase.
-// The grid still thinks in person-day rows. This file splits those rows into
-// roster, tasks, notes, and bonus checks.
+//
+// The grid still edits one DayRow per person per weekday. Postgres does not
+// store that shape. A save splits one row into:
+//   profiles + season_members  who is on the roster
+//   day_entries                the notes for that date
+//   tasks                      five slots (1 Top through 5 Low)
+//   bonus_checks               Top 5, Exercise, and Reading, with the points
+//                              copied at check time so a later bonus edit
+//                              does not rewrite past days
+// A load joins those tables back into DayRows.
+//
+// This season's scoring_mode is "individual", so team names on a row are
+// ignored. The teams tables stay empty until a commissioner turns team
+// scoring on.
 
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { DAY_NAMES } from "./points";
@@ -82,6 +94,8 @@ function rosterKey(person: string, team: string | null): string {
   return team ? `${team}|${person}` : person;
 }
 
+// Sheet banners such as ACES used to arrive as a team name. Drop them unless
+// this season is actually scoring teams, so an import cannot recreate those groups.
 function assignedTeam(cat: Catalog, team: string | null): string | null {
   return cat.scoringMode === "teams" ? team : null;
 }
@@ -139,7 +153,9 @@ function isDayRowArray(value: unknown): value is DayRow[] {
   return Array.isArray(value) && value.length > 0 && typeof value[0]?.person === "string";
 }
 
-// One-time copy of the old browser save, used only when Supabase has no days yet.
+// The first version of this app stored weeks in localStorage. Copy that up only
+// when Supabase has no day_entries. Once the database has rows, it wins, so a
+// second browser cannot overwrite the shared board with its own empty cache.
 function readLocalBoard(): BoardState | null {
   const today = currentMonday();
   try {
@@ -199,6 +215,9 @@ function comparePeople(a: PersonRecord, b: PersonRecord): number {
   return a.createdAt.localeCompare(b.createdAt) || a.person.localeCompare(b.person);
 }
 
+// Everything else hangs off the one open season. Bonuses come from the
+// database so a commissioner can change 15/5/5 without a code change. The
+// grid still labels those boxes 15, 5, and 5 until that UI exists.
 async function refreshCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   const { data: season, error: seasonError } = await supabase
@@ -493,6 +512,8 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
         entry_date: entryDate,
         bonus_id: cat.bonuses[bonus.key].id,
         checked,
+        // Store the point value from this moment. Unchecking clears it so the
+        // next check picks up whatever the bonus is worth then.
         points_awarded: checked ? cat.bonuses[bonus.key].points : 0,
       });
     }
@@ -517,7 +538,10 @@ async function flush(weekId: string): Promise<void> {
   await writeJob(weekId, job);
 }
 
-// Later edits to the same week replace the queued rows, so a burst of checks is one write.
+// Writes run one at a time. A second edit to the same week updates the queued
+// rows instead of starting a second request, so a burst of checks cannot
+// finish out of order and put an older day back. replace=true is an import:
+// it deletes that Monday–Friday first, then inserts the file.
 export function saveDays(weekId: string, rows: DayRow[], source: string, replace = false): Promise<void> {
   const current = pendingWrites.get(weekId) ?? { source, replace: false, rows: new Map<string, DayRow>() };
   current.source = source;
@@ -588,6 +612,8 @@ async function loadOnce(): Promise<LoadedBoard> {
   };
 }
 
+// Loads share the same queue as saves. A refresh that started before a save
+// finished would otherwise paint the older rows back over the checkbox.
 export function loadBoardState(): Promise<LoadedBoard> {
   const run = chain.then(() => loadOnce());
   chain = run.then(
@@ -597,6 +623,9 @@ export function loadBoardState(): Promise<LoadedBoard> {
   return run;
 }
 
+// Other browsers hear inserts and updates on the three tables a checkbox
+// writes. Profiles and the roster are not in this channel; a new person
+// shows up the next time the board reloads.
 export function subscribeToBoard(onChange: () => void): () => void {
   const supabase = getSupabase();
   let channel: RealtimeChannel | null = supabase
