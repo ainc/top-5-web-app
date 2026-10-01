@@ -219,7 +219,8 @@ button:disabled {
   width: 100%;
 }
 
-.grid-wrap.standings {
+.grid-wrap.standings,
+.grid-wrap-auto {
   flex: none;
   height: auto;
   min-height: 0;
@@ -397,6 +398,58 @@ button:disabled {
 
 .task-details .field-help {
   margin: 8px 0 12px;
+}
+
+.task-people {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.person-tasks {
+  border: 1px solid #eadfd6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fffdfb;
+}
+
+.person-tasks header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 14px;
+  color: #fffdfb;
+}
+
+.person-tasks h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.person-tasks header span {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.person-tasks:nth-child(5n + 1) header {
+  background: #9f1239;
+}
+
+.person-tasks:nth-child(5n + 2) header {
+  background: #0f766e;
+}
+
+.person-tasks:nth-child(5n + 3) header {
+  background: #b45309;
+}
+
+.person-tasks:nth-child(5n + 4) header {
+  background: #4338ca;
+}
+
+.person-tasks:nth-child(5n + 5) header {
+  background: #7c3aed;
 }
 
 .scorecard-empty {

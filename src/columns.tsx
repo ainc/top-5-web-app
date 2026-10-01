@@ -57,13 +57,21 @@ function scoreColumn(field: "top5" | "exercise" | "reading", headerName: string)
 // showWeek is on for the dashboard detail grid and off for My week,
 // where the big total already sits above the grid.
 // showGroup is on only when this season scores teams.
-export function buildColumns(showWeek: boolean, showGroup: boolean, rates: ScoreRates = DEFAULT_RATES): ColDef<GridRow>[] {
+// showPerson is off when the name is already a heading above the grid.
+export function buildColumns(
+  showWeek: boolean,
+  showGroup: boolean,
+  rates: ScoreRates = DEFAULT_RATES,
+  showPerson = true,
+): ColDef<GridRow>[] {
   const columns: ColDef<GridRow>[] = [];
   if (showGroup) {
     columns.push({ field: "team", headerName: "Team", width: 140, pinned: "left" });
   }
+  if (showPerson) {
+    columns.push({ field: "person", headerName: "Person", width: 140, pinned: "left" });
+  }
   columns.push(
-    { field: "person", headerName: "Person", width: 140, pinned: "left" },
     { field: "day", headerName: "Day", width: 84, pinned: "left" },
     taskColumn("Top priority", "topDone", "topLabel"),
     taskColumn("High priority", "highDone", "highLabel"),

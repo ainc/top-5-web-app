@@ -2,7 +2,8 @@
 // A day cell is tasks finished over tasks written. Empty days stay blank
 // instead of red, because nothing written is not a missed day.
 // Standings and the bar chart use bonus points, not the task count.
-// The full task grid stays collapsed. The summary above is the skim.
+// The full task grid stays collapsed, one card per person.
+// A shared grid put the next person on the following row, so the names blended together.
 
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
@@ -224,8 +225,31 @@ export function Dashboard() {
 
       <details className="task-details">
         <summary>✅ All tasks</summary>
-        <p className="field-help">Every task title and checkbox for this week. Changes are made on My week.</p>
-        <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />
+        <p className="field-help">Each person has their own Monday–Friday. Changes are made on My week.</p>
+        {people.length === 0 ? (
+          <p className="status">No one matches that filter.</p>
+        ) : (
+          <div className="task-people">
+            {people.map((person) => (
+              <article className="person-tasks" key={person.key}>
+                <header>
+                  <h3>{person.person}</h3>
+                  <span>
+                    {person.team ? `${person.team} · ` : ""}
+                    {person.points.toFixed(1)} pts
+                  </span>
+                </header>
+                <ScoreGrid
+                  rows={rows.filter((row) => personKey(row) === person.key)}
+                  canEdit={false}
+                  showWeek
+                  showPerson={false}
+                  showGroup={false}
+                />
+              </article>
+            ))}
+          </div>
+        )}
       </details>
     </section>
   );

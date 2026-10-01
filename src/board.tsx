@@ -390,20 +390,35 @@ type ScoreGridProps = {
   rows: DayRow[];
   canEdit: boolean;
   showWeek?: boolean;
+  showPerson?: boolean;
+  showGroup?: boolean;
   height?: number | string;
   quickFilter?: string;
 };
 
 // key={selectedWeek} remounts the grid so a week change cannot leave stale checkboxes.
-export function ScoreGrid({ rows, canEdit, showWeek = false, height, quickFilter }: ScoreGridProps) {
+// Omitting height lets the grid grow to its rows. The dashboard uses that so one
+// person's Monday–Friday stays together instead of scrolling inside a shared list.
+export function ScoreGrid({
+  rows,
+  canEdit,
+  showWeek = false,
+  showPerson = true,
+  showGroup,
+  height,
+  quickFilter,
+}: ScoreGridProps) {
   const { onPatch, selectedWeek, rates } = useBoard();
   const gridRows = useMemo(() => toGridRows(rows, rates), [rates, rows]);
-  const showGroup = rows.some((row) => row.team);
-  const columnDefs = useMemo(() => buildColumns(showWeek, showGroup, rates), [rates, showGroup, showWeek]);
+  const grouped = showGroup ?? rows.some((row) => row.team);
+  const columnDefs = useMemo(
+    () => buildColumns(showWeek, grouped, rates, showPerson),
+    [grouped, rates, showPerson, showWeek],
+  );
   const context = useMemo<GridContext>(() => ({ canEdit, onPatch }), [canEdit, onPatch]);
 
   return (
-    <div className="grid-wrap" key={selectedWeek} style={height == null ? undefined : { height }}>
+    <div className={height == null ? "grid-wrap grid-wrap-auto" : "grid-wrap"} key={selectedWeek} style={height == null ? undefined : { height }}>
       <AgGridReact<GridRow>
         theme={gridTheme}
         rowData={gridRows}
@@ -414,6 +429,7 @@ export function ScoreGrid({ rows, canEdit, showWeek = false, height, quickFilter
         enableBrowserTooltips
         tooltipShowDelay={400}
         quickFilterText={quickFilter}
+        domLayout={height == null ? "autoHeight" : "normal"}
         headerHeight={52}
         rowHeight={44}
         suppressCellFocus={!canEdit}
