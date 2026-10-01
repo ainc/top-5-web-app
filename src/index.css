@@ -346,6 +346,59 @@ button:disabled {
   font-weight: 700;
 }
 
+.heat-empty {
+  color: #a8a29e;
+  font-weight: 550;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scorecard-wrap > .section-head {
+  padding: 12px 14px 8px;
+}
+
+.section-head h2,
+.standings-card .section-head h2,
+.chart-card .section-head h2 {
+  margin: 0;
+}
+
+.section-head p,
+.field-help,
+.skim-legend {
+  margin: 0;
+  color: #57534e;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.scorecard-wrap > .section-head + .scorecard thead th:first-child,
+.skim tbody th {
+  text-align: left;
+}
+
+.task-details {
+  background: #fffdfb;
+  border: 1px solid #eadfd6;
+  border-radius: 12px;
+  padding: 12px 14px 14px;
+}
+
+.task-details summary {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+}
+
+.task-details .field-help {
+  margin: 8px 0 12px;
+}
+
 .scorecard-empty {
   text-align: left;
   color: #57534e;
@@ -509,15 +562,40 @@ button:disabled {
 .admin-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 12px;
+  padding: 0 14px 14px;
   background: #fffdfb;
   border: 1px solid #eadfd6;
   border-radius: 12px;
+  overflow: hidden;
 }
 
 .admin-card h2 {
-  margin: 0;
+  margin: 0 -14px 0;
+  padding: 10px 14px;
+  color: #fffdfb;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.admin-card.tone-season h2 {
+  background: #9f1239;
+}
+
+.admin-card.tone-bonus h2 {
+  background: #b45309;
+}
+
+.admin-card.tone-roster h2 {
+  background: #0f766e;
+}
+
+.admin-card.tone-teams h2 {
+  background: #4338ca;
+}
+
+.admin-card.tone-roles h2 {
+  background: #7c3aed;
 }
 
 .admin-card label,
@@ -526,6 +604,12 @@ button:disabled {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.admin-card label.admin-field {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .admin-card input,

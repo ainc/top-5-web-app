@@ -236,28 +236,29 @@ export function Admin() {
 
   return (
     <section className="page admin">
-      <h1>Admin</h1>
+      <h1>⚙️ Admin</h1>
       <p>Bonuses, the open season, the roster, and roles. Sign-in is not required for these edits yet.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
       <form
-        className="admin-card"
+        className="admin-card tone-season"
         onSubmit={(event) => {
           event.preventDefault();
           saveSeason().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save the season."));
         }}
       >
-        <h2>Season</h2>
-        <label>
+        <h2>📅 Season</h2>
+        <label className="admin-field">
           Name
           <input value={season.name} onChange={(event) => setSeason({ ...season, name: event.target.value })} />
         </label>
-        <label>
+        <label className="admin-field">
           Starts
           <input type="date" value={season.starts_on} onChange={(event) => setSeason({ ...season, starts_on: event.target.value })} />
+          <p className="field-help">The Monday the season begins. Each week is that Monday through Friday.</p>
         </label>
-        <label>
+        <label className="admin-field">
           Length in weeks
           <input
             type="number"
@@ -265,8 +266,9 @@ export function Admin() {
             value={season.length_weeks}
             onChange={(event) => setSeason({ ...season, length_weeks: Number(event.target.value) })}
           />
+          <p className="field-help">How many weeks this season runs. A new Monday is created on its own only inside this span.</p>
         </label>
-        <label>
+        <label className="admin-field">
           Scoring
           <select
             value={season.scoring_mode}
@@ -275,22 +277,31 @@ export function Admin() {
             <option value="individual">Individual</option>
             <option value="teams">Teams</option>
           </select>
+          <p className="field-help">
+            Individual ranks each person on their own points. Teams adds a team standing and the assignment list below. Old sheet banners such as ACES, Alpha, and Awesomes are not teams.
+          </p>
         </label>
-        <label>
+        <label className="admin-field">
           Points per finished task
           <input type="number" min={0} value={pointsPerTask} onChange={(event) => setPointsPerTask(Number(event.target.value))} />
+          <p className="field-help">
+            Extra points for each priority box that is checked, on top of Top 5, Exercise, and Reading. Leave this at 0 to score only those three bonuses.
+          </p>
         </label>
         <button type="submit">Save season</button>
       </form>
 
       <form
-        className="admin-card"
+        className="admin-card tone-bonus"
         onSubmit={(event) => {
           event.preventDefault();
           saveBonuses().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save bonuses."));
         }}
       >
-        <h2>Bonuses</h2>
+        <h2>🎁 Bonuses</h2>
+        <p className="field-help">
+          These are the three checkboxes on each day. Retire one to make new checks worth 0. A day that was already checked keeps the points it had.
+        </p>
         {bonuses.map((bonus, index) => (
           <div className="admin-row" key={bonus.id}>
             <span>{bonus.key}</span>
@@ -321,8 +332,9 @@ export function Admin() {
         <button type="submit">Save bonuses</button>
       </form>
 
-      <div className="admin-card">
-        <h2>Roster</h2>
+      <div className="admin-card tone-roster">
+        <h2>👥 Roster</h2>
+        <p className="field-help">People who show up on the board. Removing someone hides them from new weeks. Days already saved stay.</p>
         <form
           className="admin-row"
           onSubmit={(event) => {
@@ -346,8 +358,9 @@ export function Admin() {
       </div>
 
       {season.scoring_mode === "teams" ? (
-        <div className="admin-card">
-          <h2>Teams</h2>
+        <div className="admin-card tone-teams">
+          <h2>🤝 Teams</h2>
+          <p className="field-help">Shown because scoring is set to Teams. Each person can be on one team. No team leaves them out of the team standing.</p>
           <form
             className="admin-row"
             onSubmit={(event) => {
@@ -377,13 +390,16 @@ export function Admin() {
       ) : null}
 
       <form
-        className="admin-card"
+        className="admin-card tone-roles"
         onSubmit={(event) => {
           event.preventDefault();
           saveRoles().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save roles."));
         }}
       >
-        <h2>Roles</h2>
+        <h2>🪪 Roles</h2>
+        <p className="field-help">
+          Member access only stores no extra role. Member is the same access until sign-in limits edits to that person. Admin edits bonuses, which is Logan’s role. Commissioner edits the season, roster, teams, points per task, and these roles.
+        </p>
         <ul className="admin-list">
           {people.map((person) => (
             <li key={person.id}>

@@ -1,6 +1,8 @@
-// Read-only week, laid out like the Google Sheet scorecard.
-// Each person has five day rows: tasks finished, tasks written, and a color.
+// Read-only week. One row per person so the week can be skimmed.
+// A day cell is tasks finished over tasks written. Empty days stay blank
+// instead of red, because nothing written is not a missed day.
 // Standings and the bar chart use bonus points, not the task count.
+// The full task grid stays collapsed. The summary above is the skim.
 
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
@@ -42,8 +44,14 @@ function dayScore(row: DayRow | undefined): DayScore {
 }
 
 function heatClass(score: DayScore): string {
-  if (score.total > 0 && score.completed === score.total) return "heat-done";
+  if (score.total === 0) return "heat-empty";
+  if (score.completed === score.total) return "heat-done";
   return "heat-open";
+}
+
+function dayLabel(score: DayScore): string {
+  if (score.total === 0) return "—";
+  return `${score.completed}/${score.total}`;
 }
 
 function percentLabel(completed: number, total: number): string {
@@ -108,8 +116,8 @@ export function Dashboard() {
     <section className="page">
       <div className="page-head">
         <div>
-          <h1>Dashboard</h1>
-          <p>Finished tasks are green. An open day is red. Standings use Top 5, Exercise, and Reading points.</p>
+          <h1>📊 Dashboard</h1>
+          <p>One row per person. Green is a finished day, red still has open tasks, and a dash means nothing was written.</p>
         </div>
         <input
           className="filter"
@@ -121,52 +129,51 @@ export function Dashboard() {
 
       <div className="dashboard-top" key={selectedWeek}>
         <div className="scorecard-wrap">
-          <table className="scorecard">
+          <div className="section-head">
+            <h2>📋 {isCurrentWeek ? "This week" : "Selected week"}</h2>
+            <p>
+              {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}).
+            </p>
+          </div>
+          <table className="scorecard skim">
             <thead>
               <tr>
-                <th>Names</th>
-                <th>Day</th>
-                <th>Completed</th>
-                <th>Total</th>
-                <th>Percentage</th>
-              </tr>
-              <tr className="scorecard-summary">
-                <th colSpan={2}>{isCurrentWeek ? `${weekLabel} (This week)` : weekLabel}</th>
-                <th>{weekCompleted}</th>
-                <th>{weekTotal}</th>
-                <th>{percentLabel(weekCompleted, weekTotal)}</th>
+                <th>Name</th>
+                {DAY_NAMES.map((day) => (
+                  <th key={day}>{day}</th>
+                ))}
+                <th>Week</th>
+                <th>Points</th>
               </tr>
             </thead>
             <tbody>
               {people.length === 0 ? (
                 <tr>
-                  <td className="scorecard-empty" colSpan={5}>
+                  <td className="scorecard-empty" colSpan={8}>
                     No one matches that filter.
                   </td>
                 </tr>
               ) : (
-                people.flatMap((person) =>
-                  DAY_NAMES.map((day, index) => {
-                    const score = person.days[index];
-                    const tone = heatClass(score);
-                    return (
-                      <tr key={`${person.key}-${day}`} className={index === 0 ? "person-start" : undefined}>
-                        <th scope="row">{person.person}</th>
-                        <td>{day}</td>
-                        <td className={tone}>{score.completed}</td>
-                        <td className={tone}>{score.total}</td>
-                        <td className={tone}>{percentLabel(score.completed, score.total)}</td>
-                      </tr>
-                    );
-                  }),
-                )
+                people.map((person) => (
+                  <tr key={person.key}>
+                    <th scope="row">{person.person}</th>
+                    {person.days.map((score, index) => (
+                      <td key={DAY_NAMES[index]} className={heatClass(score)}>
+                        {dayLabel(score)}
+                      </td>
+                    ))}
+                    <td>{percentLabel(person.completed, person.total)}</td>
+                    <td>{person.points.toFixed(1)}</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
 
         <aside className="standings-card">
-          <h2>Standings</h2>
+          <h2>🏆 Standings</h2>
+          <p className="field-help">Sorted by this week’s bonus points.</p>
           {ranked.length === 0 ? (
             <p className="status">No scores for this week yet.</p>
           ) : (
@@ -187,7 +194,8 @@ export function Dashboard() {
       </div>
 
       <div className="chart-card">
-        <h2>Points this week</h2>
+        <h2>📈 Points this week</h2>
+        <p className="field-help">The longest bar is the leader for the week selected above.</p>
         {ranked.length === 0 ? (
           <p className="status">No scores to chart yet.</p>
         ) : (
@@ -214,8 +222,11 @@ export function Dashboard() {
 
       <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} />
 
-      <h2>Tasks</h2>
-      <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />
+      <details className="task-details">
+        <summary>✅ All tasks</summary>
+        <p className="field-help">Every task title and checkbox for this week. Changes are made on My week.</p>
+        <ScoreGrid rows={rows} canEdit={false} showWeek quickFilter={query} height={560} />
+      </details>
     </section>
   );
 }

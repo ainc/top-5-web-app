@@ -21,7 +21,7 @@ export function MyWeek() {
     <section className="page">
       <div className="page-head">
         <div>
-          <h1>My week</h1>
+          <h1>📝 My week</h1>
           <p>Check Top 5, Exercise, and Reading. Those three boxes are the only ones that add points.</p>
         </div>
         <div className="week-score">

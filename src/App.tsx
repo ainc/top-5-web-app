@@ -39,12 +39,12 @@ export function App() {
         </div>
         <nav>
           <NavLink to="/" end>
-            My week
+            📝 My week
           </NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
-          <NavLink to="/leaderboard">Leaderboard</NavLink>
-          <NavLink to="/streaks">Streaks</NavLink>
-          <NavLink to="/admin">Admin</NavLink>
+          <NavLink to="/dashboard">📊 Dashboard</NavLink>
+          <NavLink to="/leaderboard">🏆 Leaderboard</NavLink>
+          <NavLink to="/streaks">🔥 Streaks</NavLink>
+          <NavLink to="/admin">⚙️ Admin</NavLink>
         </nav>
         <div className="actions">
           {user ? (

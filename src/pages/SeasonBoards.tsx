@@ -58,7 +58,12 @@ export function SeasonBoards({
 
   return (
     <>
-      {showLeaderboard ? <h2>Season leaderboard</h2> : null}
+      {showLeaderboard ? (
+        <div className="section-head">
+          <h2>🥇 Season leaderboard</h2>
+          <p>Earlier weeks, plus this week, plus the streak bonus, is the season total.</p>
+        </div>
+      ) : null}
       {showLeaderboard ? (
       <>
       <div className="season-layout">
@@ -102,6 +107,10 @@ export function SeasonBoards({
         </div>
 
         <div className="scorecard-wrap">
+          <div className="section-head">
+            <h2>🏅 Week winners</h2>
+            <p>The highest score in each saved week. Ties list every name.</p>
+          </div>
           <table className="scorecard">
             <thead>
               <tr>
@@ -132,6 +141,10 @@ export function SeasonBoards({
       </div>
       {teams.length > 0 ? (
         <div className="scorecard-wrap">
+          <div className="section-head">
+            <h2>🤝 Team standings</h2>
+            <p>People with no team are left out. Season total uses the same split as the individual board.</p>
+          </div>
           <table className="scorecard">
             <thead>
               <tr>
@@ -157,7 +170,12 @@ export function SeasonBoards({
       </>
       ) : null}
 
-      {showStreaks ? <h2>Streak tracker</h2> : null}
+      {showStreaks ? (
+        <div className="section-head">
+          <h2>🔥 Streak tracker</h2>
+          <p>Weekdays in a row with points. A weekend does not break a streak. Today stays open until it has points.</p>
+        </div>
+      ) : null}
       {showStreaks ? (
       <div className="scorecard-wrap">
         <table className="scorecard streak-table">
