@@ -601,7 +601,7 @@ export function saveDays(weekId: string, rows: DayRow[], source: string, replace
   return run;
 }
 
-async function loadOnce(): Promise<LoadedBoard> {
+async function loadOnce(createRosterWeek: boolean): Promise<LoadedBoard> {
   const cat = await refreshCatalog();
   const supabase = getSupabase();
   const { count, error } = await supabase
@@ -630,7 +630,7 @@ async function loadOnce(): Promise<LoadedBoard> {
   // The calendar creates this week, not the New week button. Stop after the
   // season's last Monday so a 12-week season does not grow forever.
   const seasonEnd = addDays(mondayOf(parseISODate(cat.startsOn)), (cat.lengthWeeks - 1) * 7);
-  if (!weeks[today] && roster.length > 0 && today <= seasonEnd) {
+  if (createRosterWeek && !weeks[today] && roster.length > 0 && today <= seasonEnd) {
     const rows = blankWeek(roster, today);
     await writeJob(today, {
       replace: false,
@@ -682,6 +682,7 @@ export async function enrollSignedInUser(user: User): Promise<void> {
     .maybeSingle();
   fail(linkedError, "find signed-in profile");
 
+  let profileId = linked?.id as string | undefined;
   let rosterName = linked?.display_name ?? googleName;
   if (!linked) {
     const { data: unclaimed, error: claimError } = await supabase
@@ -695,15 +696,31 @@ export async function enrollSignedInUser(user: User): Promise<void> {
     if (claim) {
       const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
       fail(error, "link roster name");
+      profileId = claim.id;
       rosterName = claim.display_name;
     } else {
-      const { error } = await supabase.from("profiles").insert({ display_name: googleName, auth_user_id: user.id });
+      const { data: inserted, error } = await supabase
+        .from("profiles")
+        .insert({ display_name: googleName, auth_user_id: user.id })
+        .select("id")
+        .single();
       fail(error, "add signed-in profile");
+      if (!inserted) throw new Error("add signed-in profile: no profile returned");
+      profileId = inserted.id;
     }
   }
 
   const cat = await refreshCatalog();
-  const person = await ensurePerson(rosterName, null, cat);
+  const onRoster = [...cat.people.values()].some((person) => person.id === profileId);
+  if (!onRoster && profileId) {
+    const { error } = await supabase.from("season_members").upsert(
+      { season_id: cat.seasonId, profile_id: profileId },
+      { onConflict: "season_id,profile_id" },
+    );
+    fail(error, "join roster");
+  }
+  const fresh = onRoster ? cat : await refreshCatalog();
+  const person = await ensurePerson(rosterName, null, fresh);
   const monday = currentMonday();
   const friday = addDays(monday, 4);
   const { count, error: countError } = await supabase
@@ -720,8 +737,9 @@ export async function enrollSignedInUser(user: User): Promise<void> {
 
 // Loads share the same queue as saves. A refresh that started before a save
 // finished would otherwise paint the older rows back over the checkbox.
-export function loadBoardState(): Promise<LoadedBoard> {
-  const run = chain.then(() => loadOnce());
+export function loadBoardState(options: { createRosterWeek?: boolean } = {}): Promise<LoadedBoard> {
+  const createRosterWeek = options.createRosterWeek === true;
+  const run = chain.then(() => loadOnce(createRosterWeek));
   chain = run.then(
     () => undefined,
     () => undefined,

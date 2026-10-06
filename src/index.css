@@ -78,6 +78,49 @@ nav a.active {
 .actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px 3px 3px;
+  border: 1px solid #d6cdc3;
+  border-radius: 999px;
+  background: #fffdfb;
+}
+
+.account-photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+
+.account-initial {
+  display: grid;
+  place-items: center;
+  background: #9f1239;
+  color: #fffdfb;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.account-name {
+  font-weight: 650;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account button {
+  border: none;
+  background: transparent;
+  color: #57534e;
+  padding: 6px 10px;
 }
 
 button,
@@ -210,6 +253,241 @@ button:disabled {
 .person-picker select,
 .filter {
   min-width: 220px;
+}
+
+/* Person menu and the Board / Grid switch sit on one row. */
+.week-tools {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.layout-toggle {
+  display: inline-flex;
+  border: 1px solid #d6cdc3;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #fffdfb;
+}
+
+.layout-toggle button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 7px 16px;
+  cursor: pointer;
+  color: #57534e;
+}
+
+.layout-toggle button[aria-pressed="true"] {
+  background: #9f1239;
+  color: #fffdfb;
+}
+
+/* Five weekday columns. They share the width, then scroll sideways on a narrow screen. */
+.week-board {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.day-column {
+  flex: 1 0 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 420px;
+  padding: 12px;
+  border: 1px solid #eadfd6;
+  border-radius: 14px;
+  background: #fffdfb;
+}
+
+.day-column.is-today {
+  border-color: #9f1239;
+  box-shadow: inset 0 3px 0 #9f1239;
+}
+
+.day-column-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.day-column-head strong {
+  display: block;
+  font-size: 16px;
+}
+
+.day-column-head span,
+.day-column-head b span {
+  color: #78716c;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.day-column-head b {
+  font-size: 22px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.day-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-task {
+  display: grid;
+  grid-template-columns: 16px auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.day-task input[type="checkbox"],
+.day-score input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: #9f1239;
+}
+
+.day-task-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #78716c;
+  white-space: nowrap;
+}
+
+.day-task.rank-top .day-task-name {
+  color: #9f1239;
+}
+
+.day-task.rank-high .day-task-name {
+  color: #b45309;
+}
+
+.day-task.rank-med .day-task-name {
+  color: #0f766e;
+}
+
+.day-task.rank-med2 .day-task-name {
+  color: #4338ca;
+}
+
+.day-task input[type="text"],
+.day-notes textarea {
+  width: 100%;
+  border: 1px solid transparent;
+  background: #f6f1ea;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #1c1917;
+  font: inherit;
+  line-height: 20px;
+}
+
+.day-task input[type="text"]:focus,
+.day-notes textarea:focus {
+  outline: 2px solid #9f1239;
+  border-color: transparent;
+  background: #fffdfb;
+}
+
+.day-task.is-done input[type="text"],
+.day-task.is-done .task-done {
+  color: transparent;
+}
+
+.day-task.is-done .task-field:focus-within input[type="text"] {
+  color: #1c1917;
+}
+
+.task-field {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.day-task.is-done .task-field::after {
+  content: attr(data-value);
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  white-space: nowrap;
+  color: #a8a29e;
+  font: inherit;
+  line-height: 20px;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+
+.day-task.is-done .task-field:focus-within::after {
+  content: none;
+}
+
+.day-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 650;
+  color: #78716c;
+}
+
+.day-notes textarea {
+  resize: vertical;
+  min-height: 52px;
+}
+
+.day-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.day-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f6f1ea;
+  font-size: 13px;
+}
+
+.day-score b {
+  margin-left: auto;
+  color: #78716c;
+}
+
+.day-score.is-on {
+  background: #f0fdf4;
+}
+
+.day-score.is-on b {
+  color: #166534;
+}
+
+.day-empty {
+  margin: 0;
+  color: #78716c;
+  font-size: 13px;
 }
 
 /* AG Grid needs an explicit height. Standings size themselves to the number of people. */
@@ -649,6 +927,30 @@ button:disabled {
 
 .admin-card.tone-roles h2 {
   background: #7c3aed;
+}
+
+button.save-flash {
+  animation: save-flash 0.7s ease-out;
+  background: #166534;
+  border-color: #166534;
+  color: #fffdfb;
+}
+
+@keyframes save-flash {
+  0% {
+    transform: scale(1.06);
+    background: #4ade80;
+    color: #14532d;
+  }
+  40% {
+    transform: scale(1);
+    background: #166534;
+    color: #fffdfb;
+  }
+  100% {
+    background: #166534;
+    color: #fffdfb;
+  }
 }
 
 .admin-card label,

@@ -7,7 +7,7 @@ import { buildColumns, gridTheme } from "./columns";
 import type { GridContext } from "./cells";
 import { importSummary, parseSheetCsv } from "./parseSheetCsv";
 import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, type ScoreRates } from "./points";
-import { useAuth } from "./auth";
+import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import type { DayRow, GridRow } from "./types";
 import {
@@ -70,7 +70,7 @@ function textIsEditing(): boolean {
 }
 
 export function BoardProvider({ children }: { children: ReactNode }) {
-  const { ready: authReady, user } = useAuth();
+  const { ready: authReady, user, role, roleReady, profileName } = useAuth();
   const [selectedWeek, setSelectedWeek] = useState(currentMonday());
   const [weeks, setWeeks] = useState<Record<string, WeekRecord>>({});
   const [ready, setReady] = useState(false);
@@ -79,7 +79,11 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
   const weeksRef = useRef(weeks);
   const selectedRef = useRef(selectedWeek);
+  const roleRef = useRef(role);
+  const profileNameRef = useRef(profileName);
   selectedRef.current = selectedWeek;
+  roleRef.current = role;
+  profileNameRef.current = profileName;
 
   const commitWeeks = useCallback((next: Record<string, WeekRecord>) => {
     weeksRef.current = next;
@@ -99,15 +103,18 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     [commitWeeks],
   );
 
-  // Wait for the Google session before the first read. A signed-in person is
-  // added to this week's roster first, then the board loads that week.
+  // Wait for the role lookup too. A member must not create blank days for the
+  // rest of the roster, and that choice is only known after the role is read.
   const userId = user?.id;
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !roleReady) return;
     let cancel = false;
+    const staff = canOpenAdmin(role);
     // userId, not the user object: a token refresh must not reload the week
     // and jump the person back to This week while they are editing.
-    const load = user ? enrollSignedInUser(user).then(() => loadBoardState()) : loadBoardState();
+    const load = user
+      ? enrollSignedInUser(user).then(() => loadBoardState({ createRosterWeek: staff }))
+      : loadBoardState({ createRosterWeek: false });
     load
       .then((state) => {
         if (cancel) return;
@@ -132,7 +139,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     return () => {
       cancel = true;
     };
-  }, [applyLoaded, authReady, userId]);
+  }, [applyLoaded, authReady, role, roleReady, userId]);
 
   // While the tab stays open, a new Monday creates that week and selects it.
   // Future weeks made with New week stay in the menu, but they are not "this week".
@@ -143,7 +150,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       const monday = currentMonday();
       if (monday === seen) return;
       seen = monday;
-      loadBoardState()
+      loadBoardState({ createRosterWeek: canOpenAdmin(roleRef.current) })
         .then((state) => {
           applyLoaded(state, false);
           setScoringMode(state.scoringMode);
@@ -221,6 +228,14 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     (id: string, patch: Partial<GridRow>) => {
       const week = weeksRef.current[selectedWeek];
       if (!week) return;
+      const current = week.rows.find((row) => row.id === id);
+      if (!current || !canEditPerson(roleRef.current, profileNameRef.current, current.person)) {
+        setNotice({
+          tone: "error",
+          text: "You can edit your own tasks. An admin or commissioner can edit anyone.",
+        });
+        return;
+      }
       const rows = week.rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
       const changed = rows.find((row) => row.id === id);
       commitWeeks({
@@ -235,6 +250,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const importCsv = useCallback(
     async (file: File) => {
+      if (!canOpenAdmin(roleRef.current)) {
+        setNotice({ tone: "error", text: "Only an admin or commissioner can import a CSV." });
+        return;
+      }
       try {
         const next = withWeekIds(parseSheetCsv(await file.text()), selectedWeek);
         const record: WeekRecord = { rows: next, source: file.name };
@@ -256,6 +275,9 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const openWeek = useCallback(
     (weekId: string, fromWeek: string) => {
       const existed = Boolean(weeksRef.current[weekId]);
+      // A member can open a week that is already saved. Creating one writes a
+      // blank day for every person, which only an admin or commissioner may do.
+      if (!existed && !canOpenAdmin(roleRef.current)) return;
       const next = ensureWeek(weeksRef.current, weekId, fromWeek);
       commitWeeks(next);
       setSelectedWeek(weekId);
@@ -297,6 +319,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   // The season is filled in ahead of time. This copies the roster onto the
   // following Monday, including a Monday that has not started yet.
   const createNewWeek = useCallback(() => {
+    if (!canOpenAdmin(roleRef.current)) {
+      setNotice({ tone: "error", text: "Only an admin or commissioner can start a new week." });
+      return;
+    }
     const following = addDays(selectedWeek, 7);
     const latest = Object.keys(weeksRef.current).sort().at(-1) ?? selectedWeek;
     const target = weeksRef.current[following] ? addDays(latest, 7) : following;

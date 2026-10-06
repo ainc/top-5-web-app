@@ -17,6 +17,11 @@ type AuthValue = {
   ready: boolean;
   user: User | null;
   displayName: string;
+  avatarUrl: string;
+  // Roster name linked to this Google account. Task rows use this, not the Google label.
+  profileName: string;
+  role: string | null;
+  roleReady: boolean;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -24,12 +29,24 @@ type AuthValue = {
 
 const AuthContext = createContext<AuthValue | null>(null);
 
+function googleMeta(user: User): Record<string, unknown> {
+  const identity = user.identities?.find((item) => item.provider === "google")?.identity_data ?? {};
+  return { ...identity, ...(user.user_metadata ?? {}) };
+}
+
 export function googleDisplayName(user: User): string {
-  const meta = user.user_metadata ?? {};
+  const meta = googleMeta(user);
   const fromGoogle = String(meta.full_name || meta.name || "").trim();
   if (fromGoogle) return fromGoogle;
   const local = (user.email ?? "").split("@")[0]?.replace(/[._]+/g, " ").trim();
   return local || "New member";
+}
+
+// Google puts the profile photo on avatar_url or picture. Either can be missing
+// on an older session, so the header falls back to an initial.
+export function googleAvatarUrl(user: User): string {
+  const meta = googleMeta(user);
+  return String(meta.avatar_url || meta.picture || "").trim();
 }
 
 function workspaceDomain(): string {
@@ -39,31 +56,175 @@ function workspaceDomain(): string {
     .toLowerCase();
 }
 
+// Supabase puts a failed Google return in the query or the hash, then getSession()
+// comes back empty. Without reading that message the button stays "Sign in".
+// An error left in the hash also makes the client skip a valid ?code= exchange.
+function takeRedirectError(): string | null {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(url.hash.startsWith("#") ? url.hash.slice(1) : "");
+  const code = url.searchParams.get("code");
+  const accessToken = hash.get("access_token");
+  const errorText = url.searchParams.get("error_description") || hash.get("error_description") || url.searchParams.get("error") || hash.get("error");
+  const hasError = url.searchParams.has("error") || hash.has("error") || hash.has("error_description");
+  if ((code || accessToken) && hasError) {
+    url.searchParams.delete("error");
+    url.searchParams.delete("error_code");
+    url.searchParams.delete("error_description");
+    if (!accessToken) url.hash = "";
+    window.history.replaceState(window.history.state, "", url.toString());
+    return null;
+  }
+  if (!errorText) return null;
+  url.searchParams.delete("error");
+  url.searchParams.delete("error_code");
+  url.searchParams.delete("error_description");
+  url.hash = "";
+  window.history.replaceState(window.history.state, "", url.toString());
+  return decodeURIComponent(errorText.replace(/\+/g, " "));
+}
+
+// Admin is a screen for admin and commissioner only. A member, a signed-out
+// visitor, and a roster name that is not linked to this Google account do not qualify.
+export function canOpenAdmin(role: string | null): boolean {
+  return role === "admin" || role === "commissioner";
+}
+
+// Own tasks match the linked roster name. Admin and commissioner can edit every person.
+export function canEditPerson(role: string | null, profileName: string, person: string): boolean {
+  if (canOpenAdmin(role)) return true;
+  return profileName !== "" && profileName === person;
+}
+
+async function lookupSignedInProfile(userId: string): Promise<{ role: string | null; profileName: string }> {
+  const supabase = getSupabase();
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("auth_user_id", userId)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  if (!profile) return { role: null, profileName: "" };
+  const { data: roleRow, error: roleError } = await supabase.from("user_roles").select("role").eq("profile_id", profile.id).maybeSingle();
+  if (roleError) throw new Error(roleError.message);
+  const role = String(roleRow?.role ?? "");
+  return {
+    role: role === "admin" || role === "commissioner" || role === "member" ? role : null,
+    profileName: String(profile.display_name ?? ""),
+  };
+}
+
+function clearCodeFromUrl(): void {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("code")) return;
+  url.searchParams.delete("code");
+  window.history.replaceState(window.history.state, "", url.toString());
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [profileName, setProfileName] = useState("");
+  const [role, setRole] = useState<string | null>(null);
+  const [roleReady, setRoleReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const redirectError = takeRedirectError();
+    if (redirectError) setError(redirectError);
     const supabase = getSupabase();
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
+    // A null session here is not a sign-out. INITIAL_SESSION can arrive empty
+    // after the Google code has already been stored, and treating that as
+    // signed-out put the button back to "Sign in".
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") setUser(null);
+      else if (session?.user) {
+        setUser(session.user);
+        setError(null);
+      }
       setReady(true);
     });
-    // Do not call the database inside this callback. Supabase waits for it
-    // to finish before the session is stored, which deadlocks a roster write.
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    void supabase.auth.getSession().then(async ({ data: sessionData, error: sessionError }) => {
+      if (sessionError) setError(sessionError.message);
+      if (sessionData.session?.user) {
+        setUser(sessionData.session.user);
+        setError(null);
+        clearCodeFromUrl();
+        setReady(true);
+        return;
+      }
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = hash.get("access_token");
+      const refreshToken = hash.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const { data: restored, error: restoreError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (restoreError) setError(restoreError.message);
+        if (restored.session?.user) {
+          setUser(restored.session.user);
+          setError(null);
+          window.location.hash = "";
+        }
+        setReady(true);
+        return;
+      }
+      const code = new URL(window.location.href).searchParams.get("code");
+      if (!code) {
+        setReady(true);
+        return;
+      }
+      const { data: exchanged, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      if (exchangeError) setError(exchangeError.message);
+      if (exchanged.session?.user) {
+        setUser(exchanged.session.user);
+        setError(null);
+        clearCodeFromUrl();
+      }
       setReady(true);
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (!ready) return;
+    if (!userId) {
+      setProfileName("");
+      setRole(null);
+      setRoleReady(true);
+      return;
+    }
+    let cancel = false;
+    setRoleReady(false);
+    // Outside onAuthStateChange. A database read inside that callback deadlocks the session save.
+    void lookupSignedInProfile(userId)
+      .then((next) => {
+        if (cancel) return;
+        setProfileName(next.profileName);
+        setRole(next.role);
+        setRoleReady(true);
+      })
+      .catch(() => {
+        if (cancel) return;
+        setProfileName("");
+        setRole(null);
+        setRoleReady(true);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [ready, userId]);
 
   const value = useMemo<AuthValue>(
     () => ({
       ready,
       user,
       displayName: user ? googleDisplayName(user) : "",
+      avatarUrl: user ? googleAvatarUrl(user) : "",
+      profileName,
+      role,
+      roleReady,
       error,
       signInWithGoogle: async () => {
         setError(null);
@@ -72,6 +233,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           provider: "google",
           options: {
             redirectTo: window.location.origin,
+            // profile is what returns the account photo and name. Without it the
+            // button can only say "Sign in" again after the redirect.
+            scopes: "openid email profile",
             queryParams: domain ? { hd: domain } : undefined,
           },
         });
@@ -83,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (signOutError) setError(signOutError.message);
       },
     }),
-    [error, ready, user],
+    [error, profileName, ready, role, roleReady, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

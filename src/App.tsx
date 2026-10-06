@@ -1,8 +1,9 @@
 // Shell shared by both pages: title, navigation, import, and the week control.
 // The selected week lives in BoardProvider, so My week and Dashboard stay in sync.
 
-import { NavLink, Route, Routes } from "react-router-dom";
-import { useAuth } from "./auth";
+import { useEffect, useState } from "react";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
+import { canOpenAdmin, useAuth } from "./auth";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
@@ -25,9 +26,14 @@ export function App() {
     goToCurrentWeek,
     createNewWeek,
   } = useBoard();
-  const { displayName, error: authError, signInWithGoogle, signOut, user } = useAuth();
+  const { avatarUrl, displayName, error: authError, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
+  const [photoFailed, setPhotoFailed] = useState(false);
+  useEffect(() => {
+    setPhotoFailed(false);
+  }, [avatarUrl]);
   const nextWeekId = addDays(selectedWeek, 7);
   const canGoNext = nextWeekId <= currentMonday() || weekIds.includes(nextWeekId);
+  const staff = authReady && roleReady && canOpenAdmin(role);
 
   return (
     <div className="app">
@@ -44,30 +50,49 @@ export function App() {
           <NavLink to="/dashboard">📊 Dashboard</NavLink>
           <NavLink to="/leaderboard">🏆 Leaderboard</NavLink>
           <NavLink to="/streaks">🔥 Streaks</NavLink>
-          <NavLink to="/admin">⚙️ Admin</NavLink>
+          {/* Hidden until the signed-in profile is admin or commissioner. A loading gap stays hidden so the link does not flash for everyone else. */}
+          {authReady && roleReady && canOpenAdmin(role) ? <NavLink to="/admin">⚙️ Admin</NavLink> : null}
         </nav>
         <div className="actions">
           {user ? (
-            <button type="button" onClick={() => void signOut()}>
-              Sign out {displayName}
-            </button>
+            <div className="account">
+              {avatarUrl && !photoFailed ? (
+                <img
+                  className="account-photo"
+                  src={avatarUrl}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                  onError={() => setPhotoFailed(true)}
+                />
+              ) : (
+                <span className="account-photo account-initial" aria-hidden="true">
+                  {displayName.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <span className="account-name">{displayName}</span>
+              <button type="button" onClick={() => void signOut()}>
+                Sign out
+              </button>
+            </div>
           ) : (
             <button type="button" onClick={() => void signInWithGoogle()}>
               Sign in with Google
             </button>
           )}
-          <label className="button">
-            Import CSV
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                event.target.value = "";
-                if (file) void importCsv(file);
-              }}
-            />
-          </label>
+          {staff ? (
+            <label className="button">
+              Import CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (file) void importCsv(file);
+                }}
+              />
+            </label>
+          ) : null}
         </div>
       </header>
       {/* Both pages read this week. New week can start a Monday that has not arrived yet. */}
@@ -91,9 +116,11 @@ export function App() {
         <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
           Next week
         </button>
-        <button type="button" onClick={createNewWeek}>
-          New week
-        </button>
+        {staff ? (
+          <button type="button" onClick={createNewWeek}>
+            New week
+          </button>
+        ) : null}
       </div>
       {authError ? <p className="banner error">{authError}</p> : null}
       {notice ? <p className={`banner ${notice.tone}`}>{notice.text}</p> : null}
@@ -111,8 +138,15 @@ export function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/streaks" element={<StreaksPage />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin" element={<AdminGate />} />
       </Routes>
     </div>
   );
+}
+
+function AdminGate() {
+  const { ready, role, roleReady } = useAuth();
+  if (!ready || !roleReady) return null;
+  if (!canOpenAdmin(role)) return <Navigate to="/" replace />;
+  return <Admin />;
 }

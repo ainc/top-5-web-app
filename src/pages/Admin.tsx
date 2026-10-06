@@ -1,9 +1,10 @@
 // Season, bonus, roster, team, and role edits.
-// Google sign-in is not required. The policies are still open, so this page
-// writes with the publishable key. A role is stored on the roster profile.
-// It does not create a Google user.
+// The route only mounts this page for an admin or a commissioner.
+// Those writes also require that role in the database. A member's publishable
+// key cannot change the season or someone else's tasks.
+// A role is stored on the roster profile. It does not create a Google user.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabase } from "../supabaseClient";
 
 type Season = {
@@ -22,6 +23,9 @@ function fail(error: { message: string } | null, action: string): void {
   if (error) throw new Error(`${action}: ${error.message}`);
 }
 
+type SaveButton = "season" | "bonuses" | "roles";
+type Flash = "idle" | "saving" | "saved";
+
 export function Admin() {
   const [season, setSeason] = useState<Season | null>(null);
   const [pointsPerTask, setPointsPerTask] = useState(0);
@@ -32,6 +36,14 @@ export function Admin() {
   const [newTeam, setNewTeam] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  // The banner is easy to miss under the week controls. Each save button changes so the click is obvious.
+  // One timer per button so a second save does not clear the first button's "Saved" state early.
+  const [saveFlash, setSaveFlash] = useState<Record<SaveButton, Flash>>({
+    season: "idle",
+    bonuses: "idle",
+    roles: "idle",
+  });
+  const saveTimers = useRef<Partial<Record<SaveButton, number>>>({});
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
@@ -96,6 +108,32 @@ export function Admin() {
   useEffect(() => {
     load().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load admin."));
   }, [load]);
+
+  useEffect(() => {
+    const timers = saveTimers.current;
+    return () => {
+      for (const id of Object.values(timers)) {
+        if (id != null) window.clearTimeout(id);
+      }
+    };
+  }, []);
+
+  function runSave(button: SaveButton, action: () => Promise<void>, fallback: string) {
+    const pending = saveTimers.current[button];
+    if (pending != null) window.clearTimeout(pending);
+    setSaveFlash((current) => ({ ...current, [button]: "saving" }));
+    action()
+      .then(() => {
+        setSaveFlash((current) => ({ ...current, [button]: "saved" }));
+        saveTimers.current[button] = window.setTimeout(() => {
+          setSaveFlash((current) => ({ ...current, [button]: "idle" }));
+        }, 1800);
+      })
+      .catch((reason: unknown) => {
+        setSaveFlash((current) => ({ ...current, [button]: "idle" }));
+        setError(reason instanceof Error ? reason.message : fallback);
+      });
+  }
 
   function saved(text: string) {
     setError("");
@@ -237,7 +275,7 @@ export function Admin() {
   return (
     <section className="page admin">
       <h1>⚙️ Admin</h1>
-      <p>Bonuses, the open season, the roster, and roles. Sign-in is not required for these edits yet.</p>
+      <p>Season, bonuses, roster, and roles. This screen is open to an admin or a commissioner.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
@@ -245,7 +283,7 @@ export function Admin() {
         className="admin-card tone-season"
         onSubmit={(event) => {
           event.preventDefault();
-          saveSeason().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save the season."));
+          runSave("season", saveSeason, "Could not save the season.");
         }}
       >
         <h2>📅 Season</h2>
@@ -288,14 +326,14 @@ export function Admin() {
             Extra points for each priority box that is checked, on top of Top 5, Exercise, and Reading. Leave this at 0 to score only those three bonuses.
           </p>
         </label>
-        <button type="submit">Save season</button>
+        <SaveButtonView label="Save season" flash={saveFlash.season} />
       </form>
 
       <form
         className="admin-card tone-bonus"
         onSubmit={(event) => {
           event.preventDefault();
-          saveBonuses().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save bonuses."));
+          runSave("bonuses", saveBonuses, "Could not save bonuses.");
         }}
       >
         <h2>🎁 Bonuses</h2>
@@ -329,7 +367,7 @@ export function Admin() {
             </label>
           </div>
         ))}
-        <button type="submit">Save bonuses</button>
+        <SaveButtonView label="Save bonuses" flash={saveFlash.bonuses} />
       </form>
 
       <div className="admin-card tone-roster">
@@ -393,7 +431,7 @@ export function Admin() {
         className="admin-card tone-roles"
         onSubmit={(event) => {
           event.preventDefault();
-          saveRoles().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not save roles."));
+          runSave("roles", saveRoles, "Could not save roles.");
         }}
       >
         <h2>🪪 Roles</h2>
@@ -416,8 +454,16 @@ export function Admin() {
             </li>
           ))}
         </ul>
-        <button type="submit">Save roles</button>
+        <SaveButtonView label="Save roles" flash={saveFlash.roles} />
       </form>
     </section>
+  );
+}
+
+function SaveButtonView({ label, flash }: { label: string; flash: Flash }) {
+  return (
+    <button type="submit" className={flash === "saved" ? "save-flash" : undefined} disabled={flash === "saving"}>
+      {flash === "saving" ? "Saving…" : flash === "saved" ? "Saved" : label}
+    </button>
   );
 }
