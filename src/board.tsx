@@ -9,12 +9,16 @@ import { importSummary, parseSheetCsv } from "./parseSheetCsv";
 import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, type ScoreRates } from "./points";
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
+import { fillBlankSampleTasks } from "./sampleTasks";
 import type { DayRow, GridRow } from "./types";
 import {
   addDays,
   blankWeek,
   currentMonday,
   formatWeekLabel,
+  isPastPlan,
+  nextNewWeekId,
+  planAheadMessage,
   rosterFrom,
   weekIsEmpty,
   withWeekIds,
@@ -44,6 +48,7 @@ type BoardValue = {
   goToNextWeek: () => void;
   goToCurrentWeek: () => void;
   createNewWeek: () => void;
+  loadSample: () => Promise<void>;
 };
 
 const BoardContext = createContext<BoardValue | null>(null);
@@ -310,6 +315,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const goToNextWeek = useCallback(() => {
     const next = addDays(selectedWeek, 7);
+    if (isPastPlan(next)) {
+      setNotice({ tone: "info", text: planAheadMessage() });
+      return;
+    }
     // A future week is only opened once New week has saved it. Next week does not create one.
     if (next > currentMonday() && !weeksRef.current[next]) return;
     setNotice(null);
@@ -318,20 +327,65 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   // The season is filled in ahead of time. This copies the roster onto the
   // following Monday, including a Monday that has not started yet.
+  // The copy stops four weeks past the current Monday.
   const createNewWeek = useCallback(() => {
     if (!canOpenAdmin(roleRef.current)) {
       setNotice({ tone: "error", text: "Only an admin or commissioner can start a new week." });
       return;
     }
-    const following = addDays(selectedWeek, 7);
-    const latest = Object.keys(weeksRef.current).sort().at(-1) ?? selectedWeek;
-    const target = weeksRef.current[following] ? addDays(latest, 7) : following;
+    const target = nextNewWeekId(selectedWeek, Object.keys(weeksRef.current));
+    if (isPastPlan(target)) {
+      setNotice({ tone: "info", text: planAheadMessage() });
+      return;
+    }
     setNotice({
       tone: "ok",
       text: `New week started for ${formatWeekLabel(target)}. The roster is blank until you fill it in.`,
     });
     openWeek(target, selectedWeek);
   }, [openWeek, selectedWeek]);
+
+  // Load sample writes the signed-in person's current week only.
+  // The week on screen may be an older one. The button still fills today's
+  // Monday–Friday, then moves the board there so the new titles are visible.
+  // Other people are not in the save. The database would reject their rows
+  // for a member, and the button is not a roster import.
+  const loadSample = useCallback(async () => {
+    const name = profileNameRef.current.trim();
+    if (!name) {
+      setNotice({ tone: "info", text: "Sign in to load sample tasks for your week." });
+      return;
+    }
+    const weekId = currentMonday();
+    const known = Object.values(weeksRef.current)
+      .flatMap((week) => week.rows)
+      .find((row) => row.person === name);
+    const week = weeksRef.current[weekId] ?? { rows: [], source: "Supabase" };
+    const { rows: mine, changed, filled } = fillBlankSampleTasks(name, known?.team ?? null, weekId, week.rows);
+    if (filled === 0 || changed.length === 0) {
+      setSelectedWeek(weekId);
+      setNotice({ tone: "ok", text: "Your week already has a task in every slot. Nothing was replaced." });
+      return;
+    }
+    const byDay = new Map(mine.map((row) => [row.day, row]));
+    const replaced = week.rows.map((row) => (row.person === name ? (byDay.get(row.day) ?? row) : row));
+    const present = new Set(week.rows.filter((row) => row.person === name).map((row) => row.day));
+    const added = mine.filter((row) => !present.has(row.day));
+    commitWeeks({
+      ...weeksRef.current,
+      [weekId]: { ...week, rows: [...replaced, ...added] },
+    });
+    setSelectedWeek(weekId);
+    setNotice(null);
+    try {
+      // Only days that gained a blank-slot title are written. A day whose
+      // tasks were already filled is not sent, so those titles stay put.
+      await saveDays(weekId, changed, week.source);
+      setNotice({ tone: "ok", text: `Added ${filled} sample tasks to empty slots. Tasks that were already written were left alone.` });
+    } catch (error: unknown) {
+      reportSaveError(error);
+    }
+  }, [commitWeeks, reportSaveError]);
 
   const rows = weeks[selectedWeek]?.rows ?? [];
   const source = weeks[selectedWeek]?.source ?? "Supabase";
@@ -364,6 +418,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       goToNextWeek,
       goToCurrentWeek,
       createNewWeek,
+      loadSample,
     }),
     [
       rows,
@@ -386,6 +441,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       goToNextWeek,
       goToCurrentWeek,
       createNewWeek,
+      loadSample,
     ],
   );
 

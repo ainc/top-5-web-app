@@ -9,7 +9,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
-import { addDays, formatWeekOption, currentMonday } from "./weeks";
+import { addDays, currentMonday, formatWeekOption, isPastPlan, nextNewWeekId, planAheadMessage } from "./weeks";
 
 export function App() {
   const {
@@ -25,6 +25,7 @@ export function App() {
     goToNextWeek,
     goToCurrentWeek,
     createNewWeek,
+    loadSample,
   } = useBoard();
   const { avatarUrl, displayName, error: authError, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -32,7 +33,9 @@ export function App() {
     setPhotoFailed(false);
   }, [avatarUrl]);
   const nextWeekId = addDays(selectedWeek, 7);
-  const canGoNext = nextWeekId <= currentMonday() || weekIds.includes(nextWeekId);
+  const nextPastPlan = isPastPlan(nextWeekId);
+  const canGoNext = !nextPastPlan && (nextWeekId <= currentMonday() || weekIds.includes(nextWeekId));
+  const newWeekPastPlan = isPastPlan(nextNewWeekId(selectedWeek, weekIds));
   const staff = authReady && roleReady && canOpenAdmin(role);
 
   return (
@@ -79,6 +82,12 @@ export function App() {
               Sign in with Google
             </button>
           )}
+          {/* Fills empty slots on the signed-in person's current week.
+              A task that already has text, on any day, is not replaced.
+              Import CSV stays staff-only because that file replaces a whole week. */}
+          <button type="button" onClick={() => void loadSample()} disabled={Boolean(user) && !roleReady}>
+            Load sample
+          </button>
           {staff ? (
             <label className="button">
               Import CSV
@@ -95,7 +104,7 @@ export function App() {
           ) : null}
         </div>
       </header>
-      {/* Both pages read this week. New week can start a Monday that has not arrived yet. */}
+      {/* Both pages read this week. New week can start a Monday up to four weeks from this one. */}
       <div className="week-switcher">
         <button type="button" onClick={goToPreviousWeek}>
           Previous week
@@ -113,19 +122,20 @@ export function App() {
         <button type="button" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
           This week
         </button>
-        <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
+        <button type="button" onClick={goToNextWeek} disabled={!canGoNext} title={nextPastPlan ? planAheadMessage() : undefined}>
           Next week
         </button>
         {staff ? (
-          <button type="button" onClick={createNewWeek}>
+          <button type="button" onClick={createNewWeek} disabled={newWeekPastPlan} title={newWeekPastPlan ? planAheadMessage() : undefined}>
             New week
           </button>
         ) : null}
       </div>
       {authError ? <p className="banner error">{authError}</p> : null}
+      {nextPastPlan || (staff && newWeekPastPlan) ? <p className="banner info">{planAheadMessage()}</p> : null}
       {notice ? <p className={`banner ${notice.tone}`}>{notice.text}</p> : null}
       {weekIsBlank ? (
-        <p className="banner">No tasks for this week yet. Import that week’s CSV, or fill the grid in on My week.</p>
+        <p className="banner">No tasks for this week yet. Load sample fills your empty slots, or type them on My week.</p>
       ) : null}
       <p className="legend">
         Daily points are 15 for Top 5, 5 for Exercise, and 5 for Reading. A full day is 25, and a full week is 125.

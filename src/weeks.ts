@@ -47,6 +47,30 @@ export function currentMonday(): string {
   return mondayOf(new Date());
 }
 
+// Each future week is a saved day for every person. Next week and New week
+// stop here so planning cannot run months ahead of today.
+export const PLAN_AHEAD_WEEKS = 4;
+
+export function furthestPlannableMonday(today = currentMonday()): string {
+  return addDays(today, PLAN_AHEAD_WEEKS * 7);
+}
+
+export function isPastPlan(weekId: string, today = currentMonday()): boolean {
+  return mondayOf(parseISODate(weekId)) > furthestPlannableMonday(today);
+}
+
+export function planAheadMessage(): string {
+  return `Love the energy. New weeks stop ${PLAN_AHEAD_WEEKS} weeks from this one, so we don't save a pile of empty days.`;
+}
+
+// New week adds the next Monday, or the Monday after the latest saved week
+// when that next Monday is already on the board.
+export function nextNewWeekId(selectedWeek: string, weekIds: readonly string[]): string {
+  const following = addDays(selectedWeek, 7);
+  const latest = [...weekIds].sort().at(-1) ?? selectedWeek;
+  return weekIds.includes(following) ? addDays(latest, 7) : following;
+}
+
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
