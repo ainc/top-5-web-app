@@ -20,6 +20,8 @@ type AuthValue = {
   avatarUrl: string;
   // Roster name linked to this Google account. Task rows use this, not the Google label.
   profileName: string;
+  profileId: string;
+  nickname: string;
   role: string | null;
   roleReady: boolean;
   error: string | null;
@@ -95,21 +97,23 @@ export function canEditPerson(role: string | null, profileName: string, person: 
   return profileName !== "" && profileName === person;
 }
 
-async function lookupSignedInProfile(userId: string): Promise<{ role: string | null; profileName: string }> {
+async function lookupSignedInProfile(userId: string): Promise<{ role: string | null; profileName: string; profileId: string; nickname: string }> {
   const supabase = getSupabase();
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, nickname")
     .eq("auth_user_id", userId)
     .maybeSingle();
   if (profileError) throw new Error(profileError.message);
-  if (!profile) return { role: null, profileName: "" };
+  if (!profile) return { role: null, profileName: "", profileId: "", nickname: "" };
   const { data: roleRow, error: roleError } = await supabase.from("user_roles").select("role").eq("profile_id", profile.id).maybeSingle();
   if (roleError) throw new Error(roleError.message);
   const role = String(roleRow?.role ?? "");
   return {
     role: role === "admin" || role === "commissioner" || role === "member" ? role : null,
     profileName: String(profile.display_name ?? ""),
+    profileId: String(profile.id),
+    nickname: String(profile.nickname ?? "").trim(),
   };
 }
 
@@ -124,6 +128,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profileName, setProfileName] = useState("");
+  const [profileId, setProfileId] = useState("");
+  const [nickname, setNickname] = useState("");
   const [role, setRole] = useState<string | null>(null);
   const [roleReady, setRoleReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,28 +197,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!ready) return;
     if (!userId) {
       setProfileName("");
+      setProfileId("");
+      setNickname("");
       setRole(null);
       setRoleReady(true);
       return;
     }
     let cancel = false;
     setRoleReady(false);
+    const apply = (next: { role: string | null; profileName: string; profileId: string; nickname: string }, readyRole: boolean) => {
+      if (cancel) return;
+      setProfileName(next.profileName);
+      setProfileId(next.profileId);
+      setNickname(next.nickname);
+      setRole(next.role);
+      if (readyRole) setRoleReady(true);
+    };
     // Outside onAuthStateChange. A database read inside that callback deadlocks the session save.
     void lookupSignedInProfile(userId)
-      .then((next) => {
-        if (cancel) return;
-        setProfileName(next.profileName);
-        setRole(next.role);
-        setRoleReady(true);
-      })
+      .then((next) => apply(next, true))
       .catch(() => {
         if (cancel) return;
         setProfileName("");
+        setProfileId("");
+        setNickname("");
         setRole(null);
         setRoleReady(true);
       });
+    const refresh = () => {
+      void lookupSignedInProfile(userId)
+        .then((next) => apply(next, false))
+        .catch(() => undefined);
+    };
+    window.addEventListener("top5-reload", refresh);
     return () => {
       cancel = true;
+      window.removeEventListener("top5-reload", refresh);
     };
   }, [ready, userId]);
 
@@ -223,6 +243,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName: user ? googleDisplayName(user) : "",
       avatarUrl: user ? googleAvatarUrl(user) : "",
       profileName,
+      profileId,
+      nickname,
       role,
       roleReady,
       error,
@@ -247,7 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (signOutError) setError(signOutError.message);
       },
     }),
-    [error, profileName, ready, role, roleReady, user],
+    [error, nickname, profileId, profileName, ready, role, roleReady, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

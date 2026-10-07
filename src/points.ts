@@ -7,26 +7,56 @@
 import type { DayRow } from "./types";
 
 export const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const;
-export const MAX_DAY_POINTS = 25;
-export const MAX_WEEK_POINTS = MAX_DAY_POINTS * DAY_NAMES.length;
+export const BUILTIN_BONUS_KEYS = ["top5", "exercise", "reading"] as const;
+export type BuiltinBonusKey = (typeof BUILTIN_BONUS_KEYS)[number];
 
-// The sheet formula is only the three bonuses. pointsPerTask stays 0 until a
-// commissioner sets it, so priority checkboxes do not add points yet.
-// A checked bonus uses the points stored on that day when we have them, so a
-// later change to the bonus does not rewrite past days.
+export function isBuiltinBonus(key: string): key is BuiltinBonusKey {
+  return key === "top5" || key === "exercise" || key === "reading";
+}
+
+export type ExtraBonusRate = { key: string; name: string; points: number };
+
+// pointsPerTask stays 0 until a commissioner sets it, so priority checkboxes
+// do not add points yet. A checked bonus uses the points stored on that day
+// when we have them, so a later change to the bonus does not rewrite past days.
+// extras are bonuses added in Admin. Top 5, Exercise, and Reading stay separate
+// because Top 5 is filled in from the five task boxes.
 export type ScoreRates = {
   pointsPerTask: number;
   top5: number;
   exercise: number;
   reading: number;
+  top5Name: string;
+  exerciseName: string;
+  readingName: string;
+  extras: ExtraBonusRate[];
 };
 
-export const DEFAULT_RATES: ScoreRates = { pointsPerTask: 0, top5: 15, exercise: 5, reading: 5 };
+export const DEFAULT_RATES: ScoreRates = {
+  pointsPerTask: 0,
+  top5: 15,
+  exercise: 5,
+  reading: 5,
+  top5Name: "Top 5",
+  exerciseName: "Exercise",
+  readingName: "Reading",
+  extras: [],
+};
+
+export function maxDayPoints(rates: ScoreRates = DEFAULT_RATES): number {
+  const extras = rates.extras.reduce((sum, bonus) => sum + bonus.points, 0);
+  return rates.pointsPerTask * 5 + rates.top5 + rates.exercise + rates.reading + extras;
+}
+
+export function maxWeekPoints(rates: ScoreRates = DEFAULT_RATES): number {
+  return maxDayPoints(rates) * DAY_NAMES.length;
+}
 
 type ScoredDay = Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone" | "top5" | "exercise" | "reading"> & {
   top5Awarded?: number;
   exerciseAwarded?: number;
   readingAwarded?: number;
+  extraChecks?: DayRow["extraChecks"];
 };
 
 export function completedTaskCount(row: Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone">): number {
@@ -55,7 +85,13 @@ export function dailyPoints(row: ScoredDay, rates: ScoreRates = DEFAULT_RATES): 
   const top = row.top5 ? (row.top5Awarded ?? rates.top5) : 0;
   const exercise = row.exercise ? (row.exerciseAwarded ?? rates.exercise) : 0;
   const reading = row.reading ? (row.readingAwarded ?? rates.reading) : 0;
-  return tasks + top + exercise + reading;
+  let extras = 0;
+  for (const [key, check] of Object.entries(row.extraChecks ?? {})) {
+    if (!check.checked) continue;
+    const live = rates.extras.find((bonus) => bonus.key === key);
+    extras += check.awarded ?? live?.points ?? 0;
+  }
+  return tasks + top + exercise + reading + extras;
 }
 
 // A team name is part of the key only when this season actually has teams.

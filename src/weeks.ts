@@ -134,6 +134,7 @@ export function blankWeek(people: Array<{ person: string; team: string | null }>
       top5: false,
       exercise: false,
       reading: false,
+      extraChecks: {},
     })),
   );
 }
@@ -157,7 +158,8 @@ export function weekIsEmpty(rows: DayRow[]): boolean {
         !row.lowDone &&
         !row.top5 &&
         !row.exercise &&
-        !row.reading,
+        !row.reading &&
+        !Object.values(row.extraChecks ?? {}).some((check) => check.checked),
     )
   );
 }

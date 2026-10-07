@@ -126,6 +126,7 @@ nav a.active {
 button,
 .button,
 select,
+.person-picker input,
 .filter {
   border: 1px solid #d6cdc3;
   background: #fffdfb;
@@ -245,6 +246,55 @@ select,
   color: #1c1917;
 }
 
+.season-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(420px, calc(100% - 40px));
+  margin: 14px auto 0;
+  padding: 12px 16px 14px;
+  border: 1px solid #eadfd6;
+  border-radius: 16px;
+  background: #fffdfb;
+  box-shadow: 0 10px 24px rgb(80 20 30 / 6%);
+  text-align: center;
+}
+
+.season-strip-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9f1239;
+}
+
+.season-strip strong {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.season-track {
+  width: 100%;
+  height: 8px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: #f3d6d8;
+  overflow: hidden;
+}
+
+.season-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #9f1239;
+}
+
+.season-strip small {
+  color: #57534e;
+  font-size: 12px;
+}
+
 button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -333,6 +383,7 @@ button:disabled {
 }
 
 .person-picker select,
+.person-picker input,
 .filter {
   min-width: 220px;
 }
@@ -628,6 +679,14 @@ button:disabled {
 .day-strip .grid-wrap {
   height: auto;
   min-height: 0;
+}
+
+/* AG Grid reserves 150px under an auto-height grid so an empty table still has a body.
+   Each day card has one row, so that floor is just blank space under the tasks.
+   44px matches the rowHeight passed to ScoreGrid. */
+.day-strip .ag-layout-auto-height.ag-grid-scrolling-rows {
+  min-height: 0;
+  height: 44px;
 }
 
 /* AG Grid needs an explicit height. Standings size themselves to the number of people. */
@@ -1165,6 +1224,7 @@ html[data-theme="dark"] .status,
 html[data-theme="dark"] .field-help,
 html[data-theme="dark"] .skim-legend,
 html[data-theme="dark"] .section-head p,
+html[data-theme="dark"] .season-strip small,
 html[data-theme="dark"] .week-switcher label,
 html[data-theme="dark"] .person-picker,
 html[data-theme="dark"] .filter,
@@ -1198,6 +1258,7 @@ html[data-theme="dark"] .filter,
 html[data-theme="dark"] .account,
 html[data-theme="dark"] .team-readout,
 html[data-theme="dark"] .layout-toggle,
+html[data-theme="dark"] .season-strip,
 html[data-theme="dark"] .week-score,
 html[data-theme="dark"] .day-column,
 html[data-theme="dark"] .day-strip,
@@ -1214,6 +1275,7 @@ html[data-theme="dark"] .banner.info {
 }
 
 html[data-theme="dark"] .week-switcher select,
+html[data-theme="dark"] .person-picker input,
 html[data-theme="dark"] .admin-card input,
 html[data-theme="dark"] .admin-card select {
   background: #1a1416;
@@ -1228,9 +1290,22 @@ html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
   color: #1c1917;
 }
 
-html[data-theme="dark"] .week-score {
+html[data-theme="dark"] .week-score,
+html[data-theme="dark"] .season-strip {
   border-color: #6b3040;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+html[data-theme="dark"] .season-strip-label {
+  color: #fb7185;
+}
+
+html[data-theme="dark"] .season-track {
+  background: #4a2430;
+}
+
+html[data-theme="dark"] .season-track span {
+  background: #fb7185;
 }
 
 html[data-theme="dark"] .week-score-label,

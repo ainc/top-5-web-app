@@ -5,9 +5,9 @@
 //   profiles + season_members  who is on the roster
 //   day_entries                the notes for that date
 //   tasks                      five slots (1 Top through 5 Low)
-//   bonus_checks               Top 5, Exercise, and Reading, with the points
-//                              copied at check time so a later bonus edit
-//                              does not rewrite past days
+//   bonus_checks               Top 5, Exercise, Reading, and any added bonus,
+//                              with the points copied at check time so a later
+//                              bonus edit does not rewrite past days
 // A load joins those tables back into DayRows.
 //
 // This season's scoring_mode is "individual", so team names on a row are
@@ -16,7 +16,7 @@
 
 import type { RealtimeChannel, User } from "@supabase/supabase-js";
 import { googleDisplayName } from "./auth";
-import { DAY_NAMES } from "./points";
+import { DAY_NAMES, isBuiltinBonus, type BuiltinBonusKey } from "./points";
 import { getSupabase } from "./supabaseClient";
 import type { DayRow } from "./types";
 import {
@@ -46,7 +46,13 @@ const BONUS_FIELDS = [
   { key: "reading", field: "reading" },
 ] as const;
 
-type BonusKey = (typeof BONUS_FIELDS)[number]["key"];
+type KnownBonus = {
+  id: string;
+  key: string;
+  name: string;
+  points: number;
+  retired: boolean;
+};
 
 type ScoringMode = "individual" | "teams";
 
@@ -54,17 +60,21 @@ type PersonRecord = {
   id: string;
   person: string;
   team: string | null;
+  nickname: string | null;
   createdAt: string;
 };
 
 type Catalog = {
   seasonId: string;
   scoringMode: ScoringMode;
+  name: string;
   startsOn: string;
   lengthWeeks: number;
   pointsPerTask: number;
   teams: Map<string, string>;
-  bonuses: Record<BonusKey, { id: string; points: number }>;
+  bonuses: Record<BuiltinBonusKey, { id: string; name: string; points: number }>;
+  extras: Array<{ id: string; key: string; name: string; points: number }>;
+  knownBonuses: KnownBonus[];
   people: Map<string, PersonRecord>;
 };
 
@@ -81,7 +91,17 @@ export type LoadedBoard = {
   empty: boolean;
   scoringMode: ScoringMode;
   pointsPerTask: number;
-  bonusPoints: { top5: number; exercise: number; reading: number };
+  bonusPoints: {
+    top5: number;
+    exercise: number;
+    reading: number;
+    top5Name: string;
+    exerciseName: string;
+    readingName: string;
+    extras: Array<{ key: string; name: string; points: number }>;
+  };
+  season: { name: string; startsOn: string; lengthWeeks: number };
+  nicknames: Record<string, string>;
 };
 
 let catalog: Catalog | null = null;
@@ -107,9 +127,6 @@ function assignedTeam(cat: Catalog, team: string | null): string | null {
   return cat.scoringMode === "teams" ? team : null;
 }
 
-function isBonusKey(value: string): value is BonusKey {
-  return value === "top5" || value === "exercise" || value === "reading";
-}
 
 function slug(value: string): string {
   return value
@@ -153,6 +170,7 @@ function emptyRow(person: PersonRecord, monday: string, offset: number): DayRow 
     top5: false,
     exercise: false,
     reading: false,
+    extraChecks: {},
   };
 }
 
@@ -229,7 +247,7 @@ async function refreshCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   const { data: season, error: seasonError } = await supabase
     .from("seasons")
-    .select("id, scoring_mode, starts_on, length_weeks")
+    .select("id, name, scoring_mode, starts_on, length_weeks")
     .eq("is_open", true)
     .maybeSingle();
   fail(seasonError, "read season");
@@ -250,24 +268,33 @@ async function refreshCatalog(): Promise<Catalog> {
 
   const { data: bonusRows, error: bonusError } = await supabase
     .from("bonus_definitions")
-    .select("id, key, points")
-    .eq("season_id", season.id)
-    .is("retired_at", null);
+    .select("id, key, name, points, retired_at")
+    .eq("season_id", season.id);
   fail(bonusError, "read bonuses");
+  const knownBonuses: KnownBonus[] = (bonusRows ?? []).map((row) => ({
+    id: String(row.id),
+    key: String(row.key),
+    name: String(row.name),
+    points: Number(row.points),
+    retired: row.retired_at != null,
+  }));
   const bonuses = {} as Catalog["bonuses"];
-  for (const row of bonusRows ?? []) {
-    const key = String(row.key);
-    if (isBonusKey(key)) bonuses[key] = { id: String(row.id), points: Number(row.points) };
+  const builtinNames: Record<BuiltinBonusKey, string> = { top5: "Top 5", exercise: "Exercise", reading: "Reading" };
+  for (const bonus of knownBonuses) {
+    if (!isBuiltinBonus(bonus.key) || bonus.retired) continue;
+    bonuses[bonus.key] = { id: bonus.id, name: bonus.name || builtinNames[bonus.key], points: bonus.points };
   }
-  // A retired bonus is absent here. Keep the key with no id so the board still
-  // opens, and skip writing checks for it. Points for that box are 0.
+  // A missing built-in still leaves the checkbox on screen, worth 0, and is not written.
   for (const field of BONUS_FIELDS) {
-    if (!bonuses[field.key]) bonuses[field.key] = { id: "", points: 0 };
+    if (!bonuses[field.key]) bonuses[field.key] = { id: "", name: builtinNames[field.key], points: 0 };
   }
+  const extras = knownBonuses
+    .filter((bonus) => !bonus.retired && !isBuiltinBonus(bonus.key))
+    .map((bonus) => ({ id: bonus.id, key: bonus.key, name: bonus.name, points: bonus.points }));
 
   const { data: members, error: memberError } = await supabase
     .from("season_members")
-    .select("profile_id, profiles(display_name, created_at)")
+    .select("profile_id, profiles(display_name, nickname, created_at)")
     .eq("season_id", season.id);
   fail(memberError, "read roster");
 
@@ -287,7 +314,10 @@ async function refreshCatalog(): Promise<Catalog> {
   const people = new Map<string, PersonRecord>();
   for (const member of members ?? []) {
     const profile = one(
-      member.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null,
+      member.profiles as
+        | { display_name: string; nickname: string | null; created_at: string }
+        | { display_name: string; nickname: string | null; created_at: string }[]
+        | null,
     );
     if (!profile) continue;
     const team = teamByProfile.get(String(member.profile_id)) ?? null;
@@ -295,6 +325,7 @@ async function refreshCatalog(): Promise<Catalog> {
       id: String(member.profile_id),
       person: profile.display_name,
       team,
+      nickname: profile.nickname,
       createdAt: profile.created_at,
     });
   }
@@ -302,11 +333,14 @@ async function refreshCatalog(): Promise<Catalog> {
   catalog = {
     seasonId: season.id,
     scoringMode,
+    name: String(season.name),
     startsOn: String(season.starts_on),
     lengthWeeks: Number(season.length_weeks),
     pointsPerTask,
     teams,
     bonuses,
+    extras,
+    knownBonuses,
     people,
   };
   return catalog;
@@ -320,7 +354,7 @@ async function ensurePerson(person: string, team: string | null, cat: Catalog): 
   const supabase = getSupabase();
   const { data: existing, error: findError } = await supabase
     .from("season_members")
-    .select("profile_id, profiles!inner(display_name, created_at)")
+    .select("profile_id, profiles!inner(display_name, nickname, created_at)")
     .eq("season_id", cat.seasonId)
     .eq("profiles.display_name", person)
     .maybeSingle();
@@ -328,12 +362,17 @@ async function ensurePerson(person: string, team: string | null, cat: Catalog): 
 
   let profileId: string;
   let createdAt: string;
+  let nickname: string | null = null;
   if (existing) {
     const profile = one(
-      existing.profiles as { display_name: string; created_at: string } | { display_name: string; created_at: string }[] | null,
+      existing.profiles as
+        | { display_name: string; nickname: string | null; created_at: string }
+        | { display_name: string; nickname: string | null; created_at: string }[]
+        | null,
     );
     profileId = String(existing.profile_id);
     createdAt = profile?.created_at ?? new Date().toISOString();
+    nickname = profile?.nickname ?? null;
   } else {
     const { data: inserted, error: insertError } = await supabase
       .from("profiles")
@@ -365,7 +404,7 @@ async function ensurePerson(person: string, team: string | null, cat: Catalog): 
     }
   }
 
-  const record: PersonRecord = { id: profileId, person, team, createdAt };
+  const record: PersonRecord = { id: profileId, person, team, nickname, createdAt };
   cat.people.set(key, record);
   return record;
 }
@@ -376,7 +415,16 @@ function rosterFromCatalog(cat: Catalog): Array<{ person: string; team: string |
     .map((person) => ({ person: person.person, team: person.team }));
 }
 
-async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
+function nicknameMap(people: Iterable<PersonRecord>): Record<string, string> {
+  const nicknames: Record<string, string> = {};
+  for (const person of people) {
+    const nick = person.nickname?.trim();
+    if (nick) nicknames[person.person] = nick;
+  }
+  return nicknames;
+}
+
+async function fetchWeeks(cat: Catalog): Promise<{ weeks: Record<string, WeekRecord>; nicknames: Record<string, string> }> {
   const [entries, tasks, checks, metas] = await Promise.all([
     selectAll("day_entries", cat.seasonId),
     selectAll("tasks", cat.seasonId),
@@ -384,11 +432,13 @@ async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
     selectAll("week_meta", null),
   ]);
 
-  const peopleById = new Map<string, PersonRecord>();
-  for (const person of cat.people.values()) peopleById.set(person.id, person);
+  const profileIds = new Set<string>();
+  for (const row of [...entries, ...tasks, ...checks]) {
+    if (typeof row.profile_id === "string") profileIds.add(row.profile_id);
+  }
+  const peopleById = await profilesForWeeks(cat, [...profileIds]);
 
-  const bonusField = new Map<string, BonusKey>();
-  for (const field of BONUS_FIELDS) bonusField.set(cat.bonuses[field.key].id, field.key);
+  const bonusById = new Map(cat.knownBonuses.map((bonus) => [bonus.id, bonus]));
 
   const drafts = new Map<string, DayRow>();
   const draftFor = (profileId: string, entryDate: string): DayRow | null => {
@@ -418,16 +468,20 @@ async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
   }
   for (const check of checks) {
     const row = draftFor(String(check.profile_id), String(check.entry_date));
-    const field = bonusField.get(String(check.bonus_id));
-    if (!row || !field) continue;
+    const bonus = bonusById.get(String(check.bonus_id));
+    if (!row || !bonus) continue;
     const checked = Boolean(check.checked);
-    row[field] = checked;
-    if (checked) {
-      const awarded = Number(check.points_awarded);
-      if (field === "top5") row.top5Awarded = awarded;
-      if (field === "exercise") row.exerciseAwarded = awarded;
-      if (field === "reading") row.readingAwarded = awarded;
+    const awarded = Number(check.points_awarded);
+    if (isBuiltinBonus(bonus.key)) {
+      row[bonus.key] = checked;
+      if (checked) {
+        if (bonus.key === "top5") row.top5Awarded = awarded;
+        if (bonus.key === "exercise") row.exerciseAwarded = awarded;
+        if (bonus.key === "reading") row.readingAwarded = awarded;
+      }
+      continue;
     }
+    row.extraChecks[bonus.key] = checked ? { checked: true, awarded } : { checked: false };
   }
 
   const sources = new Map<string, string>();
@@ -457,7 +511,45 @@ async function fetchWeeks(cat: Catalog): Promise<Record<string, WeekRecord>> {
     });
     weeks[weekId] = { rows, source: sources.get(weekId) ?? "Supabase" };
   }
-  return weeks;
+  return { weeks, nicknames: nicknameMap(peopleById.values()) };
+}
+
+// A past scorecard can name someone who is not on this season's roster.
+// Their profile still has to be loaded or that week would render with no rows.
+async function profilesForWeeks(cat: Catalog, ids: string[]): Promise<Map<string, PersonRecord>> {
+  const peopleById = new Map<string, PersonRecord>();
+  for (const person of cat.people.values()) peopleById.set(person.id, person);
+  const missing = ids.filter((id) => !peopleById.has(id));
+  if (missing.length === 0) return peopleById;
+
+  const supabase = getSupabase();
+  for (let start = 0; start < missing.length; start += 100) {
+    const chunk = missing.slice(start, start + 100);
+    const { data, error } = await supabase.from("profiles").select("id, display_name, nickname, created_at").in("id", chunk);
+    fail(error, "read scorecard names");
+    for (const profile of data ?? []) {
+      peopleById.set(String(profile.id), {
+        id: String(profile.id),
+        person: profile.display_name,
+        team: null,
+        nickname: profile.nickname,
+        createdAt: profile.created_at,
+      });
+    }
+    if (cat.scoringMode !== "teams") continue;
+    const { data: assignments, error: assignmentError } = await supabase
+      .from("team_members")
+      .select("profile_id, teams(name)")
+      .eq("season_id", cat.seasonId)
+      .in("profile_id", chunk);
+    fail(assignmentError, "read historical teams");
+    for (const assignment of assignments ?? []) {
+      const person = peopleById.get(String(assignment.profile_id));
+      const team = one(assignment.teams as { name: string } | { name: string }[] | null);
+      if (person && team?.name) person.team = team.name;
+    }
+  }
+  return peopleById;
 }
 
 async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
@@ -555,6 +647,17 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
         points_awarded: checked ? cat.bonuses[bonus.key].points : 0,
       });
     }
+    for (const bonus of cat.extras) {
+      const checked = Boolean(row.extraChecks?.[bonus.key]?.checked);
+      checkRows.push({
+        season_id: cat.seasonId,
+        profile_id: person.id,
+        entry_date: entryDate,
+        bonus_id: bonus.id,
+        checked,
+        points_awarded: checked ? bonus.points : 0,
+      });
+    }
   }
 
   // One grid day becomes three upserts. onConflict names the unique key
@@ -562,7 +665,7 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
   // updates that row instead of inserting a duplicate.
   //   day_entries   one row: notes, keyed by profile + date
   //   tasks         five rows: slot 1..5, title + done
-  //   bonus_checks  up to three rows: Top 5, Exercise, Reading
+  //   bonus_checks  Top 5, Exercise, Reading, plus any bonus added in Admin
   // week_meta is only the label under the title ("Imported file.csv").
   const { error: entryError } = await supabase.from("day_entries").upsert(dayEntries, { onConflict: "profile_id,entry_date" });
   fail(entryError, "save notes");
@@ -635,7 +738,8 @@ async function loadOnce(createRosterWeek: boolean): Promise<LoadedBoard> {
     }
   }
 
-  const weeks = await fetchWeeks(cat);
+  const loadedWeeks = await fetchWeeks(cat);
+  const weeks = loadedWeeks.weeks;
   const roster = rosterFromCatalog(cat);
   const today = currentMonday();
   // The calendar creates this week, not the New week button. Stop after the
@@ -662,7 +766,13 @@ async function loadOnce(createRosterWeek: boolean): Promise<LoadedBoard> {
       top5: cat.bonuses.top5.points,
       exercise: cat.bonuses.exercise.points,
       reading: cat.bonuses.reading.points,
+      top5Name: cat.bonuses.top5.name,
+      exerciseName: cat.bonuses.exercise.name,
+      readingName: cat.bonuses.reading.name,
+      extras: cat.extras.map((bonus) => ({ key: bonus.key, name: bonus.name, points: bonus.points })),
     },
+    season: { name: cat.name, startsOn: cat.startsOn, lengthWeeks: cat.lengthWeeks },
+    nicknames: loadedWeeks.nicknames,
   };
 }
 
@@ -673,9 +783,31 @@ function workspaceDomain(): string {
     .toLowerCase();
 }
 
+// The sheet often stores a first name. Google sends "First Last". Use the full
+// name when it matches, otherwise the first name when exactly one unsigned
+// roster row has that name. Two people named Logan stay unmatched.
+async function claimRosterName(googleName: string): Promise<{ id: string; display_name: string } | null> {
+  const supabase = getSupabase();
+  const exact = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .is("auth_user_id", null)
+    .ilike("display_name", googleName)
+    .limit(2);
+  fail(exact.error, "match roster name");
+  if ((exact.data ?? []).length === 1) return exact.data?.[0] ?? null;
+
+  const first = googleName.split(/\s+/)[0]?.trim() ?? "";
+  if (first.length < 2 || first.toLowerCase() === googleName.trim().toLowerCase()) return null;
+  const byFirst = await supabase.from("profiles").select("id, display_name").is("auth_user_id", null).ilike("display_name", first);
+  fail(byFirst.error, "match roster name");
+  if ((byFirst.data ?? []).length === 1) return byFirst.data?.[0] ?? null;
+  return null;
+}
+
 // Google tells us who they are. The scorecard still needs a profile, a roster
-// row, and five blank days on the current Monday. An unsigned profile with the
-// same name is reused, so a second "Logan" is not created when Logan signs up.
+// row, and five blank days on the current Monday. An unsigned roster row is
+// reused when the Google name matches it, so sign-in does not create a second person.
 export async function enrollSignedInUser(user: User): Promise<void> {
   const domain = workspaceDomain();
   const email = (user.email ?? "").toLowerCase();
@@ -696,14 +828,7 @@ export async function enrollSignedInUser(user: User): Promise<void> {
   let profileId = linked?.id as string | undefined;
   let rosterName = linked?.display_name ?? googleName;
   if (!linked) {
-    const { data: unclaimed, error: claimError } = await supabase
-      .from("profiles")
-      .select("id, display_name")
-      .is("auth_user_id", null)
-      .ilike("display_name", googleName)
-      .limit(1);
-    fail(claimError, "match roster name");
-    const claim = unclaimed?.[0];
+    const claim = await claimRosterName(googleName);
     if (claim) {
       const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
       fail(error, "link roster name");

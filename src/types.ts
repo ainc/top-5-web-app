@@ -2,7 +2,9 @@
 // Points are not stored on DayRow. GridRow adds daily and week when the grid renders.
 
 // A single weekday for one person. The five priority slots are the task list.
-// top5, exercise, and reading are the only boxes that add points.
+// top5, exercise, and reading are always on the day. extraChecks holds any
+// bonus a commissioner added. A removed bonus can still be here so a day that
+// already earned it keeps those points.
 // team is null while the season scores individuals. A commissioner can assign one later.
 export type DayRow = {
   id: string;
@@ -27,6 +29,7 @@ export type DayRow = {
   top5Awarded?: number;
   exerciseAwarded?: number;
   readingAwarded?: number;
+  extraChecks: Record<string, { checked: boolean; awarded?: number }>;
 };
 
 // DayRow plus the numbers the grid displays. Those numbers are derived, not saved.

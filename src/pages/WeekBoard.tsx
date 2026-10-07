@@ -79,7 +79,7 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
                 </label>
                 <div className="day-scores">
                   <ScoreBox
-                    label="Top 5"
+                    label={rates.top5Name}
                     points={rates.top5}
                     checked={row.top5}
                     disabled
@@ -87,19 +87,33 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
                     onChange={() => undefined}
                   />
                   <ScoreBox
-                    label="Exercise"
+                    label={rates.exerciseName}
                     points={rates.exercise}
                     checked={row.exercise}
                     disabled={!canEdit}
                     onChange={(checked) => onPatch(row.id, { exercise: checked })}
                   />
                   <ScoreBox
-                    label="Reading"
+                    label={rates.readingName}
                     points={rates.reading}
                     checked={row.reading}
                     disabled={!canEdit}
                     onChange={(checked) => onPatch(row.id, { reading: checked })}
                   />
+                  {rates.extras.map((bonus) => (
+                    <ScoreBox
+                      key={bonus.key}
+                      label={bonus.name}
+                      points={bonus.points}
+                      checked={Boolean(row.extraChecks?.[bonus.key]?.checked)}
+                      disabled={!canEdit}
+                      onChange={(checked) =>
+                        onPatch(row.id, {
+                          extraChecks: { ...(row.extraChecks ?? {}), [bonus.key]: { checked } },
+                        })
+                      }
+                    />
+                  ))}
                 </div>
               </>
             ) : (

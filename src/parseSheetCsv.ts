@@ -195,6 +195,7 @@ export function parseSheetCsv(text: string): DayRow[] {
       top5,
       exercise,
       reading,
+      extraChecks: {},
     };
 
     const [top, high, med1, med2, low] = [0, 1, 2, 3, 4].map((index) => ({

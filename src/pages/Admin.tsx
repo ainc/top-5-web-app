@@ -16,8 +16,10 @@ type Season = {
   scoring_mode: "individual" | "teams";
 };
 
-type Bonus = { id: string; key: string; name: string; points: number; retired: boolean };
-type Person = { id: string; name: string; role: string; teamId: string };
+type Bonus = { id: string; key: string; name: string; points: number; builtIn: boolean };
+
+const BUILTIN_ORDER = ["top5", "exercise", "reading"];
+type Person = { id: string; name: string; nickname: string; savedNickname: string; role: string; teamId: string };
 type Team = { id: string; name: string };
 
 function fail(error: { message: string } | null, action: string): void {
@@ -33,6 +35,8 @@ export function Admin() {
   const [bonuses, setBonuses] = useState<Bonus[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [newBonusName, setNewBonusName] = useState("");
+  const [newBonusPoints, setNewBonusPoints] = useState(5);
   const [newPerson, setNewPerson] = useState("");
   const [newTeam, setNewTeam] = useState("");
   const [message, setMessage] = useState("");
@@ -66,7 +70,7 @@ export function Admin() {
       await Promise.all([
         supabase.from("scoring_rules").select("points_per_task").eq("season_id", current.id).maybeSingle(),
         supabase.from("bonus_definitions").select("id, key, name, points, retired_at").eq("season_id", current.id).order("key"),
-        supabase.from("season_members").select("profile_id, profiles(display_name)").eq("season_id", current.id),
+        supabase.from("season_members").select("profile_id, profiles(display_name, nickname)").eq("season_id", current.id),
         supabase.from("teams").select("id, name").eq("season_id", current.id).order("name"),
         supabase.from("user_roles").select("profile_id, role"),
         supabase.from("team_members").select("profile_id, team_id").eq("season_id", current.id),
@@ -82,13 +86,20 @@ export function Admin() {
     setSeason(current);
     setPointsPerTask(Number(rules?.points_per_task ?? 0));
     setBonuses(
-      (bonusRows ?? []).map((row) => ({
-        id: row.id,
-        key: row.key,
-        name: row.name,
-        points: row.points,
-        retired: row.retired_at != null,
-      })),
+      (bonusRows ?? [])
+        .filter((row) => row.retired_at == null)
+        .map((row) => ({
+          id: row.id,
+          key: row.key,
+          name: row.name,
+          points: row.points,
+          builtIn: BUILTIN_ORDER.includes(row.key),
+        }))
+        .sort((a, b) => {
+          const left = BUILTIN_ORDER.indexOf(a.key);
+          const right = BUILTIN_ORDER.indexOf(b.key);
+          return (left === -1 ? 9 : left) - (right === -1 ? 9 : right) || a.name.localeCompare(b.name);
+        }),
     );
     setTeams((teamRows ?? []).map((row) => ({ id: row.id, name: row.name })));
     setPeople(
@@ -98,6 +109,8 @@ export function Admin() {
           return {
             id: String(row.profile_id),
             name: profile?.display_name ?? "Unknown",
+            nickname: String(profile?.nickname ?? ""),
+            savedNickname: String(profile?.nickname ?? "").trim(),
             role: roles.get(String(row.profile_id)) ?? "",
             teamId: assigned.get(String(row.profile_id)) ?? "",
           };
@@ -172,12 +185,66 @@ export function Admin() {
         .update({
           name: bonus.name.trim(),
           points: bonus.points,
-          retired_at: bonus.retired ? new Date().toISOString() : null,
+          retired_at: null,
         })
         .eq("id", bonus.id);
       fail(error, `save ${bonus.key}`);
     }
-    saved("Bonuses saved. A retired bonus scores 0.");
+    const added = newBonusName.trim();
+    if (added) await addBonus();
+    saved(added ? `${added} is on each day.` : "Bonuses saved.");
+    await load();
+  }
+
+  async function addBonus() {
+    if (!season) return;
+    const name = newBonusName.trim();
+    if (!name) return;
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24);
+    if (!base) throw new Error("Use a bonus name with letters or numbers.");
+    if (BUILTIN_ORDER.includes(base)) throw new Error("Top 5, Exercise, and Reading are already on the board.");
+    const taken = new Set(bonuses.map((bonus) => bonus.key));
+    let key = base;
+    let suffix = 2;
+    while (taken.has(key)) {
+      key = `${base}${suffix}`;
+      suffix += 1;
+    }
+    const supabase = getSupabase();
+    const { data: existing, error: findError } = await supabase
+      .from("bonus_definitions")
+      .select("id")
+      .eq("season_id", season.id)
+      .eq("key", key)
+      .maybeSingle();
+    fail(findError, "find bonus");
+    if (existing) {
+      const { error } = await supabase
+        .from("bonus_definitions")
+        .update({ name, points: newBonusPoints, retired_at: null })
+        .eq("id", existing.id);
+      fail(error, "restore bonus");
+    } else {
+      const { error } = await supabase.from("bonus_definitions").insert({
+        season_id: season.id,
+        key,
+        name,
+        points: newBonusPoints,
+      });
+      fail(error, "add bonus");
+    }
+    setNewBonusName("");
+  }
+
+  async function removeBonus(bonus: Bonus) {
+    if (bonus.builtIn) return;
+    const { error } = await getSupabase()
+      .from("bonus_definitions")
+      .update({ retired_at: new Date().toISOString() })
+      .eq("id", bonus.id);
+    fail(error, "remove bonus");
+    saved(`${bonus.name} was removed. Days that already earned it keep those points.`);
+    await load();
   }
 
   async function addPerson() {
@@ -222,6 +289,16 @@ export function Admin() {
     fail(error, "remove roster");
     saved(`${person.name} left the roster. Days already saved stay on past weeks.`);
     await load();
+  }
+
+  async function saveNickname(person: Person, nickname: string) {
+    const next = nickname.trim();
+    if (next === person.savedNickname) return;
+    const { error } = await getSupabase().from("profiles").update({ nickname: next || null }).eq("id", person.id);
+    fail(error, "save nickname");
+    setPeople((current) => current.map((item) => (item.id === person.id ? { ...item, nickname: next, savedNickname: next } : item)));
+    saved(next ? `${person.name} will show as ${next}.` : `${person.name} will show their roster name.`);
+    window.dispatchEvent(new Event("top5-reload"));
   }
 
   async function addTeam() {
@@ -324,7 +401,7 @@ export function Admin() {
           Points per finished task
           <input type="number" min={0} value={pointsPerTask} onChange={(event) => setPointsPerTask(Number(event.target.value))} />
           <p className="field-help">
-            Extra points for each priority box that is checked, on top of Top 5, Exercise, and Reading. Leave this at 0 to score only those three bonuses.
+            Extra points for each priority box that is checked, on top of the bonuses below. Leave this at 0 to score only bonuses.
           </p>
         </label>
         <SaveButtonView label="Save season" flash={saveFlash.season} />
@@ -339,41 +416,52 @@ export function Admin() {
       >
         <h2>🎁 Bonuses</h2>
         <p className="field-help">
-          These are the three checkboxes on each day. Retire one to make new checks worth 0. A day that was already checked keeps the points it had.
+          Top 5, Exercise, and Reading stay on every day. Top 5 checks itself when all five tasks are done. Type another bonus below and save to put a new checkbox on each day. Removing one hides that checkbox. A day that already earned it keeps those points.
         </p>
         {bonuses.map((bonus, index) => (
           <div className="admin-row" key={bonus.id}>
-            <span>{bonus.key}</span>
             <input
+              aria-label={`${bonus.builtIn ? "Built-in bonus" : "Bonus"} name`}
               value={bonus.name}
               onChange={(event) => setBonuses(bonuses.map((item, itemIndex) => (itemIndex === index ? { ...item, name: event.target.value } : item)))}
             />
             <input
               type="number"
               min={0}
+              aria-label={`${bonus.name} points`}
               value={bonus.points}
               onChange={(event) =>
                 setBonuses(bonuses.map((item, itemIndex) => (itemIndex === index ? { ...item, points: Number(event.target.value) } : item)))
               }
             />
-            <label>
-              <input
-                type="checkbox"
-                checked={bonus.retired}
-                onChange={(event) =>
-                  setBonuses(bonuses.map((item, itemIndex) => (itemIndex === index ? { ...item, retired: event.target.checked } : item)))
-                }
-              />
-              Retired
-            </label>
+            {bonus.builtIn ? <span className="field-help">Always on</span> : (
+              <button
+                type="button"
+                onClick={() => removeBonus(bonus).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not remove that bonus."))}
+              >
+                Remove
+              </button>
+            )}
           </div>
         ))}
+        <div className="admin-row">
+          <input value={newBonusName} placeholder="Add a bonus" aria-label="New bonus name" onChange={(event) => setNewBonusName(event.target.value)} />
+          <input
+            type="number"
+            min={0}
+            aria-label="New bonus points"
+            value={newBonusPoints}
+            onChange={(event) => setNewBonusPoints(Number(event.target.value))}
+          />
+        </div>
         <SaveButtonView label="Save bonuses" flash={saveFlash.bonuses} />
       </form>
 
       <div className="admin-card tone-roster">
         <h2>👥 Roster</h2>
-        <p className="field-help">People who show up on the board. Removing someone hides them from new weeks. Days already saved stay.</p>
+        <p className="field-help">
+          People who show up on the board. A nickname is what other pages show instead of the roster name. Leave it blank to keep the roster name. Removing someone hides them from new weeks. Days already saved stay.
+        </p>
         <form
           className="admin-row"
           onSubmit={(event) => {
@@ -388,6 +476,26 @@ export function Admin() {
           {people.map((person) => (
             <li key={person.id}>
               <span>{person.name}</span>
+              <input
+                value={person.nickname}
+                maxLength={40}
+                placeholder="Nickname"
+                aria-label={`Nickname for ${person.name}`}
+                onChange={(event) =>
+                  setPeople(people.map((item) => (item.id === person.id ? { ...item, nickname: event.target.value } : item)))
+                }
+                onBlur={(event) => {
+                  saveNickname(person, event.target.value).catch((reason: unknown) =>
+                    setError(reason instanceof Error ? reason.message : "Could not save that nickname."),
+                  );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    (event.target as HTMLInputElement).blur();
+                  }
+                }}
+              />
               <button type="button" onClick={() => removePerson(person).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not remove that person."))}>
                 Remove
               </button>
@@ -437,7 +545,7 @@ export function Admin() {
       >
         <h2>🪪 Roles</h2>
         <p className="field-help">
-          Member access only stores no extra role. Member is the same access until sign-in limits edits to that person. Admin edits bonuses, which is Logan’s role. Commissioner edits the season, roster, teams, points per task, and these roles.
+          Member is the usual access and stores no extra role. After sign-in, a member can edit their own tasks. Admin and commissioner can edit every person's tasks, and can change the season, bonuses, roster, teams, points per task, and these roles.
         </p>
         <ul className="admin-list">
           {people.map((person) => (

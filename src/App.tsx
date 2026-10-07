@@ -10,6 +10,8 @@ import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
+import { maxDayPoints, maxWeekPoints } from "./points";
+import { seasonProgress } from "./streaks";
 import { addDays, currentMonday, formatWeekOption, isPastPlan, nextNewWeekId } from "./weeks";
 
 export function App() {
@@ -20,6 +22,7 @@ export function App() {
     selectedWeek,
     weekIds,
     weekIsBlank,
+    season,
     rates,
     selectWeek,
     goToPreviousWeek,
@@ -29,7 +32,7 @@ export function App() {
     loadSample,
     dismissNotice,
   } = useBoard();
-  const { avatarUrl, displayName, error: authError, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
+  const { avatarUrl, displayName, error: authError, nickname, profileName, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => {
@@ -40,6 +43,8 @@ export function App() {
   const canGoNext = !nextPastPlan && (nextWeekId <= currentMonday() || weekIds.includes(nextWeekId));
   const newWeekPastPlan = isPastPlan(nextNewWeekId(selectedWeek, weekIds));
   const staff = authReady && roleReady && canOpenAdmin(role);
+  const accountName = nickname || profileName || displayName;
+  const progress = season.name ? seasonProgress(season) : null;
 
   return (
     <div className="app">
@@ -75,10 +80,10 @@ export function App() {
                 />
               ) : (
                 <span className="account-photo account-initial" aria-hidden="true">
-                  {displayName.slice(0, 1).toUpperCase()}
+                  {accountName.slice(0, 1).toUpperCase()}
                 </span>
               )}
-              <span className="account-name">{displayName}</span>
+              <span className="account-name">{accountName}</span>
               <button type="button" onClick={() => void signOut()}>
                 Sign out
               </button>
@@ -137,6 +142,23 @@ export function App() {
           </button>
         ) : null}
       </div>
+      {progress ? (
+        <section className="season-strip" aria-label={`Season ${season.name}`}>
+          <span className="season-strip-label">Season</span>
+          <strong>{season.name}</strong>
+          <div
+            className="season-track"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={progress.weeks}
+            aria-valuenow={progress.week}
+            aria-label={progress.finished ? `${season.name} is complete` : `${season.name}, week ${progress.week} of ${progress.weeks}`}
+          >
+            <span style={{ width: `${progress.percent}%` }} />
+          </div>
+          <small>{progress.finished ? "Complete" : progress.week === 0 ? "Not started" : `Week ${progress.week} of ${progress.weeks}`}</small>
+        </section>
+      ) : null}
       {authError ? <p className="banner error">{authError}</p> : null}
       {notice?.planLimit ? (
         <p className="banner plan-limit">
@@ -152,8 +174,9 @@ export function App() {
         <p className="banner">No tasks for this week yet. Load sample fills your empty slots, or type them on My week.</p>
       ) : null}
       <p className="legend">
-        Daily points are 15 for Top 5 when all five tasks are checked, 5 for Exercise, and 5 for Reading. A full day is 25, and a full week is 125.
-        Unchecking any task removes the Top 5 points.
+        Daily points are {rates.top5} for {rates.top5Name} when all five tasks are checked, {rates.exercise} for {rates.exerciseName}, and {rates.reading} for {rates.readingName}.
+        {rates.extras.length > 0 ? ` ${rates.extras.map((bonus) => `${bonus.name} is ${bonus.points}`).join(", ")}.` : ""} A full day is {maxDayPoints(rates)}, and a full week is {maxWeekPoints(rates)}.
+        Unchecking any task removes the {rates.top5Name} points.
         {rates.pointsPerTask > 0 ? ` Each finished priority task also adds ${rates.pointsPerTask} points.` : ""}
       </p>
       {/* My week edits one person. Dashboard is the same week, read only. */}

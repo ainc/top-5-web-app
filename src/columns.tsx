@@ -2,7 +2,8 @@
 // so the scoring checkboxes remain reachable while scrolling sideways.
 
 import { themeQuartz, type ColDef } from "ag-grid-community";
-import { BoolCell, TaskCell } from "./cells";
+import { BoolCell, ExtraBonusCell, TaskCell } from "./cells";
+import { shownName } from "./names";
 import { DEFAULT_RATES, type ScoreRates } from "./points";
 import type { GridRow } from "./types";
 
@@ -62,6 +63,17 @@ function taskColumn(
   };
 }
 
+function extraColumn(bonus: { key: string; name: string; points: number }): ColDef<GridRow> {
+  return {
+    colId: `extra:${bonus.key}`,
+    headerName: `${bonus.name} (${bonus.points})`,
+    width: 130,
+    valueGetter: (params) => Boolean(params.data?.extraChecks?.[bonus.key]?.checked),
+    cellRenderer: ExtraBonusCell,
+    sortable: false,
+  };
+}
+
 function scoreColumn(field: "top5" | "exercise" | "reading", headerName: string): ColDef<GridRow> {
   return {
     field,
@@ -83,13 +95,20 @@ export function buildColumns(
   rates: ScoreRates = DEFAULT_RATES,
   showPerson = true,
   showDay = true,
+  nicknames: Record<string, string> = {},
 ): ColDef<GridRow>[] {
   const columns: ColDef<GridRow>[] = [];
   if (showGroup) {
     columns.push({ field: "team", headerName: "Team", width: 140, pinned: "left" });
   }
   if (showPerson) {
-    columns.push({ field: "person", headerName: "Person", width: 140, pinned: "left" });
+    columns.push({
+      field: "person",
+      headerName: "Person",
+      width: 140,
+      pinned: "left",
+      valueFormatter: (params) => shownName(String(params.value ?? ""), nicknames),
+    });
   }
   if (showDay) {
     columns.push({ field: "day", headerName: "Day", width: 84, pinned: "left" });
@@ -101,9 +120,10 @@ export function buildColumns(
     taskColumn("Medium 2", "med2Done", "med2Label"),
     taskColumn("Low priority", "lowDone", "lowLabel"),
     { field: "notes", headerName: "Notes", minWidth: 140, flex: 0.6, editable: (params) => params.context.canEdit },
-    scoreColumn("top5", `Top 5 (${rates.top5})`),
-    scoreColumn("exercise", `Exercise (${rates.exercise})`),
-    scoreColumn("reading", `Reading (${rates.reading})`),
+    scoreColumn("top5", `${rates.top5Name} (${rates.top5})`),
+    scoreColumn("exercise", `${rates.exerciseName} (${rates.exercise})`),
+    scoreColumn("reading", `${rates.readingName} (${rates.reading})`),
+    ...rates.extras.map((bonus) => extraColumn(bonus)),
     // rightAligned's cell class is dropped when cellClass is set, which left
     // "Daily" on the right of the header and the number on the left of the cell.
     {

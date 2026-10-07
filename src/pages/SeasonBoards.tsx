@@ -4,7 +4,8 @@
 import { useMemo } from "react";
 import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
-import { currentWeekLeader, seasonBoard, streakTone, teamStandings, weekWinners } from "../streaks";
+import { shownName } from "../names";
+import { currentWeekLeader, seasonBoard, streakTone, teamStandings, weekWinners, type SeasonSpan } from "../streaks";
 import type { WeekRecord } from "../weeks";
 
 function placeLabel(place: number): string {
@@ -27,23 +28,28 @@ export function SeasonBoards({
   needle,
   rates = DEFAULT_RATES,
   scoringMode = "individual",
+  season,
+  nicknames = {},
   part = "all",
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
   rates?: ScoreRates;
   scoringMode?: "individual" | "teams";
+  season?: SeasonSpan;
+  nicknames?: Record<string, string>;
   part?: "all" | "leaderboard" | "streaks";
 }) {
   const people = useMemo(
     () =>
-      seasonBoard(weeks, undefined, rates).filter(
-        (person) => person.person.toLowerCase().includes(needle) || (person.team ?? "").toLowerCase().includes(needle),
-      ),
-    [needle, rates, weeks],
+      seasonBoard(weeks, undefined, rates, season).filter((person) => {
+        const label = shownName(person.person, nicknames).toLowerCase();
+        return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
+      }),
+    [needle, nicknames, rates, season, weeks],
   );
-  const winners = useMemo(() => weekWinners(weeks, undefined, rates), [rates, weeks]);
-  const current = useMemo(() => currentWeekLeader(weeks, undefined, rates), [rates, weeks]);
+  const winners = useMemo(() => weekWinners(weeks, undefined, rates, season, nicknames), [nicknames, rates, season, weeks]);
+  const current = useMemo(() => currentWeekLeader(weeks, undefined, rates, nicknames), [nicknames, rates, weeks]);
   const teams = useMemo(() => (scoringMode === "teams" ? teamStandings(people) : []), [people, scoringMode]);
   const ranked = useMemo(() => {
     let place = 1;
@@ -94,7 +100,7 @@ export function SeasonBoards({
                 ranked.map((person) => (
                   <tr key={person.key}>
                     <td>{placeLabel(person.place)}</td>
-                    <th scope="row">{person.person}</th>
+                    <th scope="row">{shownName(person.person, nicknames)}</th>
                     <td>{person.earlierWeeks}</td>
                     <td>{person.thisWeek}</td>
                     <td>{person.streakBonus}</td>
@@ -200,7 +206,7 @@ export function SeasonBoards({
             ) : (
               people.map((person) => (
                 <tr key={person.key}>
-                  <th scope="row">{person.person}</th>
+                  <th scope="row">{shownName(person.person, nicknames)}</th>
                   <td className={streakTone(person.currentStreak)}>{person.currentStreak}</td>
                   <td>{person.longestStreak}</td>
                   <td>{person.streakBonus}</td>
@@ -224,21 +230,21 @@ export function SeasonBoards({
 }
 
 export function LeaderboardPage() {
-  const { weeks, rates, scoringMode, ready } = useBoard();
+  const { weeks, rates, scoringMode, season, nicknames, ready } = useBoard();
   if (!ready) return <p className="status">Loading the scorecard…</p>;
   return (
     <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} part="leaderboard" />
+      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} part="leaderboard" />
     </section>
   );
 }
 
 export function StreaksPage() {
-  const { weeks, rates, ready } = useBoard();
+  const { weeks, rates, season, nicknames, ready } = useBoard();
   if (!ready) return <p className="status">Loading the scorecard…</p>;
   return (
     <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} part="streaks" />
+      <SeasonBoards weeks={weeks} needle="" rates={rates} season={season} nicknames={nicknames} part="streaks" />
     </section>
   );
 }

@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import { ScoreGrid, useBoard } from "../board";
 import { SeasonBoards } from "./SeasonBoards";
+import { shownName } from "../names";
 import { DAY_NAMES, dailyPoints, peopleInOrder, personKey } from "../points";
 import type { DayRow } from "../types";
 
@@ -76,20 +77,23 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode } = useBoard();
+  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
   const [query, setQuery] = useState("");
   const needle = query.trim().toLowerCase();
 
   const people = useMemo<PersonScore[]>(() => {
     return peopleInOrder(rows)
-      .filter((person) => person.person.toLowerCase().includes(needle) || (person.team ?? "").toLowerCase().includes(needle))
+      .filter((person) => {
+        const label = shownName(person.person, nicknames).toLowerCase();
+        return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
+      })
       .map((person) => {
         const mine = rows.filter((row) => personKey(row) === person.key);
         const byDay = new Map(mine.map((row) => [row.day, row]));
         const days = DAY_NAMES.map((day) => dayScore(byDay.get(day)));
         return {
           key: person.key,
-          person: person.person,
+          person: shownName(person.person, nicknames),
           team: person.team,
           days,
           completed: days.reduce((sum, day) => sum + day.completed, 0),
@@ -97,7 +101,7 @@ export function Dashboard() {
           points: mine.reduce((sum, row) => sum + dailyPoints(row, rates), 0),
         };
       });
-  }, [needle, rates, rows]);
+  }, [needle, nicknames, rates, rows]);
 
   const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
   const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
@@ -221,7 +225,7 @@ export function Dashboard() {
         )}
       </div>
 
-      <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} />
+      <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} />
 
       <details className="task-details">
         <summary>✅ All tasks</summary>

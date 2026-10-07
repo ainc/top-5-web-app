@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "db:apply": "node scripts/apply-schema.mjs"
+    "db:apply": "node scripts/apply-schema.mjs",
+    "import:workbook": "node scripts/import-workbook.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -23,6 +24,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "pg": "^8.23.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.1"
+    "vite": "^8.3.1",
+    "xlsx": "^0.18.5"
   }
 }

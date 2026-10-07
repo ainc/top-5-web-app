@@ -5,6 +5,7 @@
 // Milestone points are the ones visible on the streak sheet. Each new run can earn them again.
 // The sheet screenshot stops at day 25. A longer run keeps counting, and the next milestone stays blank.
 
+import { shownName } from "./names";
 import { DAY_NAMES, dailyPoints, DEFAULT_RATES, personKey, type ScoreRates } from "./points";
 import { addDays, currentMonday, formatISODate, formatWeekLabel, mondayOf, parseISODate, type WeekRecord } from "./weeks";
 
@@ -88,15 +89,54 @@ function datedPoints(
   return people;
 }
 
-function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key" | "person" | "team"> {
-  const end = streakEnd(today);
-  const scored = new Set(days.filter((day) => day.points > 0 && day.date <= end).map((day) => day.date));
+export type SeasonSpan = { name: string; startsOn: string; lengthWeeks: number };
+
+export function seasonProgress(
+  span: SeasonSpan,
+  today = todayISO(),
+): { week: number; weeks: number; percent: number; finished: boolean } {
+  const bounds = seasonBounds(span);
+  const weeks = span.lengthWeeks;
+  if (today < bounds.startsOn) return { week: 0, weeks, percent: 0, finished: false };
+  if (today > bounds.endsOn) return { week: weeks, weeks, percent: 100, finished: true };
+  const start = mondayOf(parseISODate(bounds.startsOn));
+  const current = mondayOf(parseISODate(today));
+  const [y1, m1, d1] = start.split("-").map(Number);
+  const [y2, m2, d2] = current.split("-").map(Number);
+  const days = Math.round((new Date(y2, m2 - 1, d2).getTime() - new Date(y1, m1 - 1, d1).getTime()) / 86_400_000);
+  const week = Math.min(weeks, Math.floor(days / 7) + 1);
+  return { week, weeks, percent: Math.round((week / weeks) * 100), finished: false };
+}
+
+// The open season is a run of Monday–Friday weeks. Imported history stays
+// outside this window, so it can be opened from the week menu without
+// changing the current season total or streak.
+export function seasonBounds(span: SeasonSpan): { startsOn: string; endsOn: string } {
+  const start = mondayOf(parseISODate(span.startsOn));
+  const lastMonday = addDays(start, (span.lengthWeeks - 1) * 7);
+  return { startsOn: start, endsOn: addDays(lastMonday, 4) };
+}
+
+function inSpan(date: string, bounds: { startsOn: string; endsOn: string } | null): boolean {
+  if (!bounds) return true;
+  return date >= bounds.startsOn && date <= bounds.endsOn;
+}
+
+function summarize(
+  days: DatedPoints[],
+  today: string,
+  bounds: { startsOn: string; endsOn: string } | null = null,
+): Omit<PersonSeason, "key" | "person" | "team"> {
+  const counted = days.filter((day) => inSpan(day.date, bounds));
+  const endLimit = bounds ? (streakEnd(today) < bounds.endsOn ? streakEnd(today) : bounds.endsOn) : streakEnd(today);
+  const end = bounds && endLimit < bounds.startsOn ? bounds.startsOn : endLimit;
+  const scored = new Set(counted.filter((day) => day.points > 0 && day.date <= end).map((day) => day.date));
   // Earlier weeks and this week are the README split. Season total also adds
   // the streak bonus, which is how the sheet's season leaderboard adds up.
   const thisMonday = currentMonday();
   let earlierWeeks = 0;
   let thisWeek = 0;
-  for (const day of days) {
+  for (const day of counted) {
     if (day.date > today) continue;
     if (mondayOf(parseISODate(day.date)) === thisMonday) thisWeek += day.points;
     else earlierWeeks += day.points;
@@ -129,7 +169,7 @@ function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key"
     }
   }
 
-  const lastActive = days
+  const lastActive = counted
     .map((day) => day.date)
     .filter((date) => date <= today)
     .sort()
@@ -149,16 +189,35 @@ function summarize(days: DatedPoints[], today: string): Omit<PersonSeason, "key"
   };
 }
 
-export function seasonBoard(weeks: Record<string, WeekRecord>, today = todayISO(), rates: ScoreRates = DEFAULT_RATES): PersonSeason[] {
+export function seasonBoard(
+  weeks: Record<string, WeekRecord>,
+  today = todayISO(),
+  rates: ScoreRates = DEFAULT_RATES,
+  span?: SeasonSpan,
+): PersonSeason[] {
+  const bounds = span ? seasonBounds(span) : null;
   return [...datedPoints(weeks, rates).entries()]
-    .map(([key, record]) => ({ key, person: record.person, team: record.team, ...summarize(record.days, today) }))
+    .map(([key, record]) => {
+      const summary = summarize(record.days, today, bounds);
+      const counted = record.days.some((day) => inSpan(day.date, bounds));
+      if (!counted) return null;
+      return { key, person: record.person, team: record.team, ...summary };
+    })
+    .filter((person): person is PersonSeason => person !== null)
     .sort((a, b) => b.seasonTotal - a.seasonTotal || a.person.localeCompare(b.person));
 }
 
-export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO(), rates: ScoreRates = DEFAULT_RATES): WeekWinner[] {
+export function weekWinners(
+  weeks: Record<string, WeekRecord>,
+  today = todayISO(),
+  rates: ScoreRates = DEFAULT_RATES,
+  span?: SeasonSpan,
+  nicknames: Record<string, string> = {},
+): WeekWinner[] {
   const currentWeek = currentMonday();
+  const bounds = span ? seasonBounds(span) : null;
   return Object.keys(weeks)
-    .filter((weekId) => weekId <= currentWeek)
+    .filter((weekId) => weekId <= currentWeek && inSpan(weekId, bounds))
     .sort()
     .reverse()
     .map((weekId) => {
@@ -175,7 +234,7 @@ export function weekWinners(weeks: Record<string, WeekRecord>, today = todayISO(
       }
       const ranked = [...totals.values()].sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
       const top = ranked[0]?.points ?? 0;
-      const names = ranked.filter((person) => person.points === top).map((person) => person.name);
+      const names = ranked.filter((person) => person.points === top).map((person) => shownName(person.name, nicknames));
       return {
         weekId,
         label: formatWeekLabel(weekId),
@@ -213,9 +272,10 @@ export function currentWeekLeader(
   weeks: Record<string, WeekRecord>,
   today = todayISO(),
   rates: ScoreRates = DEFAULT_RATES,
+  nicknames: Record<string, string> = {},
 ): { label: string; detail: string } {
   const weekId = currentMonday();
-  const winner = weekWinners({ [weekId]: weeks[weekId] ?? { rows: [], source: "" } }, today, rates)[0];
+  const winner = weekWinners({ [weekId]: weeks[weekId] ?? { rows: [], source: "" } }, today, rates, undefined, nicknames)[0];
   return {
     label: `This week · ${formatWeekLabel(weekId)}`,
     detail: winner && winner.points > 0 ? `${winner.names} — ${winner.points} pts` : "No points yet",

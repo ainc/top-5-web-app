@@ -79,3 +79,25 @@ export function BoolCell({ data, value, context, colDef }: BoolCellProps) {
     </div>
   );
 }
+
+// A bonus added in Admin. The column id is "extra:<key>".
+export function ExtraBonusCell({ data, value, context, colDef }: BoolCellProps) {
+  if (!data) return null;
+  const key = String(colDef?.colId ?? "").replace(/^extra:/, "");
+  if (!key) return null;
+  return (
+    <div className="bool-cell">
+      <input
+        type="checkbox"
+        checked={Boolean(value)}
+        disabled={!context.canEdit}
+        aria-label={`${data.person} ${data.day} ${colDef?.headerName ?? key}`}
+        onChange={(event) =>
+          context.onPatch(data.id, {
+            extraChecks: { ...(data.extraChecks ?? {}), [key]: { checked: event.target.checked } },
+          })
+        }
+      />
+    </div>
+  );
+}

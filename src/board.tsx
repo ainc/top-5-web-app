@@ -10,6 +10,7 @@ import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, withA
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
 import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
+import type { SeasonSpan } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import type { DayRow, GridRow } from "./types";
 import {
@@ -42,6 +43,8 @@ type BoardValue = {
   weeks: Record<string, WeekRecord>;
   weekIsBlank: boolean;
   scoringMode: "individual" | "teams";
+  season: SeasonSpan;
+  nicknames: Record<string, string>;
   rates: ScoreRates;
   onPatch: GridContext["onPatch"];
   importCsv: (file: File) => Promise<void>;
@@ -55,6 +58,14 @@ type BoardValue = {
 };
 
 const BoardContext = createContext<BoardValue | null>(null);
+
+function extrasMatch(left: DayRow["extraChecks"] | undefined, right: DayRow["extraChecks"] | undefined): boolean {
+  const keys = new Set([...Object.keys(left ?? {}), ...Object.keys(right ?? {})]);
+  for (const key of keys) {
+    if (Boolean(left?.[key]?.checked) !== Boolean(right?.[key]?.checked)) return false;
+  }
+  return true;
+}
 
 function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
@@ -84,6 +95,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [scoringMode, setScoringMode] = useState<"individual" | "teams">("individual");
+  const [season, setSeason] = useState<SeasonSpan>({ name: "", startsOn: currentMonday(), lengthWeeks: 12 });
+  const [nicknames, setNicknames] = useState<Record<string, string>>({});
   const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
   const weeksRef = useRef(weeks);
   const selectedRef = useRef(selectedWeek);
@@ -106,6 +119,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         next[selected] = weeksRef.current[selected];
       }
       commitWeeks(next);
+      setSeason(state.season);
+      setNicknames(state.nicknames);
       if (!keepSelection) setSelectedWeek(currentMonday());
     },
     [commitWeeks],
@@ -128,6 +143,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         if (cancel) return;
         applyLoaded(state, false);
         setScoringMode(state.scoringMode);
+        setSeason(state.season);
         setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
         setReady(true);
         if (state.empty) {
@@ -162,6 +178,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         .then((state) => {
           applyLoaded(state, false);
           setScoringMode(state.scoringMode);
+          setSeason(state.season);
           setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
           setNotice({ tone: "ok", text: `This week is now ${formatWeekLabel(monday)}.` });
         })
@@ -186,6 +203,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         .then((state) => {
           applyLoaded(state, true);
           setScoringMode(state.scoringMode);
+          setSeason(state.season);
           setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
         })
         .catch((error: unknown) => {
@@ -277,7 +295,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         merged.lowLabel === current.lowLabel &&
         merged.notes === current.notes &&
         merged.exercise === current.exercise &&
-        merged.reading === current.reading
+        merged.reading === current.reading &&
+        extrasMatch(merged.extraChecks, current.extraChecks)
       ) {
         return;
       }
@@ -450,6 +469,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weeks,
       weekIsBlank,
       scoringMode,
+      season,
+      nicknames,
       rates,
       onPatch,
       importCsv,
@@ -474,6 +495,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       weeks,
       weekIsBlank,
       scoringMode,
+      season,
+      nicknames,
       rates,
       onPatch,
       importCsv,
@@ -534,13 +557,13 @@ export function ScoreGrid({
   height,
   quickFilter,
 }: ScoreGridProps) {
-  const { onPatch, selectedWeek, rates } = useBoard();
+  const { onPatch, selectedWeek, rates, nicknames } = useBoard();
   const { theme } = useTheme();
   const gridRows = useMemo(() => toGridRows(rows, rates), [rates, rows]);
   const grouped = showGroup ?? rows.some((row) => row.team);
   const columnDefs = useMemo(
-    () => buildColumns(showWeek, grouped, rates, showPerson, showDay),
-    [grouped, rates, showDay, showPerson, showWeek],
+    () => buildColumns(showWeek, grouped, rates, showPerson, showDay, nicknames),
+    [grouped, nicknames, rates, showDay, showPerson, showWeek],
   );
   const context = useMemo<GridContext>(() => ({ canEdit, onPatch }), [canEdit, onPatch]);
 
