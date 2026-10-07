@@ -5,9 +5,10 @@
 // The choice is stored in this browser so a refresh does not flip the layout back.
 import { useMemo, useState } from "react";
 import { canEditPerson, useAuth } from "../auth";
-import { ScoreGrid, useBoard } from "../board";
+import { useBoard } from "../board";
 import { MAX_WEEK_POINTS, personKey, weekPoints } from "../points";
 import { WeekBoard } from "./WeekBoard";
+import { WeekGrid } from "./WeekGrid";
 
 type WeekLayout = "board" | "grid";
 
@@ -31,6 +32,9 @@ export function MyWeek() {
   const person = people.find((item) => item.key === selected);
   const mine = useMemo(() => rows.filter((row) => personKey(row) === selected), [rows, selected]);
   const total = person ? weekPoints(rows, person.key, rates) : 0;
+  const dayCount = mine.length || 5;
+  const average = total / dayCount;
+  const averageLabel = Number.isInteger(average) ? String(average) : average.toFixed(1);
   const canEdit = Boolean(person) && roleReady && canEditPerson(role, profileName, person?.person ?? "");
 
   function chooseLayout(next: WeekLayout) {
@@ -49,24 +53,34 @@ export function MyWeek() {
       <div className="page-head">
         <div>
           <h1>📝 My week</h1>
-          <p>Check Top 5, Exercise, and Reading. Those three boxes are the only ones that add points.</p>
+          <p>Top 5 checks itself when all five tasks are done. Exercise and Reading are still checked by hand.</p>
         </div>
-        <div className="week-score">
-          {total}
-          <span> / {MAX_WEEK_POINTS}</span>
-        </div>
+        <aside className="week-score">
+          <span className="week-score-label">Total</span>
+          <strong>
+            {total}
+            <span> / {MAX_WEEK_POINTS}</span>
+          </strong>
+          <span className="week-score-avg">Average {averageLabel} per day</span>
+        </aside>
       </div>
       <div className="week-tools">
-        <label className="person-picker">
-          Whose week
-          <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
-            {people.map((item) => (
-              <option key={item.key} value={item.key}>
-                {item.team ? `${item.person} · ${item.team}` : item.person}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="week-pickers">
+          <label className="person-picker">
+            Whose week
+            <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
+              {people.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.person}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="person-picker">
+            <span>Team</span>
+            <div className="team-readout">{person?.team || "No team"}</div>
+          </div>
+        </div>
         <div className="layout-toggle" role="group" aria-label="Week layout">
           <button type="button" aria-pressed={layout === "board"} onClick={() => chooseLayout("board")}>
             Board
@@ -79,7 +93,7 @@ export function MyWeek() {
       {layout === "board" ? (
         <WeekBoard rows={mine} weekId={selectedWeek} canEdit={canEdit} />
       ) : (
-        <ScoreGrid rows={mine} canEdit={canEdit} height={340} />
+        <WeekGrid rows={mine} weekId={selectedWeek} canEdit={canEdit} />
       )}
       {roleReady && !canEdit ? (
         <p className="field-help">

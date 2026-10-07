@@ -3,11 +3,12 @@
 
 import { AgGridReact } from "ag-grid-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { buildColumns, gridTheme } from "./columns";
+import { buildColumns, darkGridTheme, gridTheme } from "./columns";
 import type { GridContext } from "./cells";
 import { importSummary, parseSheetCsv } from "./parseSheetCsv";
-import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, type ScoreRates } from "./points";
+import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
+import { useTheme } from "./theme";
 import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import type { DayRow, GridRow } from "./types";
@@ -16,6 +17,7 @@ import {
   blankWeek,
   currentMonday,
   formatWeekLabel,
+  furthestPlannableMonday,
   isPastPlan,
   nextNewWeekId,
   planAheadMessage,
@@ -25,7 +27,7 @@ import {
   type WeekRecord,
 } from "./weeks";
 
-type Notice = { tone: "ok" | "error" | "info"; text: string };
+type Notice = { tone: "ok" | "error" | "info"; text: string; planLimit?: boolean };
 
 type BoardValue = {
   rows: DayRow[];
@@ -49,6 +51,7 @@ type BoardValue = {
   goToCurrentWeek: () => void;
   createNewWeek: () => void;
   loadSample: () => Promise<void>;
+  dismissNotice: () => void;
 };
 
 const BoardContext = createContext<BoardValue | null>(null);
@@ -220,6 +223,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     };
   }, [applyLoaded, ready]);
 
+  const dismissNotice = useCallback(() => {
+    setNotice(null);
+  }, []);
+
   const reportSaveError = useCallback((error: unknown) => {
     setNotice({
       tone: "error",
@@ -227,8 +234,11 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // The grid updates immediately. The Supabase write follows that day only,
-  // so editing Mack's Monday does not resend the rest of the week.
+  // Checkbox, title, and note edits all arrive here from the grid or the board.
+  // React state updates first, so the box looks checked before the network
+  // returns. saveDays is the only call that writes that day to Supabase.
+  // Admin season/bonus/role saves do not come through here. They call
+  // supabase.from() directly in Admin.tsx.
   const onPatch = useCallback(
     (id: string, patch: Partial<GridRow>) => {
       const week = weeksRef.current[selectedWeek];
@@ -241,14 +251,42 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         });
         return;
       }
-      const rows = week.rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
-      const changed = rows.find((row) => row.id === id);
+      const touchesTasks =
+        "topDone" in patch ||
+        "highDone" in patch ||
+        "med1Done" in patch ||
+        "med2Done" in patch ||
+        "lowDone" in patch ||
+        "top5" in patch;
+      // A title or note edit leaves an older Top 5 box alone. The bonus moves
+      // only when a task box or the Top 5 box itself is the thing that changed.
+      const merged = touchesTasks ? withAutomaticTop5({ ...current, ...patch }) : { ...current, ...patch };
+      // Clicking Top 5 itself does not stick. If the five task boxes already
+      // agree with it, there is nothing to save.
+      if (
+        merged.top5 === current.top5 &&
+        merged.topDone === current.topDone &&
+        merged.highDone === current.highDone &&
+        merged.med1Done === current.med1Done &&
+        merged.med2Done === current.med2Done &&
+        merged.lowDone === current.lowDone &&
+        merged.topLabel === current.topLabel &&
+        merged.highLabel === current.highLabel &&
+        merged.med1Label === current.med1Label &&
+        merged.med2Label === current.med2Label &&
+        merged.lowLabel === current.lowLabel &&
+        merged.notes === current.notes &&
+        merged.exercise === current.exercise &&
+        merged.reading === current.reading
+      ) {
+        return;
+      }
+      const rows = week.rows.map((row) => (row.id === id ? merged : row));
       commitWeeks({
         ...weeksRef.current,
         [selectedWeek]: { ...week, rows },
       });
-      if (!changed) return;
-      void saveDays(selectedWeek, [changed], week.source).catch(reportSaveError);
+      void saveDays(selectedWeek, [merged], week.source).catch(reportSaveError);
     },
     [commitWeeks, reportSaveError, selectedWeek],
   );
@@ -315,10 +353,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const goToNextWeek = useCallback(() => {
     const next = addDays(selectedWeek, 7);
-    if (isPastPlan(next)) {
-      setNotice({ tone: "info", text: planAheadMessage() });
-      return;
-    }
+    // Next week does not create a week, so it does not raise the planning notice.
+    if (isPastPlan(next)) return;
     // A future week is only opened once New week has saved it. Next week does not create one.
     if (next > currentMonday() && !weeksRef.current[next]) return;
     setNotice(null);
@@ -327,21 +363,25 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   // The season is filled in ahead of time. This copies the roster onto the
   // following Monday, including a Monday that has not started yet.
-  // The copy stops four weeks past the current Monday.
+  // The copy stops four weeks past the current Monday. The planning notice
+  // is raised only for the click that creates that furthest week. It lives in
+  // component state, so a refresh does not show it again.
   const createNewWeek = useCallback(() => {
     if (!canOpenAdmin(roleRef.current)) {
       setNotice({ tone: "error", text: "Only an admin or commissioner can start a new week." });
       return;
     }
     const target = nextNewWeekId(selectedWeek, Object.keys(weeksRef.current));
-    if (isPastPlan(target)) {
-      setNotice({ tone: "info", text: planAheadMessage() });
-      return;
-    }
-    setNotice({
-      tone: "ok",
-      text: `New week started for ${formatWeekLabel(target)}. The roster is blank until you fill it in.`,
-    });
+    if (isPastPlan(target)) return;
+    const createdHorizon = target === furthestPlannableMonday();
+    setNotice(
+      createdHorizon
+        ? { tone: "info", text: planAheadMessage(), planLimit: true }
+        : {
+            tone: "ok",
+            text: `New week started for ${formatWeekLabel(target)}. The roster is blank until you fill it in.`,
+          },
+    );
     openWeek(target, selectedWeek);
   }, [openWeek, selectedWeek]);
 
@@ -419,6 +459,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       goToCurrentWeek,
       createNewWeek,
       loadSample,
+      dismissNotice,
     }),
     [
       rows,
@@ -442,6 +483,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       goToCurrentWeek,
       createNewWeek,
       loadSample,
+      dismissNotice,
     ],
   );
 
@@ -474,6 +516,7 @@ type ScoreGridProps = {
   showWeek?: boolean;
   showPerson?: boolean;
   showGroup?: boolean;
+  showDay?: boolean;
   height?: number | string;
   quickFilter?: string;
 };
@@ -487,22 +530,24 @@ export function ScoreGrid({
   showWeek = false,
   showPerson = true,
   showGroup,
+  showDay = true,
   height,
   quickFilter,
 }: ScoreGridProps) {
   const { onPatch, selectedWeek, rates } = useBoard();
+  const { theme } = useTheme();
   const gridRows = useMemo(() => toGridRows(rows, rates), [rates, rows]);
   const grouped = showGroup ?? rows.some((row) => row.team);
   const columnDefs = useMemo(
-    () => buildColumns(showWeek, grouped, rates, showPerson),
-    [grouped, rates, showPerson, showWeek],
+    () => buildColumns(showWeek, grouped, rates, showPerson, showDay),
+    [grouped, rates, showDay, showPerson, showWeek],
   );
   const context = useMemo<GridContext>(() => ({ canEdit, onPatch }), [canEdit, onPatch]);
 
   return (
     <div className={height == null ? "grid-wrap grid-wrap-auto" : "grid-wrap"} key={selectedWeek} style={height == null ? undefined : { height }}>
       <AgGridReact<GridRow>
-        theme={gridTheme}
+        theme={theme === "dark" ? darkGridTheme : gridTheme}
         rowData={gridRows}
         columnDefs={columnDefs}
         context={context}

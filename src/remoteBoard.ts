@@ -465,6 +465,11 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
   if (rows.length === 0 && !job.replace) return;
 
   const cat = catalog ?? (await refreshCatalog());
+  // getSupabase() is the browser client. Each .from().upsert() below is an
+  // HTTPS request to PostgREST (…/rest/v1/<table>), not a SQL string from
+  // this app. Postgres applies the row-level policies to that request.
+  // The logged-in Google session is sent as the bearer token. Signed out,
+  // the request uses the publishable key and the anon role, which cannot write.
   const supabase = getSupabase();
   const friday = addDays(weekId, 4);
 
@@ -552,6 +557,13 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
     }
   }
 
+  // One grid day becomes three upserts. onConflict names the unique key
+  // already declared in the migration, so a second save of Mack's Monday
+  // updates that row instead of inserting a duplicate.
+  //   day_entries   one row: notes, keyed by profile + date
+  //   tasks         five rows: slot 1..5, title + done
+  //   bonus_checks  up to three rows: Top 5, Exercise, Reading
+  // week_meta is only the label under the title ("Imported file.csv").
   const { error: entryError } = await supabase.from("day_entries").upsert(dayEntries, { onConflict: "profile_id,entry_date" });
   fail(entryError, "save notes");
   const { error: taskError } = await supabase.from("tasks").upsert(taskRows, { onConflict: "profile_id,entry_date,slot" });
@@ -571,10 +583,9 @@ async function flush(weekId: string): Promise<void> {
   await writeJob(weekId, job);
 }
 
-// Writes run one at a time. A second edit to the same week updates the queued
-// rows instead of starting a second request, so a burst of checks cannot
-// finish out of order and put an older day back. replace=true is an import:
-// it deletes that Monday–Friday first, then inserts the file.
+// The grid calls this. It does not talk to Postgres itself.
+// Calls are queued on `chain` so two quick checks cannot pass each other
+// and write an older day on top of a newer one. flush() then runs writeJob.
 export function saveDays(weekId: string, rows: DayRow[], source: string, replace = false): Promise<void> {
   const current = pendingWrites.get(weekId) ?? { source, replace: false, rows: new Map<string, DayRow>() };
   current.source = source;

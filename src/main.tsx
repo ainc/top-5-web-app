@@ -8,6 +8,7 @@ import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { App } from "./App";
 import { AuthProvider } from "./auth";
 import { BoardProvider } from "./board";
+import { ThemeProvider } from "./theme";
 import "./index.css";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -18,11 +19,13 @@ if (!root) throw new Error("Root element missing");
 createRoot(root).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <BoardProvider>
-          <App />
-        </BoardProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BoardProvider>
+            <App />
+          </BoardProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,
 );

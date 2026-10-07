@@ -58,17 +58,21 @@ export function TaskCell({ data, context, doneField, labelField }: TaskCellProps
 
 type BoolCellProps = CustomCellRendererProps<GridRow, boolean, GridContext>;
 
-// Top 5, Exercise, and Reading. Disabled on the dashboard, where canEdit is false.
+// Top 5, Exercise, and Reading. Top 5 is filled in from the five task boxes,
+// so that checkbox cannot be toggled on its own. The others are disabled on
+// the dashboard, where canEdit is false.
 export function BoolCell({ data, value, context, colDef }: BoolCellProps) {
   if (!data || !colDef?.field) return null;
   const field = colDef.field as "top5" | "exercise" | "reading";
+  const automatic = field === "top5";
 
   return (
     <div className="bool-cell">
       <input
         type="checkbox"
         checked={Boolean(value)}
-        disabled={!context.canEdit}
+        disabled={automatic || !context.canEdit}
+        title={automatic ? "Checked when all five tasks are done" : undefined}
         aria-label={`${data.person} ${data.day} ${colDef.headerName ?? field}`}
         onChange={(event) => context.onPatch(data.id, { [field]: event.target.checked })}
       />

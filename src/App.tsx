@@ -4,12 +4,13 @@
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "./auth";
+import { useTheme } from "./theme";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
-import { addDays, currentMonday, formatWeekOption, isPastPlan, nextNewWeekId, planAheadMessage } from "./weeks";
+import { addDays, currentMonday, formatWeekOption, isPastPlan, nextNewWeekId } from "./weeks";
 
 export function App() {
   const {
@@ -26,8 +27,10 @@ export function App() {
     goToCurrentWeek,
     createNewWeek,
     loadSample,
+    dismissNotice,
   } = useBoard();
   const { avatarUrl, displayName, error: authError, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => {
     setPhotoFailed(false);
@@ -57,6 +60,9 @@ export function App() {
           {authReady && roleReady && canOpenAdmin(role) ? <NavLink to="/admin">⚙️ Admin</NavLink> : null}
         </nav>
         <div className="actions">
+          <button type="button" className="theme-toggle" aria-pressed={theme === "dark"} onClick={toggleTheme}>
+            {theme === "dark" ? "Dark" : "Light"}
+          </button>
           {user ? (
             <div className="account">
               {avatarUrl && !photoFailed ? (
@@ -122,25 +128,33 @@ export function App() {
         <button type="button" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
           This week
         </button>
-        <button type="button" onClick={goToNextWeek} disabled={!canGoNext} title={nextPastPlan ? planAheadMessage() : undefined}>
+        <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
           Next week
         </button>
         {staff ? (
-          <button type="button" onClick={createNewWeek} disabled={newWeekPastPlan} title={newWeekPastPlan ? planAheadMessage() : undefined}>
+          <button type="button" onClick={createNewWeek} disabled={newWeekPastPlan}>
             New week
           </button>
         ) : null}
       </div>
       {authError ? <p className="banner error">{authError}</p> : null}
-      {nextPastPlan || (staff && newWeekPastPlan) ? <p className="banner info">{planAheadMessage()}</p> : null}
-      {notice ? <p className={`banner ${notice.tone}`}>{notice.text}</p> : null}
+      {notice?.planLimit ? (
+        <p className="banner plan-limit">
+          <span>{notice.text}</span>
+          <button type="button" className="plan-limit-close" aria-label="Close message" onClick={dismissNotice}>
+            ×
+          </button>
+        </p>
+      ) : notice ? (
+        <p className={`banner ${notice.tone}`}>{notice.text}</p>
+      ) : null}
       {weekIsBlank ? (
         <p className="banner">No tasks for this week yet. Load sample fills your empty slots, or type them on My week.</p>
       ) : null}
       <p className="legend">
-        Daily points are 15 for Top 5, 5 for Exercise, and 5 for Reading. A full day is 25, and a full week is 125.
-        The priority checkboxes mark tasks done.
-        {rates.pointsPerTask > 0 ? ` Each finished priority task adds ${rates.pointsPerTask} points.` : " They do not add points."}
+        Daily points are 15 for Top 5 when all five tasks are checked, 5 for Exercise, and 5 for Reading. A full day is 25, and a full week is 125.
+        Unchecking any task removes the Top 5 points.
+        {rates.pointsPerTask > 0 ? ` Each finished priority task also adds ${rates.pointsPerTask} points.` : ""}
       </p>
       {/* My week edits one person. Dashboard is the same week, read only. */}
       <Routes>

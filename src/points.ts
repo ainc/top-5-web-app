@@ -1,5 +1,8 @@
-// Scoring rules copied from the sheet formula:
-// 15 if Top 5 is checked, 5 if Exercise is checked, 5 if Reading is checked.
+// Scoring rules:
+// Top 5 is 15 when all five task boxes on that day are checked.
+// Exercise is 5 and Reading is 5, and those two are still checked by hand.
+// pointsPerTask stays 0 until a commissioner sets it, so the priority boxes
+// do not add their own points. They only decide the Top 5 bonus.
 
 import type { DayRow } from "./types";
 
@@ -28,6 +31,23 @@ type ScoredDay = Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" |
 
 export function completedTaskCount(row: Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone">): number {
   return [row.topDone, row.highDone, row.med1Done, row.med2Done, row.lowDone].filter(Boolean).length;
+}
+
+export function allTasksDone(row: Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone">): boolean {
+  return row.topDone && row.highDone && row.med1Done && row.med2Done && row.lowDone;
+}
+
+// Top 5 matches the five task boxes. Checking the last one turns it on.
+// Unchecking any one turns it off and drops the points. A hand edit of the
+// Top 5 box is ignored, because that box is the result, not a separate choice.
+// Clearing top5Awarded on the way on makes the screen use today's bonus value.
+// The save stores that same value. An old snapshot is not kept across the flip.
+export function withAutomaticTop5<T extends DayRow>(row: T): T {
+  const top5 = allTasksDone(row);
+  if (row.top5 === top5) return row;
+  const next = { ...row, top5 };
+  if (top5) delete next.top5Awarded;
+  return next;
 }
 
 export function dailyPoints(row: ScoredDay, rates: ScoreRates = DEFAULT_RATES): number {

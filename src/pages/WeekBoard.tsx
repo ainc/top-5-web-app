@@ -82,8 +82,9 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
                     label="Top 5"
                     points={rates.top5}
                     checked={row.top5}
-                    disabled={!canEdit}
-                    onChange={(checked) => onPatch(row.id, { top5: checked })}
+                    disabled
+                    title="Checked when all five tasks are done"
+                    onChange={() => undefined}
                   />
                   <ScoreBox
                     label="Exercise"
@@ -157,17 +158,19 @@ function ScoreBox({
   points,
   checked,
   disabled,
+  title,
   onChange,
 }: {
   label: string;
   points: number;
   checked: boolean;
   disabled: boolean;
+  title?: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className={checked ? "day-score is-on" : "day-score"}>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
+    <label className={checked ? "day-score is-on" : "day-score"} title={title}>
+      <input type="checkbox" checked={checked} disabled={disabled} title={title} onChange={(event) => onChange(event.target.checked)} />
       <span>{label}</span>
       <b>{points}</b>
     </label>

@@ -1,8 +1,9 @@
 // Season, bonus, roster, team, and role edits.
-// The route only mounts this page for an admin or a commissioner.
-// Those writes also require that role in the database. A member's publishable
-// key cannot change the season or someone else's tasks.
-// A role is stored on the roster profile. It does not create a Google user.
+// These forms do not build a DayRow and do not call saveDays. Each save
+// function below calls getSupabase().from("<table>").update/upsert/delete
+// on the setup tables (seasons, scoring_rules, bonus_definitions, and so on).
+// That is a separate PostgREST request from a task checkbox. The signed-in
+// admin or commissioner is the role Postgres checks. A member's key is rejected.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getSupabase } from "../supabaseClient";
