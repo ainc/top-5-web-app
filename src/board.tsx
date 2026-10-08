@@ -83,8 +83,11 @@ function ensureWeek(weeks: Record<string, WeekRecord>, weekId: string, fromWeek:
   };
 }
 
-function textIsEditing(): boolean {
+// A task title or the notes box. A checkbox is not editing: those saves are
+// already in the queue, and waiting on them is writesInFlight's job.
+function isTextEditing(): boolean {
   const active = document.activeElement;
+  if (active instanceof HTMLTextAreaElement) return true;
   return active instanceof HTMLInputElement && active.type === "text";
 }
 
@@ -99,6 +102,10 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
   const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
   const weeksRef = useRef(weeks);
+  // Bumped on every local edit. A reload that started before this number
+  // changed is a picture of the week from before that edit. Applying it
+  // puts the old title back and can uncheck a box that was just turned on.
+  const editEpoch = useRef(0);
   const selectedRef = useRef(selectedWeek);
   const roleRef = useRef(role);
   const profileNameRef = useRef(profileName);
@@ -223,12 +230,23 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     const unsubscribe = subscribeToBoard(() => {
       window.clearTimeout(timer);
       const reload = () => {
-        if (writesInFlight() || textIsEditing()) {
+        // Wait out our own save and a title that is still focused. The
+        // fetch itself also has to be thrown away if an edit lands while
+        // it is in flight. Otherwise the response, which left before the
+        // blur, arrives a moment later and overwrites the field they left.
+        if (writesInFlight() || isTextEditing()) {
           timer = window.setTimeout(reload, 400);
           return;
         }
+        const epoch = editEpoch.current;
         loadBoardState()
-          .then((state) => applyLoaded(state, true))
+          .then((state) => {
+            if (epoch !== editEpoch.current || writesInFlight() || isTextEditing()) {
+              timer = window.setTimeout(reload, 400);
+              return;
+            }
+            applyLoaded(state, true);
+          })
           .catch((error: unknown) => {
             setNotice({ tone: "error", text: errorText(error, "Could not refresh the scorecard.") });
           });
@@ -269,16 +287,11 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         });
         return;
       }
-      const touchesTasks =
-        "topDone" in patch ||
-        "highDone" in patch ||
-        "med1Done" in patch ||
-        "med2Done" in patch ||
-        "lowDone" in patch ||
-        "top5" in patch;
-      // A title or note edit leaves an older Top 5 box alone. The bonus moves
-      // only when a task box or the Top 5 box itself is the thing that changed.
-      const merged = touchesTasks ? withAutomaticTop5({ ...current, ...patch }) : { ...current, ...patch };
+      // withAutomaticTop5 drops a check on a blank title and turns Top 5 off
+      // when that was the box holding it on. Blur writes the title before the
+      // checkbox click, so both land in this object and a filled line can
+      // still be checked in the same gesture.
+      const merged = withAutomaticTop5({ ...current, ...patch });
       // Clicking Top 5 itself does not stick. If the five task boxes already
       // agree with it, there is nothing to save.
       if (
@@ -300,6 +313,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       ) {
         return;
       }
+      editEpoch.current += 1;
       const rows = week.rows.map((row) => (row.id === id ? merged : row));
       commitWeeks({
         ...weeksRef.current,

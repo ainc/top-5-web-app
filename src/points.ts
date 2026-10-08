@@ -52,19 +52,71 @@ export function maxWeekPoints(rates: ScoreRates = DEFAULT_RATES): number {
   return maxDayPoints(rates) * DAY_NAMES.length;
 }
 
-type ScoredDay = Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone" | "top5" | "exercise" | "reading"> & {
+type ScoredDay = Pick<
+  DayRow,
+  | "topLabel"
+  | "highLabel"
+  | "med1Label"
+  | "med2Label"
+  | "lowLabel"
+  | "topDone"
+  | "highDone"
+  | "med1Done"
+  | "med2Done"
+  | "lowDone"
+  | "top5"
+  | "exercise"
+  | "reading"
+> & {
   top5Awarded?: number;
   exerciseAwarded?: number;
   readingAwarded?: number;
   extraChecks?: DayRow["extraChecks"];
 };
 
-export function completedTaskCount(row: Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone">): number {
-  return [row.topDone, row.highDone, row.med1Done, row.med2Done, row.lowDone].filter(Boolean).length;
+type TaskSlot = {
+  label: "topLabel" | "highLabel" | "med1Label" | "med2Label" | "lowLabel";
+  done: "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone";
+};
+
+const TASK_SLOTS: TaskSlot[] = [
+  { label: "topLabel", done: "topDone" },
+  { label: "highLabel", done: "highDone" },
+  { label: "med1Label", done: "med1Done" },
+  { label: "med2Label", done: "med2Done" },
+  { label: "lowLabel", done: "lowDone" },
+];
+
+// A box with no words is not a finished task. Imported sheets sometimes have
+// a checked box and an empty title. Those do not count toward points or Top 5.
+export function taskHasText(label: string): boolean {
+  return label.trim().length > 0;
 }
 
-export function allTasksDone(row: Pick<DayRow, "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone">): boolean {
-  return row.topDone && row.highDone && row.med1Done && row.med2Done && row.lowDone;
+type TaskDay = Pick<DayRow, TaskSlot["label"] | TaskSlot["done"]>;
+
+function slotCounts(row: TaskDay, slot: TaskSlot): boolean {
+  return Boolean(row[slot.done]) && taskHasText(String(row[slot.label] ?? ""));
+}
+
+export function completedTaskCount(row: TaskDay): number {
+  return TASK_SLOTS.filter((slot) => slotCounts(row, slot)).length;
+}
+
+export function allTasksDone(row: TaskDay): boolean {
+  return TASK_SLOTS.every((slot) => slotCounts(row, slot));
+}
+
+// Checking a blank line is dropped. Erasing the title of a checked line
+// unchecks it, so Top 5 cannot stay on because of an empty box.
+export function withoutBlankChecks<T extends DayRow>(row: T): T {
+  let next = row;
+  for (const slot of TASK_SLOTS) {
+    if (!next[slot.done] || taskHasText(String(next[slot.label] ?? ""))) continue;
+    if (next === row) next = { ...row };
+    next[slot.done] = false;
+  }
+  return next;
 }
 
 // Top 5 matches the five task boxes. Checking the last one turns it on.
@@ -73,9 +125,10 @@ export function allTasksDone(row: Pick<DayRow, "topDone" | "highDone" | "med1Don
 // Clearing top5Awarded on the way on makes the screen use today's bonus value.
 // The save stores that same value. An old snapshot is not kept across the flip.
 export function withAutomaticTop5<T extends DayRow>(row: T): T {
-  const top5 = allTasksDone(row);
-  if (row.top5 === top5) return row;
-  const next = { ...row, top5 };
+  const cleared = withoutBlankChecks(row);
+  const top5 = allTasksDone(cleared);
+  if (cleared.top5 === top5) return cleared;
+  const next = { ...cleared, top5 };
   if (top5) delete next.top5Awarded;
   return next;
 }

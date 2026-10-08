@@ -37,10 +37,9 @@ function dayScore(row: DayRow | undefined): DayScore {
   let total = 0;
   for (const [label, done] of TASKS) {
     const written = String(row[label] ?? "").trim().length > 0;
-    const checked = Boolean(row[done]);
-    if (!written && !checked) continue;
+    if (!written) continue;
     total += 1;
-    if (checked) completed += 1;
+    if (Boolean(row[done])) completed += 1;
   }
   return { completed, total };
 }

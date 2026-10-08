@@ -2,7 +2,7 @@
 // Each change calls onPatch, and the board writes it onto the selected week.
 
 import type { CustomCellRendererProps } from "ag-grid-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GridRow } from "./types";
 
 type TaskFields = {
@@ -17,16 +17,50 @@ export type GridContext = {
 
 type TaskCellProps = CustomCellRendererProps<GridRow, string, GridContext> & TaskFields;
 
+// The letters being typed stay here until blur. The week in React state is
+// replaced when Supabase pushes a reload. If that reload is a snapshot from
+// before the blur, copying it back into the box wipes the title, and blur
+// then thinks nothing changed, so the title is never saved.
+export function useDraftText(value: string): {
+  draft: string;
+  edit: (next: string) => void;
+  commit: (onCommit: (next: string) => void) => void;
+} {
+  const [draft, setDraft] = useState(value);
+  const draftRef = useRef(value);
+  const valueRef = useRef(value);
+  const dirty = useRef(false);
+  valueRef.current = value;
+
+  useEffect(() => {
+    if (dirty.current) return;
+    draftRef.current = value;
+    setDraft(value);
+  }, [value]);
+
+  return {
+    draft,
+    edit(next: string) {
+      draftRef.current = next;
+      dirty.current = next !== valueRef.current;
+      setDraft(next);
+    },
+    commit(onCommit: (next: string) => void) {
+      const next = draftRef.current;
+      const changed = dirty.current && next !== valueRef.current;
+      dirty.current = false;
+      if (changed) onCommit(next);
+    },
+  };
+}
+
 // One priority column: a done checkbox plus the task label.
 // The label is saved on blur so typing does not rebuild the grid on every keystroke.
 export function TaskCell({ data, context, doneField, labelField }: TaskCellProps) {
   const label = data?.[labelField] ?? "";
   const done = Boolean(data?.[doneField]);
-  const [draft, setDraft] = useState(label);
-
-  useEffect(() => {
-    setDraft(label);
-  }, [label]);
+  const typed = useDraftText(label);
+  const hasText = label.trim().length > 0;
 
   if (!data) return null;
 
@@ -34,23 +68,22 @@ export function TaskCell({ data, context, doneField, labelField }: TaskCellProps
     <div className="task-cell">
       <input
         type="checkbox"
-        checked={done}
+        checked={done && hasText}
         disabled={!context.canEdit}
+        title={hasText ? undefined : "Type the task before checking it"}
         aria-label={`${data.person} ${data.day} done`}
         onChange={(event) => context.onPatch(data.id, { [doneField]: event.target.checked })}
       />
       {context.canEdit ? (
         <input
           type="text"
-          value={draft}
+          value={typed.draft}
           aria-label={`${data.person} ${data.day} task`}
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={() => {
-            if (draft !== label) context.onPatch(data.id, { [labelField]: draft });
-          }}
+          onChange={(event) => typed.edit(event.target.value)}
+          onBlur={() => typed.commit((next) => context.onPatch(data.id, { [labelField]: next }))}
         />
       ) : (
-        <span className={done ? "task-done" : undefined}>{label}</span>
+        <span className={done && hasText ? "task-done" : undefined}>{label}</span>
       )}
     </div>
   );
