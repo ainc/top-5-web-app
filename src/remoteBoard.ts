@@ -783,6 +783,31 @@ function workspaceDomain(): string {
     .toLowerCase();
 }
 
+// A confirmed mailbox wins over the Google display name. Maison Rudd's account
+// belongs on the sheet row "Maison" even if Google shows a different label.
+// Mack is Mackenzie Hanes. Any mailbox she might use belongs on "Mack",
+// not the separate historical row named "Mackenzie".
+const ROSTER_BY_EMAIL: Record<string, string> = {
+  "maison.rudd@awesomeinc.org": "Maison",
+  "mackenzie@awesomeinc.org": "Mack",
+  "mackenzie.hanes@awesomeinc.org": "Mack",
+  "mackenzie.hanes.awesome@gmail.com": "Mack",
+};
+
+async function claimRosterEmail(email: string): Promise<{ id: string; display_name: string } | null> {
+  const rosterName = ROSTER_BY_EMAIL[email];
+  if (!rosterName) return null;
+  const match = await getSupabase()
+    .from("profiles")
+    .select("id, display_name")
+    .is("auth_user_id", null)
+    .ilike("display_name", rosterName)
+    .limit(2);
+  fail(match.error, "match roster email");
+  if ((match.data ?? []).length === 1) return match.data?.[0] ?? null;
+  return null;
+}
+
 // The sheet often stores a first name. Google sends "First Last". Use the full
 // name when it matches, otherwise the first name when exactly one unsigned
 // roster row has that name. Two people named Logan stay unmatched.
@@ -811,7 +836,8 @@ async function claimRosterName(googleName: string): Promise<{ id: string; displa
 export async function enrollSignedInUser(user: User): Promise<void> {
   const domain = workspaceDomain();
   const email = (user.email ?? "").toLowerCase();
-  if (domain && !email.endsWith(`@${domain}`)) {
+  const knownRosterEmail = Object.prototype.hasOwnProperty.call(ROSTER_BY_EMAIL, email);
+  if (domain && !email.endsWith(`@${domain}`) && !knownRosterEmail) {
     await getSupabase().auth.signOut();
     throw new Error(`Use a @${domain} Google Workspace account to join the roster.`);
   }
@@ -828,7 +854,7 @@ export async function enrollSignedInUser(user: User): Promise<void> {
   let profileId = linked?.id as string | undefined;
   let rosterName = linked?.display_name ?? googleName;
   if (!linked) {
-    const claim = await claimRosterName(googleName);
+    const claim = (await claimRosterEmail(email)) ?? (await claimRosterName(googleName));
     if (claim) {
       const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
       fail(error, "link roster name");
