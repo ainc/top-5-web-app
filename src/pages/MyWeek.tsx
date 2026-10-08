@@ -1,8 +1,11 @@
 // Editable scorecard for one person. A Google sign-in opens that person's rows.
 // Anyone can look at another person. The fields stay locked unless this account
 // is that person, or an admin or commissioner.
-// Board is the default: five day columns side by side. Grid keeps the original table.
+// Board is the default: a card per day, tasks stacked inside it.
+// Grid turns that card sideways: weekdays across the top, tasks down the side.
+// Grid (Legacy) is the original spreadsheet, one table per day.
 // The choice is stored in this browser so a refresh does not flip the layout back.
+// An older save used "grid" for that spreadsheet, so that value still opens Legacy.
 import { useEffect, useMemo, useState } from "react";
 import { canEditPerson, useAuth } from "../auth";
 import { useBoard } from "../board";
@@ -11,14 +14,18 @@ import { maxWeekPoints, personKey, weekPoints } from "../points";
 import { getSupabase } from "../supabaseClient";
 import { WeekBoard } from "./WeekBoard";
 import { WeekGrid } from "./WeekGrid";
+import { WeekMatrix } from "./WeekMatrix";
 
-type WeekLayout = "board" | "grid";
+type WeekLayout = "board" | "matrix" | "legacy";
 
 const LAYOUT_KEY = "top5-week-layout";
 
 function readWeekLayout(): WeekLayout {
   try {
-    return localStorage.getItem(LAYOUT_KEY) === "grid" ? "grid" : "board";
+    const saved = localStorage.getItem(LAYOUT_KEY);
+    if (saved === "matrix") return "matrix";
+    if (saved === "grid" || saved === "legacy") return "legacy";
+    return "board";
   } catch {
     return "board";
   }
@@ -123,13 +130,18 @@ export function MyWeek() {
           <button type="button" aria-pressed={layout === "board"} onClick={() => chooseLayout("board")}>
             Board
           </button>
-          <button type="button" aria-pressed={layout === "grid"} onClick={() => chooseLayout("grid")}>
+          <button type="button" aria-pressed={layout === "matrix"} onClick={() => chooseLayout("matrix")}>
             Grid
+          </button>
+          <button type="button" aria-pressed={layout === "legacy"} onClick={() => chooseLayout("legacy")}>
+            Grid (Legacy)
           </button>
         </div>
       </div>
       {layout === "board" ? (
         <WeekBoard rows={mine} weekId={selectedWeek} canEdit={canEdit} />
+      ) : layout === "matrix" ? (
+        <WeekMatrix rows={mine} weekId={selectedWeek} canEdit={canEdit} />
       ) : (
         <WeekGrid rows={mine} weekId={selectedWeek} canEdit={canEdit} />
       )}

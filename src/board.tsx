@@ -386,8 +386,13 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const goToNextWeek = useCallback(() => {
     const next = addDays(selectedWeek, 7);
-    // Next week does not create a week, so it does not raise the planning notice.
-    if (isPastPlan(next)) return;
+    // Next week does not create a week. Once the Monday four weeks out is the
+    // next one, the button stays clickable so this note can appear. A disabled
+    // button would swallow the click and the message would never show.
+    if (isPastPlan(next)) {
+      setNotice({ tone: "info", text: planAheadMessage(), planLimit: true });
+      return;
+    }
     // A future week is only opened once New week has saved it. Next week does not create one.
     if (next > currentMonday() && !weeksRef.current[next]) return;
     setNotice(null);
@@ -397,15 +402,19 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   // The season is filled in ahead of time. This copies the roster onto the
   // following Monday, including a Monday that has not started yet.
   // The copy stops four weeks past the current Monday. The planning notice
-  // is raised only for the click that creates that furthest week. It lives in
-  // component state, so a refresh does not show it again.
+  // shows on the click that creates that furthest week, and again on any
+  // later click that would go past it. It lives in component state, so a
+  // refresh does not show it again until the next stopped click.
   const createNewWeek = useCallback(() => {
     if (!canOpenAdmin(roleRef.current)) {
       setNotice({ tone: "error", text: "Only an admin or commissioner can start a new week." });
       return;
     }
     const target = nextNewWeekId(selectedWeek, Object.keys(weeksRef.current));
-    if (isPastPlan(target)) return;
+    if (isPastPlan(target)) {
+      setNotice({ tone: "info", text: planAheadMessage(), planLimit: true });
+      return;
+    }
     const createdHorizon = target === furthestPlannableMonday();
     setNotice(
       createdHorizon

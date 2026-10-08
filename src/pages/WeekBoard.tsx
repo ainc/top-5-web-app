@@ -128,13 +128,16 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
   );
 }
 
-function TaskLine({
+// showRank is for the board cards, where each line needs its own Top/High note.
+// The weekday matrix already names the slot in the row header, so it hides that note.
+export function TaskLine({
   row,
   name,
   rank,
   done,
   label,
   canEdit,
+  showRank = true,
   onDone,
   onLabel,
 }: {
@@ -144,12 +147,14 @@ function TaskLine({
   done: boolean;
   label: string;
   canEdit: boolean;
+  showRank?: boolean;
   onDone: (checked: boolean) => void;
   onLabel: (next: string) => void;
 }) {
   const hasText = taskHasText(label);
+  const rankClass = showRank ? "" : " no-rank";
   return (
-    <div className={done && hasText ? `day-task is-done rank-${rank}` : `day-task rank-${rank}`}>
+    <div className={done && hasText ? `day-task is-done rank-${rank}${rankClass}` : `day-task rank-${rank}${rankClass}`}>
       <input
         type="checkbox"
         checked={done && hasText}
@@ -166,12 +171,12 @@ function TaskLine({
         placeholder="Add a task"
         onCommit={onLabel}
       />
-      <span className="day-task-name">{name}</span>
+      {showRank ? <span className="day-task-name">{name}</span> : null}
     </div>
   );
 }
 
-function ScoreBox({
+export function ScoreBox({
   label,
   points,
   checked,
@@ -195,7 +200,7 @@ function ScoreBox({
   );
 }
 
-function DraftField({
+export function DraftField({
   value,
   disabled,
   done,

@@ -12,7 +12,7 @@ import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
 import { maxDayPoints, maxWeekPoints } from "./points";
 import { seasonProgress } from "./streaks";
-import { addDays, currentMonday, formatWeekOption, isPastPlan, nextNewWeekId } from "./weeks";
+import { addDays, currentMonday, formatWeekOption, isPastPlan } from "./weeks";
 
 export function App() {
   const {
@@ -40,8 +40,10 @@ export function App() {
   }, [avatarUrl]);
   const nextWeekId = addDays(selectedWeek, 7);
   const nextPastPlan = isPastPlan(nextWeekId);
-  const canGoNext = !nextPastPlan && (nextWeekId <= currentMonday() || weekIds.includes(nextWeekId));
-  const newWeekPastPlan = isPastPlan(nextNewWeekId(selectedWeek, weekIds));
+  // Past the four-week line the button stays on, so the click can show the
+  // planning note. Further ahead with no saved week stays disabled, because
+  // Next week does not create one.
+  const canGoNext = nextPastPlan || nextWeekId <= currentMonday() || weekIds.includes(nextWeekId);
   const staff = authReady && roleReady && canOpenAdmin(role);
   const accountName = nickname || profileName || displayName;
   const progress = season.name ? seasonProgress(season) : null;
@@ -137,7 +139,7 @@ export function App() {
           Next week
         </button>
         {staff ? (
-          <button type="button" onClick={createNewWeek} disabled={newWeekPastPlan}>
+          <button type="button" onClick={createNewWeek}>
             New week
           </button>
         ) : null}

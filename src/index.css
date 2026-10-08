@@ -512,6 +512,10 @@ button:disabled {
   align-items: center;
 }
 
+.day-task.no-rank {
+  grid-template-columns: 16px minmax(0, 1fr);
+}
+
 .day-task input[type="checkbox"],
 .day-score input[type="checkbox"] {
   width: 16px;
@@ -652,6 +656,127 @@ button:disabled {
   margin: 0;
   color: #78716c;
   font-size: 13px;
+}
+
+/* Days across, tasks down. The corner cell is empty so the weekday headers
+   line up with the task rows. Today's column keeps the same rose edge as a board card. */
+.week-matrix-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.week-matrix {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 8px 0;
+}
+
+.week-matrix th,
+.week-matrix td {
+  vertical-align: top;
+  text-align: left;
+}
+
+.week-matrix thead th {
+  padding: 8px 10px 10px;
+  border: 1px solid #eadfd6;
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  background: #fffdfb;
+}
+
+.week-matrix thead th strong {
+  display: block;
+  font-size: 16px;
+}
+
+.week-matrix thead th span,
+.week-matrix thead th b span {
+  color: #78716c;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.week-matrix thead th b {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.week-matrix tbody td {
+  padding: 8px;
+  border-left: 1px solid #eadfd6;
+  border-right: 1px solid #eadfd6;
+  background: #fffdfb;
+}
+
+.week-matrix tbody tr:last-child td {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eadfd6;
+  border-radius: 0 0 14px 14px;
+}
+
+.week-matrix .is-today {
+  border-color: #9f1239;
+  box-shadow: inset 0 0 0 1px #9f1239;
+}
+
+.week-matrix thead th.is-today {
+  box-shadow: inset 0 3px 0 #9f1239;
+}
+
+.matrix-corner {
+  width: 88px;
+}
+
+.matrix-slot {
+  width: 88px;
+  padding: 10px 4px 0 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: #a8a29e;
+  white-space: nowrap;
+}
+
+.matrix-slot span {
+  display: block;
+  font-size: 16px;
+  color: #1c1917;
+}
+
+.matrix-slot small {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.matrix-slot.rank-top small {
+  color: #9f1239;
+}
+
+.matrix-slot.rank-high small {
+  color: #b45309;
+}
+
+.matrix-slot.rank-med small {
+  color: #0f766e;
+}
+
+.matrix-slot.rank-med2 small {
+  color: #4338ca;
+}
+
+.matrix-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.matrix-scores .day-score {
+  padding: 4px 6px;
+  font-size: 12px;
 }
 
 /* One card per weekday. The spreadsheet columns stay in a single horizontal row. */
@@ -1262,6 +1387,8 @@ html[data-theme="dark"] .season-strip,
 html[data-theme="dark"] .week-score,
 html[data-theme="dark"] .day-column,
 html[data-theme="dark"] .day-strip,
+html[data-theme="dark"] .week-matrix thead th,
+html[data-theme="dark"] .week-matrix tbody td,
 html[data-theme="dark"] .scorecard-wrap,
 html[data-theme="dark"] .standings-card,
 html[data-theme="dark"] .chart-card,
@@ -1313,6 +1440,10 @@ html[data-theme="dark"] .place,
 html[data-theme="dark"] .week-cell,
 html[data-theme="dark"] .day-task.rank-top .day-task-name {
   color: #fb7185;
+}
+
+html[data-theme="dark"] .matrix-slot span {
+  color: #f6f1ea;
 }
 
 html[data-theme="dark"] .day-column.is-today,

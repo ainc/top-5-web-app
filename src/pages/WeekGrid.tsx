@@ -1,6 +1,7 @@
-// Grid layout with one card per weekday. The columns stay the spreadsheet
-// row (priorities, notes, bonuses). The days are not stacked inside one table,
-// so Monday does not sit on the next line under Friday.
+// Legacy grid. Each weekday is its own spreadsheet row: priorities, notes, and
+// bonuses run across. The newer Grid turns that sideways, with the days across
+// the top and the five tasks down the side. This view stays so the old table
+// is still one click away.
 
 import { ScoreGrid, useBoard } from "../board";
 import { DAY_NAMES, dailyPoints } from "../points";
