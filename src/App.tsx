@@ -16,7 +16,6 @@ import { addDays, currentMonday, formatWeekOption, isPastPlan } from "./weeks";
 
 export function App() {
   const {
-    source,
     notice,
     importCsv,
     selectedWeek,
@@ -58,8 +57,10 @@ export function App() {
             <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
           </a>
           <div className="brand-title">
-            <strong>Top 5</strong>
-            <small>{source === "Supabase" ? "Supabase" : `${source} · Supabase`}</small>
+            <img className="top5-mark" src="/top5-mark.png" alt="Top 5" />
+            <a className="font-credit" href="https://www.textstudio.com/" target="_blank" rel="noreferrer">
+              Font generator
+            </a>
           </div>
         </div>
         <nav>
@@ -96,11 +97,17 @@ export function App() {
                 Sign out
               </button>
             </div>
-          ) : (
-            <button type="button" onClick={() => void signInWithGoogle()}>
-              Sign in with Google
-            </button>
-          )}
+          ) : authReady ? (
+            <div className="signin-cue">
+              <span className="signin-cue-label">Not signed in · view only</span>
+              <span className="signin-arrow" aria-hidden="true">
+                ➜
+              </span>
+              <button type="button" onClick={() => void signInWithGoogle()}>
+                Sign in with Google
+              </button>
+            </div>
+          ) : null}
           {/* Fills empty slots on the signed-in person's current week.
               A task that already has text, on any day, is not replaced.
               Import CSV stays staff-only because that file replaces a whole week. */}

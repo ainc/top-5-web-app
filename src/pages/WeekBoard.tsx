@@ -236,10 +236,8 @@ export function DraftField({
     );
   }
 
-  // A line through an <input> does not paint in Chromium. The overlay uses the
-  // same text so a finished task still reads as done.
   return (
-    <span className="task-field" data-value={done ? typed.draft : undefined}>
+    <span className="task-field">
       <input
         type="text"
         value={typed.draft}

@@ -1,16 +1,25 @@
-// Read-only week. One row per person so the week can be skimmed.
+// Read-only week, arranged as a glance then a comparison then the detail.
+// The top cards are the person you picked: points against the week maximum,
+// tasks they finished, season total against the leader, and the streak.
+// The bar list compares everyone. The tables under it are the breakdown.
 // A day cell is tasks finished over tasks written. Empty days stay blank
 // instead of red, because nothing written is not a missed day.
-// Standings and the bar chart use bonus points, not the task count.
-// The full task grid stays collapsed, one card per person.
+// The full task grid stays collapsed, one card per person. It uses AG Grid
+// Community only. Sparklines, integrated charts, and master-detail rows are
+// paid features, so the summary stays as numbers and a labeled bar list.
 // A shared grid put the next person on the following row, so the names blended together.
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
 import { SeasonBoards } from "./SeasonBoards";
-import { shownName } from "../names";
-import { DAY_NAMES, dailyPoints, peopleInOrder, personKey } from "../points";
+import { pickerName, shownName } from "../names";
+import { PersonPicker } from "./PersonPicker";
+import { DAY_NAMES, dailyPoints, maxWeekPoints, peopleInOrder, personKey, weekPoints } from "../points";
+import { seasonBoard } from "../streaks";
 import type { DayRow } from "../types";
+import { addDays } from "../weeks";
 
 const SLOT_NAMES = ["Top", "High", "Medium", "Medium 2", "Low"];
 const TASKS: Array<[label: keyof DayRow, done: keyof DayRow]> = [
@@ -61,6 +70,10 @@ function percentLabel(completed: number, total: number): string {
   return `${((completed / total) * 100).toFixed(2)}%`;
 }
 
+function pointsLabel(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 function placeLabel(place: number): string {
   const mod100 = place % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${place}th`;
@@ -78,6 +91,8 @@ function placeLabel(place: number): string {
 
 export function Dashboard() {
   const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
+  const { profileName } = useAuth();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [listKey, setListKey] = useState("");
   const needle = query.trim().toLowerCase();
@@ -105,12 +120,30 @@ export function Dashboard() {
   }, [needle, nicknames, rates, rows]);
 
   const roster = useMemo(() => peopleInOrder(rows), [rows]);
-  const listed = roster.find((person) => person.key === listKey) ?? roster[0];
+  // Nothing chosen yet means the signed-in person, same as My week. The first
+  // roster name is only used when this Google account is not on the board.
+  const signedInKey = roster.find((person) => person.person === profileName)?.key ?? "";
+  const listed =
+    roster.find((person) => person.key === listKey) ??
+    roster.find((person) => person.key === signedInKey) ??
+    roster[0];
   const listedDays = useMemo(() => {
     if (!listed) return [];
     const byDay = new Map(rows.filter((row) => personKey(row) === listed.key).map((row) => [row.day, row]));
     return DAY_NAMES.map((day) => byDay.get(day));
   }, [listed, rows]);
+  const listedScores = listedDays.map((row) => dayScore(row));
+  const listedCompleted = listedScores.reduce((sum, day) => sum + day.completed, 0);
+  const listedTotal = listedScores.reduce((sum, day) => sum + day.total, 0);
+  const weekCap = maxWeekPoints(rates);
+  const listedPoints = listed ? weekPoints(rows, listed.key, rates) : 0;
+  const priorRows = weeks[addDays(selectedWeek, -7)]?.rows ?? [];
+  const priorHasListed = listed ? priorRows.some((row) => personKey(row) === listed.key) : false;
+  const priorPoints = listed && priorHasListed ? weekPoints(priorRows, listed.key, rates) : 0;
+  const pointsDelta = listedPoints - priorPoints;
+  const seasonPeople = useMemo(() => seasonBoard(weeks, undefined, rates, season), [rates, season, weeks]);
+  const listedSeason = seasonPeople.find((person) => person.key === listed?.key);
+  const seasonLeader = seasonPeople[0];
 
   const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
   const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
@@ -123,6 +156,27 @@ export function Dashboard() {
     });
   }, [people]);
   const topPoints = ranked.reduce((max, person) => Math.max(max, person.points), 0);
+  const deltaText = !listed
+    ? "No one is on this week yet."
+    : !priorHasListed
+      ? "No saved score for the week before."
+      : pointsDelta > 0
+        ? `Up ${pointsLabel(pointsDelta)} from last week.`
+        : pointsDelta < 0
+          ? `Down ${pointsLabel(Math.abs(pointsDelta))} from last week.`
+          : "Same as last week.";
+  const seasonText = !listedSeason
+    ? "No season score yet."
+    : seasonLeader && seasonLeader.key === listedSeason.key
+      ? "Leads the season."
+      : seasonLeader
+        ? `${shownName(seasonLeader.person, nicknames)} leads at ${pointsLabel(seasonLeader.seasonTotal)}.`
+        : "No season scores yet.";
+  const streakText = !listedSeason
+    ? "No streak yet."
+    : listedSeason.nextMilestone === "—"
+      ? "Past the last milestone."
+      : `Next milestone: ${listedSeason.nextMilestone}.`;
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
 
@@ -131,7 +185,7 @@ export function Dashboard() {
       <div className="page-head">
         <div>
           <h1>📊 Dashboard</h1>
-          <p>Pick a name below to read that person’s tasks. Green is a finished day, red still has open tasks, and a dash means nothing was written.</p>
+          <p>The numbers are for the person you pick. The chart and tables compare everyone in the filter.</p>
         </div>
         <input
           className="filter"
@@ -143,23 +197,134 @@ export function Dashboard() {
 
       {listed ? (
         <div className="whose-week">
-          <label>
-            Look at someone's tasks
-            <select value={listed.key} onChange={(event) => setListKey(event.target.value)}>
-              {roster.map((person) => (
-                <option key={person.key} value={person.key}>
-                  {shownName(person.person, nicknames)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p>Everyone can read a list. Change tasks on My week.</p>
+          <div className="whose-week-field">
+            <span>Look at someone's tasks</span>
+            <PersonPicker
+              people={roster}
+              value={listed.key}
+              nicknames={nicknames}
+              signedInName={profileName}
+              onChange={setListKey}
+              onReturn={profileName ? () => navigate("/") : undefined}
+            />
+          </div>
+          <p>These four numbers follow the person above. Change tasks on My week.</p>
         </div>
       ) : null}
+
+      <div className="kpi-row">
+        <article className="kpi-card">
+          <span>{listed && listed.person === profileName ? "Your points" : "Points"}</span>
+          <strong>{listed ? pointsLabel(listedPoints) : "—"}</strong>
+          <p>
+            {listed && listed.person !== profileName ? `${pickerName(listed.person, nicknames, false)}. ` : ""}
+            Of {weekCap} possible. {deltaText}
+          </p>
+        </article>
+        <article className="kpi-card">
+          <span>Tasks finished</span>
+          <strong>{listed ? percentLabel(listedCompleted, listedTotal) : "—"}</strong>
+          <p>{listed ? `${listedCompleted} of ${listedTotal} written tasks are done.` : "No tasks yet."}</p>
+        </article>
+        <article className="kpi-card">
+          <span>Season total</span>
+          <strong>{listedSeason ? pointsLabel(listedSeason.seasonTotal) : "—"}</strong>
+          <p>{seasonText}</p>
+        </article>
+        <article className="kpi-card">
+          <span>Current streak</span>
+          <strong>{listedSeason ? listedSeason.currentStreak : "—"}</strong>
+          <p>{streakText}</p>
+        </article>
+      </div>
+
+      <div className="chart-card tone-chart">
+        <div className="section-head">
+          <h2>📈 Points this week</h2>
+          <p>Longest bar is the highest score. Place is on the name, so the bar does not have to be hovered.</p>
+        </div>
+        {ranked.length === 0 ? (
+          <p className="status">No scores for this filter yet.</p>
+        ) : (
+          <div className="bars">
+            {ranked.map((person) => {
+              const width = topPoints === 0 ? 0 : (person.points / topPoints) * 100;
+              return (
+                <div className="bar-row" key={person.key}>
+                  <span className="bar-name">
+                    {placeLabel(person.place)} {person.person}
+                  </span>
+                  <div className="bar-track" role="img" aria-label={`${placeLabel(person.place)} ${person.person}, ${person.points} points`}>
+                    <div className="bar-fill" style={{ width: `${width}%` }} />
+                  </div>
+                  <span className="bar-value">{person.points.toFixed(1)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="scorecard-wrap tone-week">
+        <div className="section-head">
+          <h2>📋 {isCurrentWeek ? "This week" : "Selected week"}</h2>
+          <p>
+            {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}). A name opens that list below.
+          </p>
+        </div>
+        <p className="skim-legend">
+          <span className="heat-done">Done</span>
+          <span className="heat-open">Still open</span>
+          <span className="heat-empty">Nothing written</span>
+        </p>
+        <table className="scorecard skim">
+          <thead>
+            <tr>
+              <th>Name</th>
+              {DAY_NAMES.map((day) => (
+                <th key={day}>{day}</th>
+              ))}
+              <th>Week</th>
+              <th>Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {people.length === 0 ? (
+              <tr>
+                <td className="scorecard-empty" colSpan={8}>
+                  No one matches that filter.
+                </td>
+              </tr>
+            ) : (
+              people.map((person) => (
+                <tr key={person.key}>
+                  <th scope="row">
+                    <button
+                      type="button"
+                      className={person.key === listed?.key ? "name-link is-open" : "name-link"}
+                      onClick={() => setListKey(person.key)}
+                    >
+                      {person.person}
+                    </button>
+                  </th>
+                  {person.days.map((score, index) => (
+                    <td key={DAY_NAMES[index]} className={heatClass(score)}>
+                      {dayLabel(score)}
+                    </td>
+                  ))}
+                  <td>{percentLabel(person.completed, person.total)}</td>
+                  <td>{person.points.toFixed(1)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
       {listed ? (
-        <article className="shared-list">
-          <header>
-            <h2>{shownName(listed.person, nicknames)}</h2>
+        <article className="shared-list tone-list">
+          <header className="section-head">
+            <h2>👀 {pickerName(listed.person, nicknames, listed.person === profileName)}</h2>
             <p>{listed.team || "No team"}</p>
           </header>
           <div className="shared-days">
@@ -187,109 +352,11 @@ export function Dashboard() {
         </article>
       ) : null}
 
-      <div className="dashboard-top" key={selectedWeek}>
-        <div className="scorecard-wrap">
-          <div className="section-head">
-            <h2>📋 {isCurrentWeek ? "This week" : "Selected week"}</h2>
-            <p>
-              {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}).
-            </p>
-          </div>
-          <table className="scorecard skim">
-            <thead>
-              <tr>
-                <th>Name</th>
-                {DAY_NAMES.map((day) => (
-                  <th key={day}>{day}</th>
-                ))}
-                <th>Week</th>
-                <th>Points</th>
-              </tr>
-            </thead>
-            <tbody>
-              {people.length === 0 ? (
-                <tr>
-                  <td className="scorecard-empty" colSpan={8}>
-                    No one matches that filter.
-                  </td>
-                </tr>
-              ) : (
-                people.map((person) => (
-                  <tr key={person.key}>
-                    <th scope="row">
-                      <button
-                        type="button"
-                        className={person.key === listed?.key ? "name-link is-open" : "name-link"}
-                        onClick={() => setListKey(person.key)}
-                      >
-                        {person.person}
-                      </button>
-                    </th>
-                    {person.days.map((score, index) => (
-                      <td key={DAY_NAMES[index]} className={heatClass(score)}>
-                        {dayLabel(score)}
-                      </td>
-                    ))}
-                    <td>{percentLabel(person.completed, person.total)}</td>
-                    <td>{person.points.toFixed(1)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <aside className="standings-card">
-          <h2>🏆 Standings</h2>
-          <p className="field-help">Sorted by this week’s bonus points.</p>
-          {ranked.length === 0 ? (
-            <p className="status">No scores for this week yet.</p>
-          ) : (
-            <ol className="rank-list">
-              {ranked.map((person) => (
-                <li key={person.key}>
-                  <span className="place">{placeLabel(person.place)}</span>
-                  <span className="rank-name">
-                    {person.person}
-                    {person.team ? <small>{person.team}</small> : null}
-                  </span>
-                  <span className="rank-points">{person.points.toFixed(1)}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </aside>
-      </div>
-
-      <div className="chart-card">
-        <h2>📈 Points this week</h2>
-        <p className="field-help">The longest bar is the leader for the week selected above.</p>
-        {ranked.length === 0 ? (
-          <p className="status">No scores to chart yet.</p>
-        ) : (
-          <div className="bars">
-            {ranked.map((person) => {
-              const width = topPoints === 0 ? 0 : (person.points / topPoints) * 100;
-              return (
-                <div className="bar-row" key={person.key}>
-                  <span className="bar-name">{person.person}</span>
-                  <div
-                    className="bar-track"
-                    role="img"
-                    aria-label={`${person.person}, ${person.points} points`}
-                  >
-                    <div className="bar-fill" style={{ width: `${width}%` }} />
-                  </div>
-                  <span className="bar-value">{person.points.toFixed(1)}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} />
 
+      {/* All tasks is the parent section. Its summary is sized in CSS above the
+          person headers inside, so opening the list does not make every name
+          look like another page title. */}
       <details className="task-details">
         <summary>✅ All tasks</summary>
         <p className="field-help">Each person has their own Monday–Friday. Changes are made on My week.</p>

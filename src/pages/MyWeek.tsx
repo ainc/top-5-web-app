@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { canEditPerson, useAuth } from "../auth";
 import { useBoard } from "../board";
-import { shownName } from "../names";
+import { PersonPicker } from "./PersonPicker";
 import { maxWeekPoints, personKey, weekPoints } from "../points";
 import { getSupabase } from "../supabaseClient";
 import { WeekBoard } from "./WeekBoard";
@@ -81,7 +81,47 @@ export function MyWeek() {
           <h1>📝 My week</h1>
           <p>Top 5 checks itself when all five tasks are done. Exercise and Reading are still checked by hand.</p>
         </div>
-        <aside className="week-score">
+      </div>
+      <div className="whose-week">
+        <div className="whose-week-field">
+            <span>Look at someone's tasks</span>
+            <PersonPicker
+              people={people}
+              value={selected}
+              nicknames={nicknames}
+              signedInName={profileName}
+              onChange={setSelectedKey}
+              onReturn={signedInKey ? () => setSelectedKey(signedInKey) : undefined}
+              returnDisabled={selected === signedInKey}
+            />
+          </div>
+        <p>{canEdit ? "You can edit this list." : "This list is read only. Pick your own name to edit."}</p>
+      </div>
+      <div className="week-tools">
+        <div className="week-tile">
+          <span>Team</span>
+          <div className="team-readout">{person?.team || "No team"}</div>
+        </div>
+        {user && profileId ? (
+          <label className="week-tile">
+            Your nickname
+            <input
+              value={nicknameDraft}
+              maxLength={40}
+              placeholder="Shown instead of your name"
+              aria-label="Your nickname"
+              onChange={(event) => setNicknameDraft(event.target.value)}
+              onBlur={() => void saveNickname()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void saveNickname();
+                }
+              }}
+            />
+          </label>
+        ) : null}
+        <aside className="week-tile week-score">
           <span className="week-score-label">Total</span>
           <strong>
             {total}
@@ -89,56 +129,19 @@ export function MyWeek() {
           </strong>
           <span className="week-score-avg">Average {averageLabel} per day</span>
         </aside>
-      </div>
-      <div className="whose-week">
-        <label>
-          Look at someone's tasks
-          <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
-            {people.map((item) => (
-              <option key={item.key} value={item.key}>
-                {shownName(item.person, nicknames)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p>{canEdit ? "You can edit this list." : "This list is read only. Pick your own name to edit."}</p>
-      </div>
-      <div className="week-tools">
-        <div className="week-pickers">
-          <div className="person-picker">
-            <span>Team</span>
-            <div className="team-readout">{person?.team || "No team"}</div>
+        <div className="week-tile">
+          <span>Layout</span>
+          <div className="layout-toggle" role="group" aria-label="Week layout">
+            <button type="button" aria-pressed={layout === "board"} onClick={() => chooseLayout("board")}>
+              Board
+            </button>
+            <button type="button" aria-pressed={layout === "matrix"} onClick={() => chooseLayout("matrix")}>
+              Grid
+            </button>
+            <button type="button" aria-pressed={layout === "legacy"} onClick={() => chooseLayout("legacy")}>
+              Grid (Legacy)
+            </button>
           </div>
-          {user && profileId ? (
-            <label className="person-picker">
-              Your nickname
-              <input
-                value={nicknameDraft}
-                maxLength={40}
-                placeholder="Shown instead of your name"
-                aria-label="Your nickname"
-                onChange={(event) => setNicknameDraft(event.target.value)}
-                onBlur={() => void saveNickname()}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void saveNickname();
-                  }
-                }}
-              />
-            </label>
-          ) : null}
-        </div>
-        <div className="layout-toggle" role="group" aria-label="Week layout">
-          <button type="button" aria-pressed={layout === "board"} onClick={() => chooseLayout("board")}>
-            Board
-          </button>
-          <button type="button" aria-pressed={layout === "matrix"} onClick={() => chooseLayout("matrix")}>
-            Grid
-          </button>
-          <button type="button" aria-pressed={layout === "legacy"} onClick={() => chooseLayout("legacy")}>
-            Grid (Legacy)
-          </button>
         </div>
       </div>
       {layout === "board" ? (
