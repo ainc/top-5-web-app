@@ -12,6 +12,7 @@ import { shownName } from "../names";
 import { DAY_NAMES, dailyPoints, peopleInOrder, personKey } from "../points";
 import type { DayRow } from "../types";
 
+const SLOT_NAMES = ["Top", "High", "Medium", "Medium 2", "Low"];
 const TASKS: Array<[label: keyof DayRow, done: keyof DayRow]> = [
   ["topLabel", "topDone"],
   ["highLabel", "highDone"],
@@ -78,6 +79,7 @@ function placeLabel(place: number): string {
 export function Dashboard() {
   const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
   const [query, setQuery] = useState("");
+  const [listKey, setListKey] = useState("");
   const needle = query.trim().toLowerCase();
 
   const people = useMemo<PersonScore[]>(() => {
@@ -102,6 +104,14 @@ export function Dashboard() {
       });
   }, [needle, nicknames, rates, rows]);
 
+  const roster = useMemo(() => peopleInOrder(rows), [rows]);
+  const listed = roster.find((person) => person.key === listKey) ?? roster[0];
+  const listedDays = useMemo(() => {
+    if (!listed) return [];
+    const byDay = new Map(rows.filter((row) => personKey(row) === listed.key).map((row) => [row.day, row]));
+    return DAY_NAMES.map((day) => byDay.get(day));
+  }, [listed, rows]);
+
   const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
   const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
   const ranked = useMemo(() => {
@@ -121,7 +131,7 @@ export function Dashboard() {
       <div className="page-head">
         <div>
           <h1>📊 Dashboard</h1>
-          <p>One row per person. Green is a finished day, red still has open tasks, and a dash means nothing was written.</p>
+          <p>Pick a name below to read that person’s tasks. Green is a finished day, red still has open tasks, and a dash means nothing was written.</p>
         </div>
         <input
           className="filter"
@@ -130,6 +140,52 @@ export function Dashboard() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
+
+      {listed ? (
+        <div className="whose-week">
+          <label>
+            Look at someone's tasks
+            <select value={listed.key} onChange={(event) => setListKey(event.target.value)}>
+              {roster.map((person) => (
+                <option key={person.key} value={person.key}>
+                  {shownName(person.person, nicknames)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>Everyone can read a list. Change tasks on My week.</p>
+        </div>
+      ) : null}
+      {listed ? (
+        <article className="shared-list">
+          <header>
+            <h2>{shownName(listed.person, nicknames)}</h2>
+            <p>{listed.team || "No team"}</p>
+          </header>
+          <div className="shared-days">
+            {DAY_NAMES.map((day, dayIndex) => {
+              const row = listedDays[dayIndex];
+              return (
+                <section key={day}>
+                  <h3>{day}</h3>
+                  <ol>
+                    {TASKS.map(([label, done], slot) => {
+                      const title = String(row?.[label] ?? "").trim();
+                      const finished = title.length > 0 && Boolean(row?.[done]);
+                      return (
+                        <li key={label} className={finished ? "is-done" : undefined}>
+                          <span>{SLOT_NAMES[slot]}</span>
+                          {title || "—"}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              );
+            })}
+          </div>
+        </article>
+      ) : null}
 
       <div className="dashboard-top" key={selectedWeek}>
         <div className="scorecard-wrap">
@@ -160,7 +216,15 @@ export function Dashboard() {
               ) : (
                 people.map((person) => (
                   <tr key={person.key}>
-                    <th scope="row">{person.person}</th>
+                    <th scope="row">
+                      <button
+                        type="button"
+                        className={person.key === listed?.key ? "name-link is-open" : "name-link"}
+                        onClick={() => setListKey(person.key)}
+                      >
+                        {person.person}
+                      </button>
+                    </th>
                     {person.days.map((score, index) => (
                       <td key={DAY_NAMES[index]} className={heatClass(score)}>
                         {dayLabel(score)}

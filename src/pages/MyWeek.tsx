@@ -90,18 +90,21 @@ export function MyWeek() {
           <span className="week-score-avg">Average {averageLabel} per day</span>
         </aside>
       </div>
+      <div className="whose-week">
+        <label>
+          Look at someone's tasks
+          <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
+            {people.map((item) => (
+              <option key={item.key} value={item.key}>
+                {shownName(item.person, nicknames)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>{canEdit ? "You can edit this list." : "This list is read only. Pick your own name to edit."}</p>
+      </div>
       <div className="week-tools">
         <div className="week-pickers">
-          <label className="person-picker">
-            Whose week
-            <select value={selected} onChange={(event) => setSelectedKey(event.target.value)}>
-              {people.map((item) => (
-                <option key={item.key} value={item.key}>
-                  {shownName(item.person, nicknames)}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="person-picker">
             <span>Team</span>
             <div className="team-readout">{person?.team || "No team"}</div>

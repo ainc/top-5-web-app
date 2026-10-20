@@ -8,7 +8,7 @@ import { DEFAULT_RATES, type ScoreRates } from "./points";
 import type { GridRow } from "./types";
 
 const gridBase = {
-  fontFamily: '"Segoe UI", sans-serif',
+  fontFamily: '"Open Sans", "Segoe UI", sans-serif',
   headerFontWeight: 650,
   fontSize: 13,
   cellHorizontalPadding: 10,
@@ -16,13 +16,13 @@ const gridBase = {
 
 export const gridTheme = themeQuartz.withParams({
   ...gridBase,
-  headerBackgroundColor: "#f3d6d8",
-  headerTextColor: "#3f1d24",
-  backgroundColor: "#fffdfb",
-  foregroundColor: "#1c1917",
-  oddRowBackgroundColor: "#fbf7f4",
-  accentColor: "#9f1239",
-  borderColor: "#eadfd6",
+  headerBackgroundColor: "#f3d4d6",
+  headerTextColor: "#323232",
+  backgroundColor: "#ffffff",
+  foregroundColor: "#323232",
+  oddRowBackgroundColor: "#f1f1f2",
+  accentColor: "#c12029",
+  borderColor: "#d1d2d4",
 });
 
 // AG Grid paints its own colors, so the page stylesheet cannot restyle a cell.
@@ -30,13 +30,13 @@ export const gridTheme = themeQuartz.withParams({
 export const darkGridTheme = themeQuartz.withParams({
   ...gridBase,
   browserColorScheme: "dark",
-  headerBackgroundColor: "#4a2430",
-  headerTextColor: "#ffe4e6",
-  backgroundColor: "#221a1d",
-  foregroundColor: "#f6f1ea",
-  oddRowBackgroundColor: "#2a2024",
-  accentColor: "#fb7185",
-  borderColor: "#4c3e43",
+  headerBackgroundColor: "#3a2426",
+  headerTextColor: "#f1f1f2",
+  backgroundColor: "#2a2a2a",
+  foregroundColor: "#f1f1f2",
+  oddRowBackgroundColor: "#323232",
+  accentColor: "#ed3742",
+  borderColor: "#4a4a4a",
 });
 
 // The value joins done + label so AG Grid refreshes the cell when either one changes.

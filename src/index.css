@@ -1,9 +1,9 @@
 /* Page chrome, week switcher, and the task-cell layout inside AG Grid. */
 
 :root {
-  color: #1c1917;
-  background: #f6f1ea;
-  font-family: "Segoe UI", sans-serif;
+  color: #323232;
+  background: #f1f1f2;
+  font-family: "Open Sans", "Segoe UI", sans-serif;
   font-size: 15px;
 }
 
@@ -51,7 +51,7 @@ input {
 .legend,
 .page-head p,
 .status {
-  color: #57534e;
+  color: #939597;
 }
 
 .brand small {
@@ -64,15 +64,15 @@ nav {
 }
 
 nav a {
-  color: #44403c;
+  color: #323232;
   text-decoration: none;
   padding: 6px 12px;
   border-radius: 999px;
 }
 
 nav a.active {
-  background: #1c1917;
-  color: #fffdfb;
+  background: #323232;
+  color: #ffffff;
 }
 
 .actions {
@@ -86,9 +86,9 @@ nav a.active {
   align-items: center;
   gap: 8px;
   padding: 3px 4px 3px 3px;
-  border: 1px solid #d6cdc3;
+  border: 1px solid #d1d2d4;
   border-radius: 999px;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .account-photo {
@@ -102,8 +102,8 @@ nav a.active {
 .account-initial {
   display: grid;
   place-items: center;
-  background: #9f1239;
-  color: #fffdfb;
+  background: #c12029;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 720;
 }
@@ -119,7 +119,7 @@ nav a.active {
 .account button {
   border: none;
   background: transparent;
-  color: #57534e;
+  color: #939597;
   padding: 6px 10px;
 }
 
@@ -128,15 +128,32 @@ button,
 select,
 .person-picker input,
 .filter {
-  border: 1px solid #d6cdc3;
-  background: #fffdfb;
-  color: #1c1917;
+  border: 1px solid #d1d2d4;
+  background: #ffffff;
+  color: #323232;
   border-radius: 8px;
   padding: 7px 12px;
 }
 
 .button {
   cursor: pointer;
+}
+
+.name-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.name-link.is-open {
+  color: #c12029;
 }
 
 .button input {
@@ -155,8 +172,8 @@ select,
 }
 
 .banner.info {
-  background: #fffdfb;
-  border: 1px solid #eadfd6;
+  background: #ffffff;
+  border: 1px solid #d1d2d4;
 }
 
 /* Shown when Next week or New week is stopped at four weeks out.
@@ -165,10 +182,10 @@ select,
   position: relative;
   margin: 8px 20px 0;
   padding: 16px 56px;
-  border: 2px solid #9f1239;
+  border: 2px solid #c12029;
   border-radius: 12px;
   background: #fff1f2;
-  color: #9f1239;
+  color: #c12029;
   font-size: 22px;
   font-weight: 750;
   line-height: 1.35;
@@ -195,21 +212,21 @@ select,
 @keyframes plan-blink {
   0%,
   49% {
-    background: #9f1239;
-    color: #fffdfb;
+    background: #c12029;
+    color: #ffffff;
   }
   50%,
   100% {
     background: #fff1f2;
-    color: #9f1239;
+    color: #c12029;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .banner.plan-limit {
     animation: none;
-    background: #9f1239;
-    color: #fffdfb;
+    background: #c12029;
+    color: #ffffff;
   }
 }
 
@@ -236,14 +253,14 @@ select,
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #57534e;
+  color: #939597;
   font-size: 13px;
 }
 
 .week-switcher select {
   min-width: 340px;
   font-weight: 650;
-  color: #1c1917;
+  color: #323232;
 }
 
 .season-strip {
@@ -254,9 +271,9 @@ select,
   width: min(420px, calc(100% - 40px));
   margin: 14px auto 0;
   padding: 12px 16px 14px;
-  border: 1px solid #eadfd6;
+  border: 1px solid #d1d2d4;
   border-radius: 16px;
-  background: #fffdfb;
+  background: #ffffff;
   box-shadow: 0 10px 24px rgb(80 20 30 / 6%);
   text-align: center;
 }
@@ -266,7 +283,7 @@ select,
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9f1239;
+  color: #c12029;
 }
 
 .season-strip strong {
@@ -287,11 +304,11 @@ select,
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #9f1239;
+  background: #c12029;
 }
 
 .season-strip small {
-  color: #57534e;
+  color: #939597;
   font-size: 12px;
 }
 
@@ -339,7 +356,7 @@ button:disabled {
   gap: 2px;
   min-width: 168px;
   padding: 12px 16px 14px;
-  background: #fffdfb;
+  background: #ffffff;
   border: 1px solid #f3d6d8;
   border-radius: 16px;
   box-shadow: 0 10px 24px rgba(159, 18, 57, 0.08);
@@ -350,7 +367,7 @@ button:disabled {
   font-weight: 720;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9f1239;
+  color: #c12029;
 }
 
 .week-score strong {
@@ -362,15 +379,121 @@ button:disabled {
 
 .week-score strong span {
   font-size: 16px;
-  color: #78716c;
+  color: #939597;
   font-weight: 650;
 }
 
 .week-score-avg {
   margin-top: 4px;
   font-size: 13px;
-  color: #57534e;
+  color: #939597;
   font-weight: 650;
+}
+
+/* The person menu is how you read someone else's list. It sits apart from
+   Team and nickname so it does not look like another small form field. */
+.whose-week {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 20px;
+  padding: 12px 14px;
+  border: 1px solid #c12029;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.whose-week label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c12029;
+  flex: 1 1 240px;
+}
+
+.whose-week select {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d2d4;
+  border-radius: 8px;
+  background: #f1f1f2;
+  color: #323232;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.whose-week p {
+  margin: 0;
+  max-width: 420px;
+  color: #939597;
+  font-size: 13px;
+}
+
+.shared-list {
+  background: #ffffff;
+  border: 1px solid #d1d2d4;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.shared-list header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.shared-list header p {
+  margin: 0;
+  color: #939597;
+}
+
+.shared-days {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.shared-days section {
+  min-width: 0;
+}
+
+.shared-days h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.shared-days ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shared-days li {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f1f1f2;
+  font-size: 13px;
+}
+
+.shared-days li.is-done {
+  color: #939597;
+  text-decoration: line-through;
+}
+
+.shared-days li span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #939597;
 }
 
 .person-picker,
@@ -379,7 +502,7 @@ button:disabled {
   flex-direction: column;
   gap: 4px;
   font-size: 13px;
-  color: #57534e;
+  color: #939597;
 }
 
 .person-picker select,
@@ -410,19 +533,19 @@ button:disabled {
   display: flex;
   align-items: center;
   padding: 7px 12px;
-  border: 1px solid #d6cdc3;
+  border: 1px solid #d1d2d4;
   border-radius: 8px;
-  background: #fffdfb;
-  color: #1c1917;
+  background: #ffffff;
+  color: #323232;
   font-weight: 650;
 }
 
 .layout-toggle {
   display: inline-flex;
-  border: 1px solid #d6cdc3;
+  border: 1px solid #d1d2d4;
   border-radius: 999px;
   overflow: hidden;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .layout-toggle button {
@@ -431,18 +554,18 @@ button:disabled {
   background: transparent;
   padding: 7px 16px;
   cursor: pointer;
-  color: #57534e;
+  color: #939597;
 }
 
 .layout-toggle button[aria-pressed="true"] {
-  background: #9f1239;
-  color: #fffdfb;
+  background: #c12029;
+  color: #ffffff;
 }
 
 .theme-toggle[aria-pressed="true"] {
-  background: #9f1239;
-  border-color: #9f1239;
-  color: #fffdfb;
+  background: #c12029;
+  border-color: #c12029;
+  color: #ffffff;
 }
 
 /* Five weekday columns. They share the width, then scroll sideways on a narrow screen. */
@@ -461,14 +584,14 @@ button:disabled {
   gap: 10px;
   min-height: 420px;
   padding: 12px;
-  border: 1px solid #eadfd6;
+  border: 1px solid #d1d2d4;
   border-radius: 14px;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .day-column.is-today {
-  border-color: #9f1239;
-  box-shadow: inset 0 3px 0 #9f1239;
+  border-color: #c12029;
+  box-shadow: inset 0 3px 0 #c12029;
 }
 
 .day-column-head {
@@ -485,7 +608,7 @@ button:disabled {
 
 .day-column-head span,
 .day-column-head b span {
-  color: #78716c;
+  color: #939597;
   font-size: 12px;
   font-weight: 650;
 }
@@ -522,7 +645,7 @@ button:disabled {
   height: 16px;
   margin: 0;
   padding: 0;
-  accent-color: #9f1239;
+  accent-color: #c12029;
 }
 
 .day-task-name {
@@ -530,12 +653,12 @@ button:disabled {
   font-weight: 500;
   letter-spacing: 0.01em;
   text-transform: none;
-  color: #a8a29e;
+  color: #939597;
   white-space: nowrap;
 }
 
 .day-task.rank-top .day-task-name {
-  color: #9f1239;
+  color: #c12029;
 }
 
 .day-task.rank-high .day-task-name {
@@ -554,19 +677,19 @@ button:disabled {
 .day-notes textarea {
   width: 100%;
   border: 1px solid transparent;
-  background: #f6f1ea;
+  background: #f1f1f2;
   border-radius: 8px;
   padding: 6px 8px;
-  color: #1c1917;
+  color: #323232;
   font: inherit;
   line-height: 20px;
 }
 
 .day-task input[type="text"]:focus,
 .day-notes textarea:focus {
-  outline: 2px solid #9f1239;
+  outline: 2px solid #c12029;
   border-color: transparent;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .day-task.is-done input[type="text"],
@@ -575,7 +698,7 @@ button:disabled {
 }
 
 .day-task.is-done .task-field:focus-within input[type="text"] {
-  color: #1c1917;
+  color: #323232;
 }
 
 .task-field {
@@ -592,7 +715,7 @@ button:disabled {
   max-width: calc(100% - 16px);
   overflow: hidden;
   white-space: nowrap;
-  color: #a8a29e;
+  color: #939597;
   font: inherit;
   line-height: 20px;
   text-decoration: line-through;
@@ -609,7 +732,7 @@ button:disabled {
   gap: 4px;
   font-size: 12px;
   font-weight: 650;
-  color: #78716c;
+  color: #939597;
 }
 
 .day-notes textarea {
@@ -630,13 +753,13 @@ button:disabled {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 8px;
-  background: #f6f1ea;
+  background: #f1f1f2;
   font-size: 13px;
 }
 
 .day-score b {
   margin-left: auto;
-  color: #78716c;
+  color: #939597;
 }
 
 .day-score.is-on {
@@ -654,7 +777,7 @@ button:disabled {
 
 .day-empty {
   margin: 0;
-  color: #78716c;
+  color: #939597;
   font-size: 13px;
 }
 
@@ -680,10 +803,10 @@ button:disabled {
 
 .week-matrix thead th {
   padding: 8px 10px 10px;
-  border: 1px solid #eadfd6;
+  border: 1px solid #d1d2d4;
   border-bottom: none;
   border-radius: 14px 14px 0 0;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .week-matrix thead th strong {
@@ -693,7 +816,7 @@ button:disabled {
 
 .week-matrix thead th span,
 .week-matrix thead th b span {
-  color: #78716c;
+  color: #939597;
   font-size: 12px;
   font-weight: 650;
 }
@@ -708,24 +831,24 @@ button:disabled {
 
 .week-matrix tbody td {
   padding: 8px;
-  border-left: 1px solid #eadfd6;
-  border-right: 1px solid #eadfd6;
-  background: #fffdfb;
+  border-left: 1px solid #d1d2d4;
+  border-right: 1px solid #d1d2d4;
+  background: #ffffff;
 }
 
 .week-matrix tbody tr:last-child td {
   padding-bottom: 12px;
-  border-bottom: 1px solid #eadfd6;
+  border-bottom: 1px solid #d1d2d4;
   border-radius: 0 0 14px 14px;
 }
 
 .week-matrix .is-today {
-  border-color: #9f1239;
-  box-shadow: inset 0 0 0 1px #9f1239;
+  border-color: #c12029;
+  box-shadow: inset 0 0 0 1px #c12029;
 }
 
 .week-matrix thead th.is-today {
-  box-shadow: inset 0 3px 0 #9f1239;
+  box-shadow: inset 0 3px 0 #c12029;
 }
 
 .matrix-corner {
@@ -737,14 +860,14 @@ button:disabled {
   padding: 10px 4px 0 0;
   font-size: 13px;
   font-weight: 650;
-  color: #a8a29e;
+  color: #939597;
   white-space: nowrap;
 }
 
 .matrix-slot span {
   display: block;
   font-size: 16px;
-  color: #1c1917;
+  color: #323232;
 }
 
 .matrix-slot small {
@@ -753,7 +876,7 @@ button:disabled {
 }
 
 .matrix-slot.rank-top small {
-  color: #9f1239;
+  color: #c12029;
 }
 
 .matrix-slot.rank-high small {
@@ -791,14 +914,14 @@ button:disabled {
   flex-direction: column;
   gap: 8px;
   padding: 12px 12px 8px;
-  border: 1px solid #eadfd6;
+  border: 1px solid #d1d2d4;
   border-radius: 14px;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .day-strip.is-today {
-  border-color: #9f1239;
-  box-shadow: inset 0 3px 0 #9f1239;
+  border-color: #c12029;
+  box-shadow: inset 0 3px 0 #c12029;
 }
 
 .day-strip .grid-wrap {
@@ -855,7 +978,7 @@ button:disabled {
 .bool-cell input[type="checkbox"] {
   width: 16px;
   height: 16px;
-  accent-color: #9f1239;
+  accent-color: #c12029;
 }
 
 .task-cell input[type="checkbox"]:disabled,
@@ -865,7 +988,7 @@ button:disabled {
 
 .task-done {
   text-decoration: line-through;
-  color: #78716c;
+  color: #939597;
 }
 
 /* Header and value share the right edge. The cell value is a flex child, so it needs the auto margin AG Grid uses for a right-aligned column. */
@@ -884,7 +1007,7 @@ button:disabled {
 }
 
 .week-cell {
-  color: #9f1239;
+  color: #c12029;
 }
 
 /* Sheet-style scorecard, standings, and the points chart. */
@@ -898,8 +1021,8 @@ button:disabled {
 .scorecard-wrap,
 .standings-card,
 .chart-card {
-  background: #fffdfb;
-  border: 1px solid #eadfd6;
+  background: #ffffff;
+  border: 1px solid #d1d2d4;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -918,8 +1041,8 @@ button:disabled {
 }
 
 .scorecard thead th {
-  background: #1c1917;
-  color: #fffdfb;
+  background: #323232;
+  color: #ffffff;
   font-size: 13px;
   font-weight: 650;
 }
@@ -932,12 +1055,12 @@ button:disabled {
 .scorecard tbody th {
   text-align: left;
   font-weight: 650;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .scorecard .person-start th,
 .scorecard .person-start td {
-  border-top: 2px solid #1c1917;
+  border-top: 2px solid #323232;
 }
 
 .heat-done {
@@ -946,12 +1069,12 @@ button:disabled {
 }
 
 .heat-open {
-  background: #f4c2c2;
+  background: #f6d5d7;
   font-weight: 700;
 }
 
 .heat-empty {
-  color: #a8a29e;
+  color: #939597;
   font-weight: 550;
 }
 
@@ -975,7 +1098,7 @@ button:disabled {
 .field-help,
 .skim-legend {
   margin: 0;
-  color: #57534e;
+  color: #939597;
   font-size: 13px;
   line-height: 1.4;
 }
@@ -986,8 +1109,8 @@ button:disabled {
 }
 
 .task-details {
-  background: #fffdfb;
-  border: 1px solid #eadfd6;
+  background: #ffffff;
+  border: 1px solid #d1d2d4;
   border-radius: 12px;
   padding: 12px 14px 14px;
 }
@@ -1010,10 +1133,10 @@ button:disabled {
 }
 
 .person-tasks {
-  border: 1px solid #eadfd6;
+  border: 1px solid #d1d2d4;
   border-radius: 12px;
   overflow: hidden;
-  background: #fffdfb;
+  background: #ffffff;
 }
 
 .person-tasks header {
@@ -1022,7 +1145,7 @@ button:disabled {
   align-items: baseline;
   gap: 12px;
   padding: 10px 14px;
-  color: #fffdfb;
+  color: #ffffff;
 }
 
 .person-tasks h3 {
@@ -1036,7 +1159,7 @@ button:disabled {
 }
 
 .person-tasks:nth-child(5n + 1) header {
-  background: #9f1239;
+  background: #c12029;
 }
 
 .person-tasks:nth-child(5n + 2) header {
@@ -1057,7 +1180,7 @@ button:disabled {
 
 .scorecard-empty {
   text-align: left;
-  color: #57534e;
+  color: #939597;
   padding: 16px;
 }
 
@@ -1089,7 +1212,7 @@ button:disabled {
 }
 
 .place {
-  color: #9f1239;
+  color: #c12029;
   font-weight: 720;
   font-size: 13px;
 }
@@ -1101,7 +1224,7 @@ button:disabled {
 }
 
 .rank-name small {
-  color: #78716c;
+  color: #939597;
   font-weight: 550;
 }
 
@@ -1140,7 +1263,7 @@ button:disabled {
 
 .bar-fill {
   height: 100%;
-  background: #9f1239;
+  background: #c12029;
   border-radius: 999px;
   min-width: 0;
 }
@@ -1162,13 +1285,13 @@ button:disabled {
   gap: 12px;
   margin: 0;
   padding: 10px 14px;
-  background: #9f1239;
-  color: #fffdfb;
+  background: #c12029;
+  color: #ffffff;
 }
 
 .winner-current td {
-  background: #44403c;
-  color: #fffdfb;
+  background: #323232;
+  color: #ffffff;
   font-weight: 650;
 }
 
@@ -1220,8 +1343,8 @@ button:disabled {
   flex-direction: column;
   gap: 12px;
   padding: 0 14px 14px;
-  background: #fffdfb;
-  border: 1px solid #eadfd6;
+  background: #ffffff;
+  border: 1px solid #d1d2d4;
   border-radius: 12px;
   overflow: hidden;
 }
@@ -1229,13 +1352,13 @@ button:disabled {
 .admin-card h2 {
   margin: 0 -14px 0;
   padding: 10px 14px;
-  color: #fffdfb;
+  color: #ffffff;
   font-size: 18px;
   letter-spacing: -0.02em;
 }
 
 .admin-card.tone-season h2 {
-  background: #9f1239;
+  background: #c12029;
 }
 
 .admin-card.tone-bonus h2 {
@@ -1258,7 +1381,7 @@ button.save-flash {
   animation: save-flash 0.7s ease-out;
   background: #166534;
   border-color: #166534;
-  color: #fffdfb;
+  color: #ffffff;
 }
 
 @keyframes save-flash {
@@ -1270,11 +1393,11 @@ button.save-flash {
   40% {
     transform: scale(1);
     background: #166534;
-    color: #fffdfb;
+    color: #ffffff;
   }
   100% {
     background: #166534;
-    color: #fffdfb;
+    color: #ffffff;
   }
 }
 
@@ -1294,8 +1417,8 @@ button.save-flash {
 
 .admin-card input,
 .admin-card select {
-  border: 1px solid #d6cdc3;
-  background: #fffdfb;
+  border: 1px solid #d1d2d4;
+  background: #ffffff;
   border-radius: 8px;
   padding: 7px 12px;
 }
@@ -1319,9 +1442,59 @@ button.save-flash {
 @media (max-width: 800px) {
   .topbar,
   .page-head,
-  .dashboard-top {
+  .dashboard-top,
+  .week-tools,
+  .whose-week,
+  .shared-list header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .topbar {
+    padding: 12px;
+  }
+
+  nav {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .account-name {
+    max-width: 96px;
+  }
+
+  .page {
+    padding: 8px 12px 16px;
+  }
+
+  .week-switcher {
+    flex-wrap: wrap;
+    justify-content: stretch;
+    margin: 8px 12px 0;
+  }
+
+  .week-switcher label {
+    flex: 1 1 100%;
+  }
+
+  .week-switcher select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .legend,
+  .banner,
+  .banner.plan-limit {
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .season-strip {
+    width: calc(100% - 24px);
   }
 
   .dashboard-top,
@@ -1330,15 +1503,36 @@ button.save-flash {
     flex-direction: column;
   }
 
+  .scorecard-wrap {
+    overflow-x: auto;
+  }
+
+  .layout-toggle {
+    width: 100%;
+  }
+
+  .layout-toggle button {
+    flex: 1;
+    padding: 10px 8px;
+  }
+
+  .shared-days {
+    grid-template-columns: 1fr;
+  }
+
   .bar-row {
     grid-template-columns: 88px 1fr 48px;
+  }
+
+  .day-column {
+    flex-basis: min(86vw, 320px);
   }
 }
 
 /* Dark mode swaps the page surfaces. Colored headers, heat cells, and streak chips keep their own fills. */
 html[data-theme="dark"] {
-  color: #f6f1ea;
-  background: #120e10;
+  color: #f1f1f2;
+  background: #1e1e1e;
   color-scheme: dark;
 }
 
@@ -1372,8 +1566,8 @@ html[data-theme="dark"] nav a {
 }
 
 html[data-theme="dark"] nav a.active {
-  background: #f6f1ea;
-  color: #1c1917;
+  background: #f1f1f2;
+  color: #323232;
 }
 
 html[data-theme="dark"] button,
@@ -1396,35 +1590,59 @@ html[data-theme="dark"] .task-details,
 html[data-theme="dark"] .person-tasks,
 html[data-theme="dark"] .admin-card,
 html[data-theme="dark"] .banner.info {
-  background: #221a1d;
-  color: #f6f1ea;
-  border-color: #4c3e43;
+  background: #2a2a2a;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .name-link {
+  background: transparent;
+  border: 0;
+  color: #f1f1f2;
+}
+
+html[data-theme="dark"] .name-link.is-open,
+html[data-theme="dark"] .whose-week label {
+  color: #ed3742;
+}
+
+html[data-theme="dark"] .whose-week,
+html[data-theme="dark"] .shared-list,
+html[data-theme="dark"] .shared-days li {
+  background: #2a2a2a;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .whose-week select,
+html[data-theme="dark"] .shared-days li {
+  background: #323232;
 }
 
 html[data-theme="dark"] .week-switcher select,
 html[data-theme="dark"] .person-picker input,
 html[data-theme="dark"] .admin-card input,
 html[data-theme="dark"] .admin-card select {
-  background: #1a1416;
-  color: #f6f1ea;
-  border-color: #4c3e43;
+  background: #323232;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
 }
 
 html[data-theme="dark"] .layout-toggle button[aria-pressed="true"],
 html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
-  background: #fb7185;
-  border-color: #fb7185;
-  color: #1c1917;
+  background: #ed3742;
+  border-color: #ed3742;
+  color: #323232;
 }
 
 html[data-theme="dark"] .week-score,
 html[data-theme="dark"] .season-strip {
-  border-color: #6b3040;
+  border-color: #651316;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
 html[data-theme="dark"] .season-strip-label {
-  color: #fb7185;
+  color: #ed3742;
 }
 
 html[data-theme="dark"] .season-track {
@@ -1432,41 +1650,41 @@ html[data-theme="dark"] .season-track {
 }
 
 html[data-theme="dark"] .season-track span {
-  background: #fb7185;
+  background: #ed3742;
 }
 
 html[data-theme="dark"] .week-score-label,
 html[data-theme="dark"] .place,
 html[data-theme="dark"] .week-cell,
 html[data-theme="dark"] .day-task.rank-top .day-task-name {
-  color: #fb7185;
+  color: #ed3742;
 }
 
 html[data-theme="dark"] .matrix-slot span {
-  color: #f6f1ea;
+  color: #f1f1f2;
 }
 
 html[data-theme="dark"] .day-column.is-today,
 html[data-theme="dark"] .day-strip.is-today {
-  border-color: #fb7185;
-  box-shadow: inset 0 3px 0 #fb7185;
+  border-color: #ed3742;
+  box-shadow: inset 0 3px 0 #ed3742;
 }
 
 html[data-theme="dark"] .day-task input[type="text"],
 html[data-theme="dark"] .day-notes textarea,
 html[data-theme="dark"] .day-score {
-  background: #1a1416;
-  color: #f6f1ea;
+  background: #323232;
+  color: #f1f1f2;
 }
 
 html[data-theme="dark"] .day-task input[type="text"]:focus,
 html[data-theme="dark"] .day-notes textarea:focus {
   background: #2a2024;
-  outline-color: #fb7185;
+  outline-color: #ed3742;
 }
 
 html[data-theme="dark"] .day-task.is-done .task-field:focus-within input[type="text"] {
-  color: #f6f1ea;
+  color: #f1f1f2;
 }
 
 html[data-theme="dark"] .day-task.is-done .task-field::after,
@@ -1500,7 +1718,7 @@ html[data-theme="dark"] .scorecard td {
 }
 
 html[data-theme="dark"] .scorecard tbody th {
-  background: #221a1d;
+  background: #323232;
 }
 
 html[data-theme="dark"] .scorecard .person-start th,
@@ -1513,7 +1731,7 @@ html[data-theme="dark"] .heat-open,
 html[data-theme="dark"] .streak-blue,
 html[data-theme="dark"] .streak-green,
 html[data-theme="dark"] .streak-gold {
-  color: #1c1917;
+  color: #323232;
 }
 
 html[data-theme="dark"] .bar-track {
@@ -1521,5 +1739,5 @@ html[data-theme="dark"] .bar-track {
 }
 
 html[data-theme="dark"] .bar-fill {
-  background: #fb7185;
+  background: #ed3742;
 }
