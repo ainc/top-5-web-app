@@ -53,8 +53,14 @@ export function App() {
       {/* Title, the two pages, and the buttons that replace the selected week's rows. */}
       <header className="topbar">
         <div className="brand">
-          <strong>Top 5</strong>
-          <small>{source === "Supabase" ? "Supabase" : `${source} · Supabase`}</small>
+          <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer" aria-label="Awesome Inc">
+            <img className="logo-for-light" src="/ainc-logo-dark.png" alt="" />
+            <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
+          </a>
+          <div className="brand-title">
+            <strong>Top 5</strong>
+            <small>{source === "Supabase" ? "Supabase" : `${source} · Supabase`}</small>
+          </div>
         </div>
         <nav>
           <NavLink to="/" end>

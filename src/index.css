@@ -38,8 +38,37 @@ input {
 
 .brand {
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-title {
+  display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.brand-logo {
+  display: flex;
+  line-height: 0;
+}
+
+.brand-logo img {
+  height: 32px;
+  width: auto;
+}
+
+.logo-for-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .logo-for-light {
+  display: none;
+}
+
+html[data-theme="dark"] .logo-for-dark {
+  display: block;
 }
 
 .brand strong {
@@ -1465,6 +1494,10 @@ button.save-flash {
 
   .account-name {
     max-width: 96px;
+  }
+
+  .brand-logo img {
+    height: 26px;
   }
 
   .page {
