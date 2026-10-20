@@ -1,5 +1,18 @@
-// Shell shared by both pages: title, navigation, import, and the week control.
-// The selected week lives in BoardProvider, so My week and Dashboard stay in sync.
+// Shell around every page. Nothing in here is a scorecard row.
+//
+// The bar across the top is the Awesome Inc logo (a link to awesomeinc.org)
+// plus the words "Top 5" in Exo 2. That word is text, not an image, so it
+// stays sharp next to the 32px logo and picks up the brand red from CSS.
+// The same bar holds the page links, the theme toggle, and Google sign-in.
+//
+// Under the bar, one week menu is shared by every route. BoardProvider owns
+// the selected Monday, so opening Dashboard does not jump to a different week
+// than My week. The scoring tiles under that menu are also shared: they are
+// rendered here, outside <Routes>, and the numbers come from the open season's
+// bonus rates.
+//
+// Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
+// and /streaks are the season views, /admin is staff only.
 
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
@@ -56,12 +69,11 @@ export function App() {
             <img className="logo-for-light" src="/ainc-logo-dark.png" alt="" />
             <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
           </a>
-          <div className="brand-title">
-            <img className="top5-mark" src="/top5-mark.png" alt="Top 5" />
-            <a className="font-credit" href="https://www.textstudio.com/" target="_blank" rel="noreferrer">
-              Font generator
-            </a>
-          </div>
+          {/* Exo 2, italic, heavy. Sized to the Awesome Inc mark beside it.
+              CSS uppercases it. An image wordmark was tried first; text keeps
+              the credit off the header and matches light and dark without a
+              second file. */}
+          <p className="top5-word">Top 5</p>
         </div>
         <nav>
           <NavLink to="/" end>
@@ -188,12 +200,38 @@ export function App() {
       {weekIsBlank ? (
         <p className="banner">No tasks for this week yet. Load sample fills your empty slots, or type them on My week.</p>
       ) : null}
-      <p className="legend">
-        Daily points are {rates.top5} for {rates.top5Name} when all five tasks are checked, {rates.exercise} for {rates.exerciseName}, and {rates.reading} for {rates.readingName}.
-        {rates.extras.length > 0 ? ` ${rates.extras.map((bonus) => `${bonus.name} is ${bonus.points}`).join(", ")}.` : ""} A full day is {maxDayPoints(rates)}, and a full week is {maxWeekPoints(rates)}.
-        Unchecking any task removes the {rates.top5Name} points.
-        {rates.pointsPerTask > 0 ? ` Each finished priority task also adds ${rates.pointsPerTask} points.` : ""}
-      </p>
+      {/* Scoring tiles under the week menu, on every page. The amounts are the
+          open season's rates. A slight tilt is only visual; the gaps stay even. */}
+      <ul className="legend" aria-label="How points are scored">
+        <li>
+          <span>{rates.top5Name}</span>
+          <b>= {rates.top5} Points</b>
+        </li>
+        <li>
+          <span>{rates.exerciseName}</span>
+          <b>= {rates.exercise} Points</b>
+        </li>
+        <li>
+          <span>{rates.readingName}</span>
+          <b>= {rates.reading} Points</b>
+        </li>
+        {rates.extras.map((bonus) => (
+          <li key={bonus.key}>
+            <span>{bonus.name}</span>
+            <b>= {bonus.points} Points</b>
+          </li>
+        ))}
+        {rates.pointsPerTask > 0 ? (
+          <li>
+            <span>Each finished task</span>
+            <b>= {rates.pointsPerTask} Points</b>
+          </li>
+        ) : null}
+        <li>
+          <span>Full day {maxDayPoints(rates)} Points</span>
+          <span>Full week {maxWeekPoints(rates)} Points</span>
+        </li>
+      </ul>
       {/* My week edits one person. Dashboard is the same week, read only. */}
       <Routes>
         <Route path="/" element={<MyWeek />} />

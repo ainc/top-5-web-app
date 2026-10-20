@@ -236,6 +236,9 @@ export function DraftField({
     );
   }
 
+  // Checked tasks are styled on this input itself: grey text and one
+  // strikethrough. A second copy of the words used to be painted on top so
+  // the line would show in older Chromium, and that copy read as a shadow.
   return (
     <span className="task-field">
       <input

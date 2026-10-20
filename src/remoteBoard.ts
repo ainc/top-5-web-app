@@ -787,11 +787,27 @@ function workspaceDomain(): string {
 // belongs on the sheet row "Maison" even if Google shows a different label.
 // Mack is Mackenzie Hanes. Any mailbox she might use belongs on "Mack",
 // not the separate historical row named "Mackenzie".
+// Kyle confirmed the rest. kyle@awesomeinc.org is Kyle Raney; the old "Kyle"
+// sheet already lives on that profile. nick@awesomeinc.org is "Nick S", not
+// the separate row "Nick". Gmail addresses are listed so they can sign in
+// past the Workspace domain check. Conner and Nick are absent on purpose.
 const ROSTER_BY_EMAIL: Record<string, string> = {
   "maison.rudd@awesomeinc.org": "Maison",
   "mackenzie@awesomeinc.org": "Mack",
   "mackenzie.hanes@awesomeinc.org": "Mack",
   "mackenzie.hanes.awesome@gmail.com": "Mack",
+  "kyle@awesomeinc.org": "Kyle Raney",
+  "kevin.mansur@awesomeinc.org": "Kevin",
+  "awmills25@gmail.com": "Andrew",
+  "brianraney18@gmail.com": "Brian",
+  "nick@awesomeinc.org": "Nick S",
+  "emily@awesomeinc.org": "Emily",
+  "cam.sloss@awesomeinc.org": "Cam",
+  "hannah.eberts@awesomeinc.org": "Hannah",
+  "garrett.fahrbach@awesomeinc.org": "Garrett",
+  "ben.strevy@awesomeinc.org": "Ben",
+  "jacqueline.benson@awesomeinc.org": "Jacqueline",
+  "sarah.reed@awesomeinc.org": "Sarah",
 };
 
 async function claimRosterEmail(email: string): Promise<{ id: string; display_name: string } | null> {

@@ -1,4 +1,11 @@
-/* Page chrome, week switcher, and the task-cell layout inside AG Grid. */
+/* Page chrome, week switcher, and the task-cell layout inside AG Grid.
+   Colors follow Awesome Inc: charcoal #323232, brand red #c12029, the grey
+   steps from variables.scss, and bright red #ed3742 in dark mode.
+   Open Sans is the body. Exo 2 is only the "Top 5" word in the header.
+   IM Fell English is only the parchment scoring scraps.
+   Sections below, in order: header, sign-in cue, week switcher, person
+   picker, My week tiles, board and grid layouts, dashboard cards, admin,
+   the phone layout, then dark mode. */
 
 :root {
   color: #323232;
@@ -45,32 +52,21 @@ input {
   gap: 10px;
 }
 
-.brand-title {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-}
-
-.top5-mark {
-  display: block;
-  height: 28px;
-  width: auto;
-}
-
-.font-credit {
-  color: #939597;
-  font-size: 9px;
-  font-weight: 400;
+/* "TOP 5" beside the Awesome Inc logo. Exo 2 is loaded in index.html.
+   nowrap keeps the two words on one line when the nav crowds the brand.
+   flex: none stops the top bar from squeezing the word down to a few letters. */
+.top5-word {
+  margin: 0;
+  flex: none;
+  color: #c12029;
+  font-family: "Exo 2", "Open Sans", sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 28px;
   line-height: 1;
-  text-decoration: none;
-  opacity: 0.55;
-}
-
-.font-credit:hover,
-.font-credit:focus-visible {
-  opacity: 1;
-  text-decoration: underline;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .brand-logo {
@@ -93,6 +89,10 @@ html[data-theme="dark"] .logo-for-light {
 
 html[data-theme="dark"] .logo-for-dark {
   display: block;
+}
+
+html[data-theme="dark"] .top5-word {
+  color: #ed3742;
 }
 
 .brand strong {
@@ -326,9 +326,85 @@ select,
   border: 1px solid #fed7aa;
 }
 
+/* Scoring scraps under the week menu. Same row on every page. Each one is a
+   torn piece of parchment, equal size, with an even gap and a slight lean. */
 .legend {
-  margin: 10px 20px 0;
-  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 22px;
+  margin: 16px auto 6px;
+  max-width: 920px;
+  padding: 8px 20px 4px;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 200px;
+  min-height: 132px;
+  margin: 0;
+  padding: 22px 18px;
+  box-sizing: border-box;
+  border: none;
+  background:
+    radial-gradient(circle at 18% 14%, rgb(255 248 230 / 0.72), transparent 42%),
+    radial-gradient(circle at 76% 24%, rgb(150 96 40 / 0.16), transparent 34%),
+    radial-gradient(circle at 28% 82%, rgb(110 64 24 / 0.14), transparent 38%),
+    radial-gradient(circle at 86% 88%, rgb(130 78 30 / 0.22), transparent 46%),
+    linear-gradient(165deg, #f4e2bc 0%, #e8cc96 58%, #d2ae72 100%);
+  color: #3b2a1c;
+  text-align: center;
+  font-family: "IM Fell English", "Palatino Linotype", Palatino, serif;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  filter: drop-shadow(0 7px 8px rgb(40 24 8 / 0.28));
+  clip-path: polygon(2% 5%, 97% 1%, 100% 90%, 95% 100%, 5% 97%, 0 12%);
+}
+
+.legend li:nth-child(4n + 1) {
+  transform: rotate(-1.6deg);
+  clip-path: polygon(1% 7%, 98% 1%, 100% 86%, 93% 100%, 6% 96%, 0 15%);
+}
+
+.legend li:nth-child(4n + 2) {
+  transform: rotate(1.3deg);
+  clip-path: polygon(5% 2%, 100% 8%, 97% 95%, 3% 100%, 0 11%);
+}
+
+.legend li:nth-child(4n + 3) {
+  transform: rotate(-0.7deg);
+  clip-path: polygon(2% 3%, 96% 0, 100% 93%, 91% 100%, 0 96%, 4% 9%);
+}
+
+.legend li:nth-child(4n + 4) {
+  transform: rotate(1.6deg);
+  clip-path: polygon(0 5%, 97% 2%, 100% 88%, 94% 99%, 8% 100%, 3% 13%);
+}
+
+.legend span,
+.legend b {
+  display: block;
+  max-width: 12em;
+  letter-spacing: 0.015em;
+}
+
+.legend b {
+  font-weight: 400;
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .legend li {
+    transform: none;
+  }
 }
 
 /* Previous week, the week menu, and next week. */
@@ -858,6 +934,10 @@ button:disabled {
   background: #ffffff;
 }
 
+/* A finished task stays in the same input. The grey color and the line are
+   painted on that input, not on a second text layer, so checking a box does
+   not leave a shadow of the title behind the strike. Focus clears the line
+   so the words can be edited. */
 .day-task.is-done input[type="text"],
 .day-task.is-done .task-done {
   color: #939597;
@@ -1734,9 +1814,12 @@ button.save-flash {
     max-width: 96px;
   }
 
-  .brand-logo img,
-  .top5-mark {
+  .brand-logo img {
     height: 26px;
+  }
+
+  .top5-word {
+    font-size: 22px;
   }
 
   .page {
@@ -1758,7 +1841,27 @@ button.save-flash {
     width: 100%;
   }
 
-  .legend,
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 200px));
+    justify-content: center;
+    gap: 16px;
+    margin-left: 12px;
+    margin-right: 12px;
+  }
+
+  .legend li {
+    width: auto;
+    padding: 14px 8px;
+    font-size: 13px;
+    letter-spacing: 0;
+  }
+
+  .legend span,
+  .legend b {
+    letter-spacing: 0;
+  }
+
   .banner,
   .banner.plan-limit {
     margin-left: 12px;
@@ -1888,7 +1991,9 @@ html[data-theme="dark"] .current-week-banner {
   background: #3a2426;
   color: #f1f1f2;
 }
-html[data-theme="dark"] .legend,
+html[data-theme="dark"] .legend li {
+  color: #3b2a1c;
+}
 html[data-theme="dark"] .page-head p,
 html[data-theme="dark"] .status,
 html[data-theme="dark"] .field-help,
