@@ -991,12 +991,14 @@ button:disabled {
   color: #939597;
 }
 
+/* A checked Top 5, Exercise, or Reading row. The fill is the teal used on
+   awesomeinc.org (#6ec8bf). The points number stays charcoal so it can be read on that fill. */
 .day-score.is-on {
-  background: #f0fdf4;
+  background: #6ec8bf;
 }
 
 .day-score.is-on b {
-  color: #166534;
+  color: #323232;
 }
 
 .day-score input[type="checkbox"]:disabled {
@@ -2171,11 +2173,11 @@ html[data-theme="dark"] .day-task.is-done .task-field:focus-within input[type="t
 }
 
 html[data-theme="dark"] .day-score.is-on {
-  background: #052e16;
+  background: #6ec8bf;
 }
 
 html[data-theme="dark"] .day-score.is-on b {
-  color: #86efac;
+  color: #323232;
 }
 
 html[data-theme="dark"] .banner.ok {
