@@ -100,19 +100,23 @@ export function WeekMatrix({ rows, weekId, canEdit }: WeekMatrixProps) {
               )}
             </div>
           ))}
+          {/* Same notes box as the board. A bare textarea in this grid row uses
+              the browser's intrinsic size and stretches over the day tile. */}
           <div className="matrix-cell">
             <div className="matrix-slot matrix-slot-inline">
               <small>Notes</small>
             </div>
             {day.row ? (
-              <DraftField
-                value={day.row.notes}
-                disabled={!canEdit}
-                label={`${day.row.person} ${day.row.day} notes`}
-                placeholder="Notes"
-                multiline
-                onCommit={(next) => onPatch(day.row!.id, { notes: next })}
-              />
+              <label className="day-notes">
+                <DraftField
+                  value={day.row.notes}
+                  disabled={!canEdit}
+                  label={`${day.row.person} ${day.row.day} notes`}
+                  placeholder="Notes"
+                  multiline
+                  onCommit={(next) => onPatch(day.row!.id, { notes: next })}
+                />
+              </label>
             ) : null}
           </div>
           <div className="matrix-cell">
