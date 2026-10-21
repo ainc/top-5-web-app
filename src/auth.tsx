@@ -85,13 +85,18 @@ function takeRedirectError(): string | null {
   return decodeURIComponent(errorText.replace(/\+/g, " "));
 }
 
-// Admin is a screen for admin and commissioner only. A member, a signed-out
-// visitor, and a roster name that is not linked to this Google account do not qualify.
+// The setup screen is for a commissioner or an admin. A member edits tasks only.
+// Assigning roles is separate: only an admin can do that.
 export function canOpenAdmin(role: string | null): boolean {
   return role === "admin" || role === "commissioner";
 }
 
-// Own tasks match the linked roster name. Admin and commissioner can edit every person.
+export function canAssignRoles(role: string | null): boolean {
+  return role === "admin";
+}
+
+// A member can change their own tasks on any day, including past days.
+// A commissioner or an admin can change every person's tasks, today or past.
 export function canEditPerson(role: string | null, profileName: string, person: string): boolean {
   if (canOpenAdmin(role)) return true;
   return profileName !== "" && profileName === person;

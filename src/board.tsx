@@ -283,7 +283,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       if (!current || !canEditPerson(roleRef.current, profileNameRef.current, current.person)) {
         setNotice({
           tone: "error",
-          text: "You can edit your own tasks. An admin or commissioner can edit anyone.",
+          text: "You can edit your own tasks, including past days. A commissioner or an admin can edit anyone.",
         });
         return;
       }

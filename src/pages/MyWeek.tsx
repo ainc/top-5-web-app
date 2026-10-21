@@ -155,7 +155,7 @@ export function MyWeek() {
       {roleReady && !canEdit ? (
         <p className="field-help">
           {user
-            ? "You can edit your own tasks. An admin or commissioner can edit anyone."
+            ? "You can edit your own tasks, including past days. A commissioner or an admin can edit anyone."
             : "Sign in to edit your own tasks."}
         </p>
       ) : null}

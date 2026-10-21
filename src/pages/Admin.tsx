@@ -2,10 +2,12 @@
 // These forms do not build a DayRow and do not call saveDays. Each save
 // function below calls getSupabase().from("<table>").update/upsert/delete
 // on the setup tables (seasons, scoring_rules, bonus_definitions, and so on).
-// That is a separate PostgREST request from a task checkbox. The signed-in
-// admin or commissioner is the role Postgres checks. A member's key is rejected.
+// That is a separate PostgREST request from a task checkbox. Postgres allows
+// a commissioner or an admin to change scoring, teams, and the roster.
+// Only an admin can write user_roles. A member's key is rejected.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { canAssignRoles, useAuth } from "../auth";
 import { getSupabase } from "../supabaseClient";
 
 type Season = {
@@ -30,6 +32,8 @@ type SaveButton = "season" | "bonuses" | "roles";
 type Flash = "idle" | "saving" | "saved";
 
 export function Admin() {
+  const { role } = useAuth();
+  const assignRoles = canAssignRoles(role);
   const [season, setSeason] = useState<Season | null>(null);
   const [pointsPerTask, setPointsPerTask] = useState(0);
   const [bonuses, setBonuses] = useState<Bonus[]>([]);
@@ -330,6 +334,7 @@ export function Admin() {
   }
 
   async function saveRoles() {
+    if (!assignRoles) throw new Error("Only an admin can assign roles.");
     const supabase = getSupabase();
     for (const person of people) {
       if (!person.role) {
@@ -353,7 +358,7 @@ export function Admin() {
   return (
     <section className="page admin">
       <h1>⚙️ Admin</h1>
-      <p>Season, bonuses, roster, and roles. This screen is open to an admin or a commissioner.</p>
+      <p>Scoring, teams, and the roster. A commissioner or an admin can change these. Only an admin can assign roles.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
@@ -545,7 +550,7 @@ export function Admin() {
       >
         <h2>🪪 Roles</h2>
         <p className="field-help">
-          Member is the usual access and stores no extra role. After sign-in, a member can edit their own tasks. Admin and commissioner can edit every person's tasks, and can change the season, bonuses, roster, teams, points per task, and these roles.
+          A member can fill in and check off their own tasks, including past days. A commissioner can also edit anyone's tasks, create teams, move players between teams, and set point values. Only an admin can change these roles.
         </p>
         <ul className="admin-list">
           {people.map((person) => (
@@ -553,6 +558,7 @@ export function Admin() {
               <span>{person.name}</span>
               <select
                 value={person.role}
+                disabled={!assignRoles}
                 onChange={(event) => setPeople(people.map((item) => (item.id === person.id ? { ...item, role: event.target.value } : item)))}
               >
                 <option value="">Member access only</option>
@@ -563,7 +569,7 @@ export function Admin() {
             </li>
           ))}
         </ul>
-        <SaveButtonView label="Save roles" flash={saveFlash.roles} />
+        {assignRoles ? <SaveButtonView label="Save roles" flash={saveFlash.roles} /> : <p className="field-help">Only an admin can assign roles.</p>}
       </form>
     </section>
   );
