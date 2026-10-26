@@ -43,6 +43,8 @@ export function Admin() {
   const [newBonusPoints, setNewBonusPoints] = useState(5);
   const [newPerson, setNewPerson] = useState("");
   const [newTeam, setNewTeam] = useState("");
+  const [signInAsName, setSignInAsName] = useState("");
+  const [signingInAs, setSigningInAs] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   // The banner is easy to miss under the week controls. Each save button changes so the click is obvious.
@@ -351,6 +353,30 @@ export function Admin() {
     saved("Roles saved.");
   }
 
+  // The dev server mints a one-time link for that person's existing Google account.
+  // Production has no /dev/sign-in-as route, and this block is omitted from the build.
+  async function signInLocally(name: string) {
+    setError("");
+    setSigningInAs(true);
+    try {
+      const response = await fetch("/dev/sign-in-as", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name, redirectTo: window.location.origin }),
+      });
+      const payload = (await response.json()) as { url?: string; error?: string };
+      if (!response.ok || !payload.url) {
+        setError(payload.error || "Could not sign in as that person.");
+        setSigningInAs(false);
+        return;
+      }
+      window.location.assign(payload.url);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Could not sign in as that person.");
+      setSigningInAs(false);
+    }
+  }
+
   if (!season) {
     return <p className="status">{error || "Loading admin…"}</p>;
   }
@@ -539,6 +565,34 @@ export function Admin() {
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {import.meta.env.DEV ? (
+        <form
+          className="admin-card"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void signInLocally(signInAsName);
+          }}
+        >
+          <h2>Local sign-in</h2>
+          <p className="field-help">
+            Shown only on this computer. Opens that person's real account in this browser so you can try their task cells. A task you save is written on the live board. This does not create a second Garrett or Hannah.
+          </p>
+          <div className="admin-row">
+            <select value={signInAsName} onChange={(event) => setSignInAsName(event.target.value)} disabled={people.length === 0 || signingInAs}>
+              <option value="">Choose a person</option>
+              {people.map((person) => (
+                <option key={person.id} value={person.name}>
+                  {person.name}
+                </option>
+              ))}
+            </select>
+            <button type="submit" disabled={!signInAsName || signingInAs}>
+              {signingInAs ? "Signing in…" : "Sign in as this person"}
+            </button>
+          </div>
+        </form>
       ) : null}
 
       <form
