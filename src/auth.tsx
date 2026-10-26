@@ -1,7 +1,8 @@
 // Google sign-in for the browser app.
-// Supabase Auth owns the session. This file only starts the redirect and
-// remembers who came back. Adding that person to the roster happens after,
-// in enrollSignedInUser, because Auth's user id is not a scorecard row by itself.
+// Supabase Auth owns the session. This file starts the redirect and remembers
+// who came back. enrollSignedInUser links that Google account to a roster row
+// before the profile is read. The link has to happen first: a lookup that
+// runs before it leaves the name blank, and a blank name locks every task.
 //
 // The Google provider has to be turned on in the Supabase project, and both
 // http://localhost:5173 and the Netlify origin must be redirect URLs.
@@ -9,7 +10,7 @@
 // and refuses a personal Gmail account after the redirect. The hd parameter
 // is only a hint, so the email check is what actually limits the roster.
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import { getSupabase } from "./supabaseClient";
 
@@ -198,6 +199,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const userId = user?.id;
+  const userRef = useRef(user);
+  userRef.current = user;
   useEffect(() => {
     if (!ready) return;
     if (!userId) {
@@ -218,17 +221,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRole(next.role);
       if (readyRole) setRoleReady(true);
     };
-    // Outside onAuthStateChange. A database read inside that callback deadlocks the session save.
-    void lookupSignedInProfile(userId)
-      .then((next) => apply(next, true))
-      .catch(() => {
+    // Link the Google account before reading the profile. The board waits for
+    // this lookup, so a name found here is the name that can edit.
+    // userRef, not user: a token refresh replaces the object and must not
+    // run enrollment again. Outside onAuthStateChange, because a database
+    // read inside that callback deadlocks the session save.
+    void (async () => {
+      const signedIn = userRef.current;
+      if (signedIn) {
+        try {
+          const { enrollSignedInUser } = await import("./remoteBoard");
+          await enrollSignedInUser(signedIn);
+        } catch (error: unknown) {
+          if (!cancel) setError(error instanceof Error ? error.message : "Could not join the roster.");
+        }
+      }
+      if (cancel) return;
+      try {
+        apply(await lookupSignedInProfile(userId), true);
+      } catch {
         if (cancel) return;
         setProfileName("");
         setProfileId("");
         setNickname("");
         setRole(null);
         setRoleReady(true);
-      });
+      }
+    })();
     const refresh = () => {
       void lookupSignedInProfile(userId)
         .then((next) => apply(next, false))

@@ -9,7 +9,7 @@ import { importSummary, parseSheetCsv } from "./parseSheetCsv";
 import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
-import { enrollSignedInUser, loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
+import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import type { SeasonSpan } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import type { DayRow, GridRow } from "./types";
@@ -133,18 +133,17 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     [commitWeeks],
   );
 
-  // Wait for the role lookup too. A member must not create blank days for the
-  // rest of the roster, and that choice is only known after the role is read.
+  // Wait for enrollment and the role lookup. A member must not create blank
+  // days for the rest of the roster, and that choice is only known after
+  // the Google account has been linked and the role has been read.
   const userId = user?.id;
   useEffect(() => {
     if (!authReady || !roleReady) return;
     let cancel = false;
-    const staff = canOpenAdmin(role);
+    const staff = Boolean(userId) && canOpenAdmin(role);
     // userId, not the user object: a token refresh must not reload the week
     // and jump the person back to This week while they are editing.
-    const load = user
-      ? enrollSignedInUser(user).then(() => loadBoardState({ createRosterWeek: staff }))
-      : loadBoardState({ createRosterWeek: false });
+    const load = loadBoardState({ createRosterWeek: staff });
     load
       .then((state) => {
         if (cancel) return;
