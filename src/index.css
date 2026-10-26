@@ -224,6 +224,7 @@ select,
   color: #323232;
   border-radius: 8px;
   padding: 7px 12px;
+  cursor: pointer;
 }
 
 .button {
