@@ -353,8 +353,9 @@ export function Admin() {
     saved("Roles saved.");
   }
 
-  // The dev server mints a one-time link for that person's existing Google account.
-  // Production has no /dev/sign-in-as route, and this block is omitted from the build.
+  // The dev server mints a one-time token for that person's existing Google account.
+  // The session is applied in this browser. Production has no /dev/sign-in-as route,
+  // and this block is omitted from the build.
   async function signInLocally(name: string) {
     setError("");
     setSigningInAs(true);
@@ -362,15 +363,24 @@ export function Admin() {
       const response = await fetch("/dev/sign-in-as", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, redirectTo: window.location.origin }),
+        body: JSON.stringify({ name }),
       });
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) {
+      const payload = (await response.json()) as { tokenHash?: string; type?: "magiclink"; error?: string };
+      if (!response.ok || !payload.tokenHash || !payload.type) {
         setError(payload.error || "Could not sign in as that person.");
         setSigningInAs(false);
         return;
       }
-      window.location.assign(payload.url);
+      const { error: verifyError } = await getSupabase().auth.verifyOtp({
+        token_hash: payload.tokenHash,
+        type: payload.type,
+      });
+      if (verifyError) {
+        setError(verifyError.message);
+        setSigningInAs(false);
+        return;
+      }
+      window.location.assign("/");
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "Could not sign in as that person.");
       setSigningInAs(false);

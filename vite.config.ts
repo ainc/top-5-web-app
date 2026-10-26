@@ -63,25 +63,14 @@ async function handleSignInAs(req: IncomingMessage, res: ServerResponse, mode: s
     return;
   }
 
-  let payload: { name?: string; redirectTo?: string };
+  let payload: { name?: string };
   try {
-    payload = JSON.parse((await readBody(req)) || "{}") as { name?: string; redirectTo?: string };
+    payload = JSON.parse((await readBody(req)) || "{}") as { name?: string };
   } catch {
-    sendJson(res, 400, { error: "Send a name and a localhost address." });
+    sendJson(res, 400, { error: "Send a name." });
     return;
   }
   const name = String(payload.name ?? "").trim();
-  let redirectTo: URL;
-  try {
-    redirectTo = new URL(String(payload.redirectTo ?? ""));
-  } catch {
-    sendJson(res, 400, { error: "The return address is not a URL." });
-    return;
-  }
-  if (redirectTo.hostname !== "localhost" && redirectTo.hostname !== "127.0.0.1") {
-    sendJson(res, 400, { error: "Local sign-in can only return to this computer." });
-    return;
-  }
   if (!name) {
     sendJson(res, 400, { error: "Choose a person." });
     return;
@@ -118,18 +107,20 @@ async function handleSignInAs(req: IncomingMessage, res: ServerResponse, mode: s
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: redirectTo.origin },
   });
   if (linkError) {
     sendJson(res, 500, { error: linkError.message });
     return;
   }
-  const actionLink = link.properties?.action_link;
-  if (!actionLink) {
-    sendJson(res, 500, { error: "Supabase did not return a sign-in link." });
+  const tokenHash = link.properties?.hashed_token;
+  const type = link.properties?.verification_type;
+  if (!tokenHash || !type) {
+    sendJson(res, 500, { error: "Supabase did not return a sign-in token." });
     return;
   }
-  sendJson(res, 200, { url: actionLink });
+  // The browser verifies this token where it already is. Following Supabase's
+  // action link would land on the project's Site URL, which is the live site.
+  sendJson(res, 200, { tokenHash, type });
 }
 
 export default defineConfig({
