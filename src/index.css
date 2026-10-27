@@ -969,6 +969,19 @@ button:disabled {
   right: 8px;
 }
 
+/* The bold and link bubble hangs below the task being edited. The next row is
+   painted later, so the bubble would sit behind that "Add a task" box. */
+.day-task:focus-within,
+.matrix-cell:focus-within,
+.task-cell:focus-within {
+  position: relative;
+  z-index: 4;
+}
+
+.task-editor .ql-tooltip {
+  z-index: 5;
+}
+
 .day-task input[type="text"]:focus,
 .day-notes textarea:focus,
 .task-editor:focus-within {
