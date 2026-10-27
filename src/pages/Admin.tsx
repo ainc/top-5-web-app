@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
+import { EditLog } from "./EditLog";
 import { getSupabase } from "../supabaseClient";
 
 type Season = {
@@ -635,6 +636,7 @@ export function Admin() {
         </ul>
         {assignRoles ? <SaveButtonView label="Save roles" flash={saveFlash.roles} /> : <p className="field-help">Only an admin can assign roles.</p>}
       </form>
+      <EditLog people={people.map((person) => ({ id: person.id, name: person.name }))} />
     </section>
   );
 }

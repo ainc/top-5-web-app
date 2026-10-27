@@ -1787,6 +1787,41 @@ button:disabled {
   box-shadow: inset 0 -3px 0 #c12029;
 }
 
+.admin-card.tone-log h2 {
+  background: #323232;
+}
+
+.edit-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-log article {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d1d2d4;
+  border-radius: 10px;
+  background: #f1f1f2;
+}
+
+.edit-log article p,
+.edit-log article ul {
+  margin: 4px 0 0;
+}
+
+.edit-log article ul {
+  padding-left: 18px;
+}
+
+.edit-log .edit-meta {
+  color: #939597;
+  font-size: 12px;
+}
+
 button.save-flash {
   animation: save-flash 0.7s ease-out;
   background: #166534;
@@ -2036,6 +2071,10 @@ html[data-theme="dark"] .person-tasks:nth-child(5n + 4) header {
 
 html[data-theme="dark"] .tone-teams > .section-head,
 html[data-theme="dark"] .admin-card.tone-roles h2,
+html[data-theme="dark"] .edit-log article {
+  background: #323232;
+  color: #f1f1f2;
+}
 html[data-theme="dark"] .person-tasks:nth-child(5n + 5) header {
   background: #2a2a2a;
   color: #f1f1f2;

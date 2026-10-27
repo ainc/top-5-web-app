@@ -662,7 +662,8 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
 
   // One grid day becomes three upserts. onConflict names the unique key
   // already declared in the migration, so a second save of Mack's Monday
-  // updates that row instead of inserting a duplicate.
+  // updates that row instead of inserting a duplicate. A database trigger
+  // copies the previous values into edit_log before that overwrite.
   //   day_entries   one row: notes, keyed by profile + date
   //   tasks         five rows: slot 1..5, title + done
   //   bonus_checks  Top 5, Exercise, Reading, plus any bonus added in Admin
