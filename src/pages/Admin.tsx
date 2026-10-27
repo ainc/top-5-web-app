@@ -5,11 +5,21 @@
 // That is a separate PostgREST request from a task checkbox. Postgres allows
 // a commissioner or an admin to change scoring, teams, and the roster.
 // Only an admin can write user_roles. A member's key is rejected.
+//
+// One season is active. "Plan next season" copies that season's roster, teams,
+// and scoring into a draft. The draft length starts at 8 weeks and can be
+// edited. The board keeps reading the active season until Activate closes it
+// and opens the draft. Days and scores are not copied.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
+import { addDays, mondayOf, parseISODate } from "../weeks";
 import { EditLog } from "./EditLog";
 import { getSupabase } from "../supabaseClient";
+
+const DEFAULT_SEASON_WEEKS = 8;
+
+type SeasonStatus = "draft" | "active" | "closed";
 
 type Season = {
   id: string;
@@ -17,6 +27,7 @@ type Season = {
   starts_on: string;
   length_weeks: number;
   scoring_mode: "individual" | "teams";
+  status: SeasonStatus;
 };
 
 type Bonus = { id: string; key: string; name: string; points: number; builtIn: boolean };
@@ -36,6 +47,9 @@ export function Admin() {
   const { role } = useAuth();
   const assignRoles = canAssignRoles(role);
   const [season, setSeason] = useState<Season | null>(null);
+  const [seasonChoices, setSeasonChoices] = useState<Season[]>([]);
+  const [working, setWorking] = useState(false);
+  const selectedId = useRef<string | null>(null);
   const [pointsPerTask, setPointsPerTask] = useState(0);
   const [bonuses, setBonuses] = useState<Bonus[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
@@ -59,20 +73,24 @@ export function Admin() {
 
   const load = useCallback(async () => {
     const supabase = getSupabase();
-    const { data: openSeason, error: seasonError } = await supabase
+    const { data: seasonRows, error: seasonError } = await supabase
       .from("seasons")
-      .select("id, name, starts_on, length_weeks, scoring_mode")
-      .eq("is_open", true)
-      .maybeSingle();
-    fail(seasonError, "read season");
-    if (!openSeason) throw new Error("No open season.");
-    const current: Season = {
-      id: openSeason.id,
-      name: openSeason.name,
-      starts_on: openSeason.starts_on,
-      length_weeks: openSeason.length_weeks,
-      scoring_mode: openSeason.scoring_mode === "teams" ? "teams" : "individual",
-    };
+      .select("id, name, starts_on, length_weeks, scoring_mode, status");
+    fail(seasonError, "read seasons");
+    const choices = sortSeasons(
+      (seasonRows ?? []).map((row) => ({
+        id: String(row.id),
+        name: String(row.name),
+        starts_on: String(row.starts_on),
+        length_weeks: Number(row.length_weeks),
+        scoring_mode: row.scoring_mode === "teams" ? "teams" : "individual",
+        status: seasonStatus(row.status),
+      })),
+    );
+    if (choices.length === 0) throw new Error("No seasons yet.");
+    const current = choices.find((item) => item.id === selectedId.current) ?? choices.find((item) => item.status === "active") ?? choices[0];
+    selectedId.current = current.id;
+    setSeasonChoices(choices);
     const [{ data: rules, error: rulesError }, { data: bonusRows, error: bonusError }, { data: memberRows, error: memberError }, { data: teamRows, error: teamError }, { data: roleRows, error: roleError }, { data: assignmentRows, error: assignmentError }] =
       await Promise.all([
         supabase.from("scoring_rules").select("points_per_task").eq("season_id", current.id).maybeSingle(),
@@ -162,13 +180,18 @@ export function Admin() {
     window.dispatchEvent(new Event("top5-reload"));
   }
 
-  async function saveSeason() {
+  async function persistSeason() {
     if (!season) return;
+    if (season.status === "closed") throw new Error("A closed season stays as it was.");
+    const name = season.name.trim();
+    if (!name) throw new Error("Name the season before saving.");
+    if (!season.starts_on) throw new Error("A season needs a start date.");
+    if (!Number.isFinite(season.length_weeks) || season.length_weeks < 1) throw new Error("A season needs at least one week.");
     const supabase = getSupabase();
     const { error: seasonError } = await supabase
       .from("seasons")
       .update({
-        name: season.name.trim(),
+        name,
         starts_on: season.starts_on,
         length_weeks: season.length_weeks,
         scoring_mode: season.scoring_mode,
@@ -180,11 +203,89 @@ export function Admin() {
       .update({ points_per_task: pointsPerTask })
       .eq("season_id", season.id);
     fail(rulesError, "save points per task");
-    saved("Season saved.");
+  }
+
+  async function saveSeason() {
+    await persistSeason();
+    saved(season?.status === "draft" ? "Draft saved. It stays off the board until you activate it." : "Season saved.");
     await load();
   }
 
+  // Copies the live season's roster, teams, and scoring. Length is 8 weeks
+  // until someone edits the draft. Nothing here changes which season is live.
+  async function planNextSeason() {
+    const source = seasonChoices.find((item) => item.status === "active");
+    if (!source) throw new Error("There is no active season to copy.");
+    const name = nextSeasonName(source.name);
+    const starts = nextSeasonStart(source.starts_on, source.length_weeks);
+    const drafts = seasonChoices.filter((item) => item.status === "draft");
+    const already = drafts.length === 0 ? "" : `\n\nYou already have ${drafts.length === 1 ? `a draft (${drafts[0].name})` : `${drafts.length} drafts`}. This adds another.`;
+    const lengthNote =
+      source.length_weeks === DEFAULT_SEASON_WEEKS
+        ? `Length starts at ${DEFAULT_SEASON_WEEKS} weeks.`
+        : `Length starts at ${DEFAULT_SEASON_WEEKS} weeks. ${source.name} is ${source.length_weeks} weeks, and you can change the draft before it goes live.`;
+    const ok = window.confirm(
+      `Plan the next season from ${source.name}?\n\nThe draft copies the roster, teams, and scoring. Days and scores stay on ${source.name}.\n${lengthNote}\nSuggested name: ${name}. Start: ${starts}.${already}\n\nIt stays off the board until you activate it.`,
+    );
+    if (!ok) return;
+    setWorking(true);
+    try {
+      const { data, error } = await getSupabase().rpc("create_season_draft", {
+        source_id: source.id,
+        season_name: name,
+        starts_on: starts,
+        length_weeks: DEFAULT_SEASON_WEEKS,
+        copy_settings: true,
+      });
+      fail(error, "plan season");
+      selectedId.current = String(data);
+      saved("Draft created. Edit it below, then activate it when this season should go live.");
+      await load();
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function activateSeason() {
+    if (!season || season.status !== "draft") return;
+    const current = seasonChoices.find((item) => item.status === "active");
+    const closing = current
+      ? `${current.name} closes and keeps the days already saved, but those days leave the scorecard.`
+      : "The current season closes.";
+    const ok = window.confirm(
+      `Activate ${season.name || "this draft"}?\n\nThe name, dates, length, and points per task on this form are saved first. Save bonuses separately if you changed them.\n\nThe live board switches to this season immediately. ${closing}\n\nTasks are not copied into the new season.`,
+    );
+    if (!ok) return;
+    setWorking(true);
+    try {
+      await persistSeason();
+      const { error } = await getSupabase().rpc("activate_season", { target_id: season.id });
+      fail(error, "activate season");
+      saved(`${season.name.trim()} is the live season.`);
+      await load();
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function deleteDraft() {
+    if (!season || season.status !== "draft") return;
+    const ok = window.confirm(`Delete the draft "${season.name}"? The live season stays as it is.`);
+    if (!ok) return;
+    setWorking(true);
+    try {
+      const { error } = await getSupabase().from("seasons").delete().eq("id", season.id);
+      fail(error, "delete draft");
+      selectedId.current = null;
+      saved("Draft deleted.");
+      await load();
+    } finally {
+      setWorking(false);
+    }
+  }
+
   async function saveBonuses() {
+    if (season?.status === "closed") throw new Error("A closed season stays as it was.");
     const supabase = getSupabase();
     for (const bonus of bonuses) {
       const { error } = await supabase
@@ -204,7 +305,7 @@ export function Admin() {
   }
 
   async function addBonus() {
-    if (!season) return;
+    if (!season || season.status === "closed") return;
     const name = newBonusName.trim();
     if (!name) return;
     const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 24);
@@ -282,23 +383,32 @@ export function Admin() {
     );
     fail(error, "add roster");
     setNewPerson("");
-    saved(`${name} is on the roster. They appear on the next blank week.`);
+    saved(
+      season.status === "draft"
+        ? `${name} is on this draft. They join the live board when you activate it.`
+        : `${name} is on the roster. They appear on the next blank week.`,
+    );
     await load();
   }
 
   async function removePerson(person: Person) {
-    if (!season) return;
+    if (!season || season.status === "closed") return;
     const { error } = await getSupabase()
       .from("season_members")
       .delete()
       .eq("season_id", season.id)
       .eq("profile_id", person.id);
     fail(error, "remove roster");
-    saved(`${person.name} left the roster. Days already saved stay on past weeks.`);
+    saved(
+      season.status === "draft"
+        ? `${person.name} was removed from this draft. The live roster is unchanged.`
+        : `${person.name} left the roster. Days already saved stay on past weeks.`,
+    );
     await load();
   }
 
   async function saveNickname(person: Person, nickname: string) {
+    if (season?.status === "closed") return;
     const next = nickname.trim();
     if (next === person.savedNickname) return;
     const { error } = await getSupabase().from("profiles").update({ nickname: next || null }).eq("id", person.id);
@@ -309,7 +419,7 @@ export function Admin() {
   }
 
   async function addTeam() {
-    if (!season) return;
+    if (!season || season.status === "closed") return;
     const name = newTeam.trim();
     if (!name) return;
     const { error } = await getSupabase().from("teams").insert({ season_id: season.id, name });
@@ -320,7 +430,7 @@ export function Admin() {
   }
 
   async function assignTeam(person: Person, teamId: string) {
-    if (!season) return;
+    if (!season || season.status === "closed") return;
     const supabase = getSupabase();
     if (!teamId) {
       const { error } = await supabase.from("team_members").delete().eq("season_id", season.id).eq("profile_id", person.id);
@@ -392,62 +502,134 @@ export function Admin() {
     return <p className="status">{error || "Loading admin…"}</p>;
   }
 
+  const closed = season.status === "closed";
+  const activeSeason = seasonChoices.find((item) => item.status === "active");
+
   return (
     <section className="page admin">
       <h1>⚙️ Admin</h1>
-      <p>Scoring, teams, and the roster. A commissioner or an admin can change these. Only an admin can assign roles.</p>
+      <p>Scoring, teams, the roster, and the next season. A commissioner or an admin can change these. Only an admin can assign roles. One season is live. The next one can be drafted and edited before it is activated.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
-      <form
-        className="admin-card tone-season"
-        onSubmit={(event) => {
-          event.preventDefault();
-          runSave("season", saveSeason, "Could not save the season.");
-        }}
-      >
+      <div className="admin-card tone-season">
         <h2>📅 Season</h2>
         <label className="admin-field">
-          Name
-          <input value={season.name} onChange={(event) => setSeason({ ...season, name: event.target.value })} />
-        </label>
-        <label className="admin-field">
-          Starts
-          <input type="date" value={season.starts_on} onChange={(event) => setSeason({ ...season, starts_on: event.target.value })} />
-          <p className="field-help">The Monday the season begins. Each week is that Monday through Friday.</p>
-        </label>
-        <label className="admin-field">
-          Length in weeks
-          <input
-            type="number"
-            min={1}
-            value={season.length_weeks}
-            onChange={(event) => setSeason({ ...season, length_weeks: Number(event.target.value) })}
-          />
-          <p className="field-help">How many weeks this season runs. A new Monday is created on its own only inside this span.</p>
-        </label>
-        <label className="admin-field">
-          Scoring
+          Editing
           <select
-            value={season.scoring_mode}
-            onChange={(event) => setSeason({ ...season, scoring_mode: event.target.value === "teams" ? "teams" : "individual" })}
+            value={season.id}
+            onChange={(event) => {
+              selectedId.current = event.target.value;
+              load().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not load that season."));
+            }}
           >
-            <option value="individual">Individual</option>
-            <option value="teams">Teams</option>
+            {seasonChoices.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} — {seasonLabel(item.status)}
+              </option>
+            ))}
           </select>
-          <p className="field-help">
-            Individual ranks each person on their own points. Teams adds a team standing and the assignment list below. Old sheet banners such as ACES, Alpha, and Awesomes are not teams.
-          </p>
+          <p className="field-help">Save before you switch. This list is the seasons already stored.</p>
         </label>
-        <label className="admin-field">
-          Points per finished task
-          <input type="number" min={0} value={pointsPerTask} onChange={(event) => setPointsPerTask(Number(event.target.value))} />
+        <p>
+          <span className={`season-flag is-${season.status}`}>{seasonLabel(season.status)}</span>
+        </p>
+        {season.status === "draft" ? (
           <p className="field-help">
-            Extra points for each priority box that is checked, on top of the bonuses below. Leave this at 0 to score only bonuses.
+            This draft is not on the scorecard yet.
+            {activeSeason ? ` Activating it closes ${activeSeason.name} and moves the live board here. Tasks already written stay on ${activeSeason.name}.` : " Activating it makes it the live season."}
           </p>
-        </label>
-        <SaveButtonView label="Save season" flash={saveFlash.season} />
-      </form>
+        ) : null}
+        {closed && activeSeason ? <p className="field-help">{season.name} is closed. The live board is {activeSeason.name}.</p> : null}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (closed) return;
+            runSave("season", saveSeason, "Could not save the season.");
+          }}
+        >
+          <label className="admin-field">
+            Name
+            <input value={season.name} disabled={closed} onChange={(event) => setSeason({ ...season, name: event.target.value })} />
+          </label>
+          <label className="admin-field">
+            Starts
+            <input type="date" value={season.starts_on} disabled={closed} onChange={(event) => setSeason({ ...season, starts_on: event.target.value })} />
+            <p className="field-help">The Monday the season begins. Each week is that Monday through Friday.</p>
+          </label>
+          <label className="admin-field">
+            Length in weeks
+            <input
+              type="number"
+              min={1}
+              value={season.length_weeks}
+              disabled={closed}
+              onChange={(event) => setSeason({ ...season, length_weeks: Number(event.target.value) })}
+            />
+            <p className="field-help">
+              {season.status === "draft"
+                ? `A new season defaults to ${DEFAULT_SEASON_WEEKS} weeks. Change this before you activate. The board ignores a draft until then.`
+                : "How many weeks this season runs. A new Monday is created on its own only inside this span."}
+            </p>
+          </label>
+          <label className="admin-field">
+            Scoring
+            <select
+              value={season.scoring_mode}
+              disabled={closed}
+              onChange={(event) => setSeason({ ...season, scoring_mode: event.target.value === "teams" ? "teams" : "individual" })}
+            >
+              <option value="individual">Individual</option>
+              <option value="teams">Teams</option>
+            </select>
+            <p className="field-help">
+              Individual ranks each person on their own points. Teams adds a team standing and the assignment list below. Old sheet banners such as ACES, Alpha, and Awesomes are not teams.
+            </p>
+          </label>
+          <label className="admin-field">
+            Points per finished task
+            <input type="number" min={0} disabled={closed} value={pointsPerTask} onChange={(event) => setPointsPerTask(Number(event.target.value))} />
+            <p className="field-help">
+              Extra points for each priority box that is checked, on top of the bonuses below. Leave this at 0 to score only bonuses.
+            </p>
+          </label>
+          {closed ? null : <SaveButtonView label={season.status === "draft" ? "Save draft" : "Save season"} flash={saveFlash.season} />}
+        </form>
+        <div className="admin-row">
+          <button
+            type="button"
+            disabled={working || !activeSeason}
+            onClick={() => {
+              planNextSeason().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not plan the next season."));
+            }}
+          >
+            {working ? "Working…" : "Plan next season"}
+          </button>
+          {season.status === "draft" ? (
+            <>
+              <button
+                type="button"
+                disabled={working}
+                onClick={() => {
+                  activateSeason().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not activate that season."));
+                }}
+              >
+                Activate this season
+              </button>
+              <button
+                type="button"
+                disabled={working}
+                onClick={() => {
+                  deleteDraft().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not delete that draft."));
+                }}
+              >
+                Delete draft
+              </button>
+            </>
+          ) : null}
+        </div>
+        <p className="field-help">Plan next season copies the live roster, teams, and scoring into a draft. Days and scores stay where they are. The draft starts at {DEFAULT_SEASON_WEEKS} weeks.</p>
+      </div>
 
       <form
         className="admin-card tone-bonus"
@@ -460,11 +642,13 @@ export function Admin() {
         <p className="field-help">
           Top 5, Exercise, and Reading stay on every day. Top 5 checks itself when all five tasks are done. Type another bonus below and save to put a new checkbox on each day. Removing one hides that checkbox. A day that already earned it keeps those points.
         </p>
+        {season.status === "draft" ? <p className="field-help">These point values are saved on this draft. The live board keeps the active season until you activate.</p> : null}
         {bonuses.map((bonus, index) => (
           <div className="admin-row" key={bonus.id}>
             <input
               aria-label={`${bonus.builtIn ? "Built-in bonus" : "Bonus"} name`}
               value={bonus.name}
+              disabled={closed}
               onChange={(event) => setBonuses(bonuses.map((item, itemIndex) => (itemIndex === index ? { ...item, name: event.target.value } : item)))}
             />
             <input
@@ -472,6 +656,7 @@ export function Admin() {
               min={0}
               aria-label={`${bonus.name} points`}
               value={bonus.points}
+              disabled={closed}
               onChange={(event) =>
                 setBonuses(bonuses.map((item, itemIndex) => (itemIndex === index ? { ...item, points: Number(event.target.value) } : item)))
               }
@@ -479,6 +664,7 @@ export function Admin() {
             {bonus.builtIn ? <span className="field-help">Always on</span> : (
               <button
                 type="button"
+                disabled={closed}
                 onClick={() => removeBonus(bonus).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not remove that bonus."))}
               >
                 Remove
@@ -487,32 +673,36 @@ export function Admin() {
           </div>
         ))}
         <div className="admin-row">
-          <input value={newBonusName} placeholder="Add a bonus" aria-label="New bonus name" onChange={(event) => setNewBonusName(event.target.value)} />
+          <input value={newBonusName} placeholder="Add a bonus" aria-label="New bonus name" disabled={closed} onChange={(event) => setNewBonusName(event.target.value)} />
           <input
             type="number"
             min={0}
             aria-label="New bonus points"
             value={newBonusPoints}
+            disabled={closed}
             onChange={(event) => setNewBonusPoints(Number(event.target.value))}
           />
         </div>
-        <SaveButtonView label="Save bonuses" flash={saveFlash.bonuses} />
+        {closed ? null : <SaveButtonView label="Save bonuses" flash={saveFlash.bonuses} />}
       </form>
 
       <div className="admin-card tone-roster">
         <h2>👥 Roster</h2>
         <p className="field-help">
-          People who show up on the board. A nickname is what other pages show instead of the roster name. Leave it blank to keep the roster name. Removing someone hides them from new weeks. Days already saved stay.
+          {season.status === "draft"
+            ? "People copied onto this draft. Adding or removing someone changes the upcoming roster only. A nickname still changes that person's name on every page."
+            : "People who show up on the board. A nickname is what other pages show instead of the roster name. Leave it blank to keep the roster name. Removing someone hides them from new weeks. Days already saved stay."}
         </p>
         <form
           className="admin-row"
           onSubmit={(event) => {
             event.preventDefault();
+            if (closed) return;
             addPerson().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not add that person."));
           }}
         >
-          <input value={newPerson} placeholder="Name" onChange={(event) => setNewPerson(event.target.value)} />
-          <button type="submit">Add person</button>
+          <input value={newPerson} placeholder="Name" disabled={closed} onChange={(event) => setNewPerson(event.target.value)} />
+          <button type="submit" disabled={closed}>Add person</button>
         </form>
         <ul className="admin-list">
           {people.map((person) => (
@@ -523,6 +713,7 @@ export function Admin() {
                 maxLength={40}
                 placeholder="Nickname"
                 aria-label={`Nickname for ${person.name}`}
+                disabled={closed}
                 onChange={(event) =>
                   setPeople(people.map((item) => (item.id === person.id ? { ...item, nickname: event.target.value } : item)))
                 }
@@ -538,7 +729,7 @@ export function Admin() {
                   }
                 }}
               />
-              <button type="button" onClick={() => removePerson(person).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not remove that person."))}>
+              <button type="button" disabled={closed} onClick={() => removePerson(person).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not remove that person."))}>
                 Remove
               </button>
             </li>
@@ -557,14 +748,14 @@ export function Admin() {
               addTeam().catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not add that team."));
             }}
           >
-            <input value={newTeam} placeholder="Team name" onChange={(event) => setNewTeam(event.target.value)} />
-            <button type="submit">Add team</button>
+            <input value={newTeam} placeholder="Team name" disabled={closed} onChange={(event) => setNewTeam(event.target.value)} />
+            <button type="submit" disabled={closed}>Add team</button>
           </form>
           <ul className="admin-list">
             {people.map((person) => (
               <li key={person.id}>
                 <span>{person.name}</span>
-                <select value={person.teamId} onChange={(event) => assignTeam(person, event.target.value).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not assign that team."))}>
+                <select value={person.teamId} disabled={closed} onChange={(event) => assignTeam(person, event.target.value).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Could not assign that team."))}>
                   <option value="">No team</option>
                   {teams.map((team) => (
                     <option key={team.id} value={team.id}>
@@ -639,6 +830,41 @@ export function Admin() {
       <EditLog people={people.map((person) => ({ id: person.id, name: person.name }))} />
     </section>
   );
+}
+
+function seasonStatus(value: unknown): SeasonStatus {
+  if (value === "draft" || value === "active" || value === "closed") return value;
+  return "closed";
+}
+
+function seasonLabel(status: SeasonStatus): string {
+  if (status === "active") return "Active";
+  if (status === "draft") return "Draft";
+  return "Closed";
+}
+
+function sortSeasons(rows: Season[]): Season[] {
+  const rank: Record<SeasonStatus, number> = { active: 0, draft: 1, closed: 2 };
+  return [...rows].sort((a, b) => {
+    if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
+    if (a.status === "closed") return b.starts_on.localeCompare(a.starts_on);
+    return a.starts_on.localeCompare(b.starts_on) || a.name.localeCompare(b.name);
+  });
+}
+
+function nextSeasonName(name: string): string {
+  const match = name.trim().match(/^Q([1-4])\s+(\d{4})$/i);
+  if (!match) return `${name.trim()} next`;
+  const quarter = Number(match[1]);
+  const year = Number(match[2]);
+  if (quarter === 4) return `Q1 ${year + 1}`;
+  return `Q${quarter + 1} ${year}`;
+}
+
+function nextSeasonStart(startsOn: string, lengthWeeks: number): string {
+  const start = mondayOf(parseISODate(startsOn));
+  const lastFriday = addDays(start, (Math.max(lengthWeeks, 1) - 1) * 7 + 4);
+  return addDays(lastFriday, 3);
 }
 
 function SaveButtonView({ label, flash }: { label: string; flash: Flash }) {

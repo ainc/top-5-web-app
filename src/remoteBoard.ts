@@ -240,9 +240,9 @@ function comparePeople(a: PersonRecord, b: PersonRecord): number {
   return a.createdAt.localeCompare(b.createdAt) || a.person.localeCompare(b.person);
 }
 
-// Everything else hangs off the one open season. Bonuses come from the
-// database so a commissioner can change 15/5/5 without a code change. The
-// grid still labels those boxes 15, 5, and 5 until that UI exists.
+// The board reads the one active season. A draft stays off this load until
+// a commissioner activates it, which closes the season that was open.
+// Bonuses come from the database so a commissioner can change 15/5/5 without a code change.
 async function refreshCatalog(): Promise<Catalog> {
   const supabase = getSupabase();
   const { data: season, error: seasonError } = await supabase

@@ -1791,6 +1791,37 @@ button:disabled {
   background: #323232;
 }
 
+.admin-card.tone-season form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.season-flag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.season-flag.is-active {
+  background: #6ec8bf;
+  color: #323232;
+}
+
+.season-flag.is-draft {
+  background: #f3d4d6;
+  color: #323232;
+}
+
+.season-flag.is-closed {
+  background: #e6e7e8;
+  color: #323232;
+}
+
 .edit-log {
   display: flex;
   flex-direction: column;
