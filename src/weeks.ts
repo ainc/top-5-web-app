@@ -113,6 +113,18 @@ function personSlug(person: { person: string; team: string | null }): string {
   return person.team ? `${slug(person.team)}-${slug(person.person)}` : slug(person.person);
 }
 
+// Blank days for roster members who are not on this week yet. Past weeks are
+// left alone; this is only for the current Monday and weeks planned ahead.
+export function missingRosterRows(
+  rows: DayRow[],
+  roster: Array<{ person: string; team: string | null }>,
+  weekId: string,
+): DayRow[] {
+  const names = new Set(rows.map((row) => row.person));
+  const missing = roster.filter((person) => !names.has(person.person));
+  return blankWeek(missing, weekId);
+}
+
 export function blankWeek(people: Array<{ person: string; team: string | null }>, weekId: string): DayRow[] {
   return people.flatMap((person) =>
     DAY_NAMES.map((day, index) => ({

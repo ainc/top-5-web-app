@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildColumns, darkGridTheme, gridTheme } from "./columns";
 import type { GridContext } from "./cells";
 import { importSummary, parseSheetCsv } from "./parseSheetCsv";
-import { dailyPoints, DEFAULT_RATES, peopleInOrder, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
+import { dailyPoints, DEFAULT_RATES, peopleOnWeek, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
 import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
@@ -23,6 +23,7 @@ import {
   nextNewWeekId,
   planAheadMessage,
   rosterFrom,
+  missingRosterRows,
   weekIsEmpty,
   withWeekIds,
   type WeekRecord,
@@ -35,7 +36,7 @@ type BoardValue = {
   ready: boolean;
   source: string;
   notice: Notice | null;
-  people: ReturnType<typeof peopleInOrder>;
+  people: ReturnType<typeof peopleOnWeek>;
   selectedWeek: string;
   weekLabel: string;
   isCurrentWeek: boolean;
@@ -100,6 +101,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [scoringMode, setScoringMode] = useState<"individual" | "teams">("individual");
   const [season, setSeason] = useState<SeasonSpan>({ name: "", startsOn: currentMonday(), lengthWeeks: 12 });
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
+  const [roster, setRoster] = useState<Array<{ person: string; team: string | null }>>([]);
   const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
   const weeksRef = useRef(weeks);
   // Bumped on every local edit. A reload that started before this number
@@ -128,6 +130,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       commitWeeks(next);
       setSeason(state.season);
       setNicknames(state.nicknames);
+      setRoster(state.roster);
       if (!keepSelection) setSelectedWeek(currentMonday());
     },
     [commitWeeks],
@@ -268,6 +271,23 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       text: errorText(error, "Could not save that change to Supabase."),
     });
   }, []);
+
+  // A week planned earlier only has the people who were on it then. Opening
+  // this week or a future week adds blank days for anyone who joined since,
+  // so the dashboard and My week show the current roster. Past weeks stay as saved.
+  useEffect(() => {
+    if (!ready || !canOpenAdmin(role)) return;
+    if (selectedWeek < currentMonday()) return;
+    const week = weeksRef.current[selectedWeek];
+    if (!week) return;
+    const added = missingRosterRows(week.rows, roster, selectedWeek);
+    if (added.length === 0) return;
+    commitWeeks({
+      ...weeksRef.current,
+      [selectedWeek]: { ...week, rows: [...week.rows, ...added] },
+    });
+    void saveDays(selectedWeek, added, week.source).catch(reportSaveError);
+  }, [ready, role, selectedWeek, roster, commitWeeks, reportSaveError]);
 
   // Checkbox, title, and note edits all arrive here from the grid or the board.
   // React state updates first, so the box looks checked before the network
@@ -470,7 +490,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
 
   const rows = weeks[selectedWeek]?.rows ?? [];
   const source = weeks[selectedWeek]?.source ?? "Supabase";
-  const people = useMemo(() => peopleInOrder(rows), [rows]);
+  // People already on this week, then anyone on the season roster who is not.
+  const people = useMemo(() => peopleOnWeek(rows, roster), [rows, roster]);
   const weekIds = useMemo(() => Object.keys(weeks).sort().reverse(), [weeks]);
   const today = currentMonday();
   const isCurrentWeek = selectedWeek === today;

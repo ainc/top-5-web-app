@@ -58,7 +58,14 @@ export function PersonPicker({
         >
           ‹
         </button>
-        <select aria-label="Look at someone's tasks" value={value} onChange={(event) => onChange(event.target.value)}>
+        {/* A new week replaces these options. Recreating the menu keeps Chrome
+            from leaving the old list painted open across the page. */}
+        <select
+          key={people.map((person) => person.key).join("\n")}
+          aria-label="Look at someone's tasks"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
           {people.map((person) => (
             <option key={person.key} value={person.key}>
               {pickerName(person.person, nicknames, person.person === signedInName)}

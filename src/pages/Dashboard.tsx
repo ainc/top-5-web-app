@@ -16,7 +16,7 @@ import { ScoreGrid, useBoard } from "../board";
 import { SeasonBoards } from "./SeasonBoards";
 import { pickerName, shownName } from "../names";
 import { PersonPicker } from "./PersonPicker";
-import { DAY_NAMES, dailyPoints, maxWeekPoints, peopleInOrder, personKey, weekPoints } from "../points";
+import { DAY_NAMES, dailyPoints, maxWeekPoints, personKey, weekPoints } from "../points";
 import { seasonBoard } from "../streaks";
 import { taskPlainText } from "../taskMarkup";
 import { TaskHtml } from "../taskRich";
@@ -92,7 +92,7 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
+  const { rows, people: weekPeople, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
   const { profileName } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -100,7 +100,7 @@ export function Dashboard() {
   const needle = query.trim().toLowerCase();
 
   const people = useMemo<PersonScore[]>(() => {
-    return peopleInOrder(rows)
+    return weekPeople
       .filter((person) => {
         const label = shownName(person.person, nicknames).toLowerCase();
         return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
@@ -119,9 +119,9 @@ export function Dashboard() {
           points: mine.reduce((sum, row) => sum + dailyPoints(row, rates), 0),
         };
       });
-  }, [needle, nicknames, rates, rows]);
+  }, [needle, nicknames, rates, rows, weekPeople]);
 
-  const roster = useMemo(() => peopleInOrder(rows), [rows]);
+  const roster = weekPeople;
   // Nothing chosen yet means the signed-in person, same as My week. The first
   // roster name is only used when this Google account is not on the board.
   const signedInKey = roster.find((person) => person.person === profileName)?.key ?? "";
