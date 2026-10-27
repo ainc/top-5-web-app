@@ -18,6 +18,8 @@ import { pickerName, shownName } from "../names";
 import { PersonPicker } from "./PersonPicker";
 import { DAY_NAMES, dailyPoints, maxWeekPoints, peopleInOrder, personKey, weekPoints } from "../points";
 import { seasonBoard } from "../streaks";
+import { taskPlainText } from "../taskMarkup";
+import { TaskHtml } from "../taskRich";
 import type { DayRow } from "../types";
 import { addDays } from "../weeks";
 
@@ -335,12 +337,13 @@ export function Dashboard() {
                   <h3>{day}</h3>
                   <ol>
                     {TASKS.map(([label, done], slot) => {
-                      const title = String(row?.[label] ?? "").trim();
+                      const stored = String(row?.[label] ?? "");
+                      const title = taskPlainText(stored);
                       const finished = title.length > 0 && Boolean(row?.[done]);
                       return (
                         <li key={label} className={finished ? "is-done" : undefined}>
                           <span>{SLOT_NAMES[slot]}</span>
-                          {title || "—"}
+                          {title ? <TaskHtml value={stored} /> : "—"}
                         </li>
                       );
                     })}

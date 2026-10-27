@@ -917,7 +917,9 @@ button:disabled {
 }
 
 .day-task input[type="text"],
-.day-notes textarea {
+.day-notes textarea,
+.task-readout,
+.task-editor {
   width: 100%;
   border: 1px solid transparent;
   background: #f1f1f2;
@@ -928,8 +930,46 @@ button:disabled {
   line-height: 20px;
 }
 
+.task-readout {
+  min-height: 32px;
+  cursor: text;
+  overflow-wrap: anywhere;
+}
+
+.task-placeholder {
+  color: #939597;
+}
+
+.task-html a,
+.task-readout a,
+.ql-editor a {
+  color: #c12029;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.task-editor {
+  padding: 0;
+}
+
+.task-editor .ql-editor {
+  min-height: 32px;
+  padding: 6px 8px;
+  font: inherit;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.task-editor .ql-editor.ql-blank::before {
+  color: #939597;
+  font-style: normal;
+  left: 8px;
+  right: 8px;
+}
+
 .day-task input[type="text"]:focus,
-.day-notes textarea:focus {
+.day-notes textarea:focus,
+.task-editor:focus-within {
   outline: 2px solid #c12029;
   border-color: transparent;
   background: #ffffff;
@@ -940,12 +980,16 @@ button:disabled {
    not leave a shadow of the title behind the strike. Focus clears the line
    so the words can be edited. */
 .day-task.is-done input[type="text"],
-.day-task.is-done .task-done {
+.day-task.is-done .task-done,
+.day-task.is-done .task-readout,
+.day-task.is-done .task-html,
+.day-task.is-done .task-html a {
   color: #939597;
   text-decoration: line-through;
 }
 
-.day-task.is-done .task-field:focus-within input[type="text"] {
+.day-task.is-done .task-field:focus-within input[type="text"],
+.day-task.is-done .task-field:focus-within .ql-editor {
   color: #323232;
   text-decoration: none;
 }
@@ -1170,13 +1214,21 @@ button:disabled {
   justify-content: center;
 }
 
-.task-cell input[type="text"] {
+.task-cell input[type="text"],
+.task-cell .task-readout,
+.task-cell .task-editor {
   flex: 1;
   min-width: 0;
   border: 0;
   background: transparent;
   padding: 0;
   color: inherit;
+}
+
+.task-cell .task-editor .ql-editor,
+.task-cell .task-readout {
+  padding: 0;
+  background: transparent;
 }
 
 .task-cell input[type="checkbox"],
@@ -2151,24 +2203,39 @@ html[data-theme="dark"] .day-strip.is-today {
 
 html[data-theme="dark"] .day-task input[type="text"],
 html[data-theme="dark"] .day-notes textarea,
-html[data-theme="dark"] .day-score {
+html[data-theme="dark"] .day-score,
+html[data-theme="dark"] .task-readout,
+html[data-theme="dark"] .task-editor,
+html[data-theme="dark"] .task-editor .ql-editor {
   background: #323232;
   color: #f1f1f2;
 }
 
+html[data-theme="dark"] .task-html a,
+html[data-theme="dark"] .task-readout a,
+html[data-theme="dark"] .ql-editor a {
+  color: #ed3742;
+}
+
 html[data-theme="dark"] .day-task input[type="text"]:focus,
-html[data-theme="dark"] .day-notes textarea:focus {
+html[data-theme="dark"] .day-notes textarea:focus,
+html[data-theme="dark"] .task-editor:focus-within,
+html[data-theme="dark"] .task-editor:focus-within .ql-editor {
   background: #2a2024;
   outline-color: #ed3742;
 }
 
 html[data-theme="dark"] .day-task.is-done input[type="text"],
 html[data-theme="dark"] .day-task.is-done .task-done,
+html[data-theme="dark"] .day-task.is-done .task-readout,
+html[data-theme="dark"] .day-task.is-done .task-html,
+html[data-theme="dark"] .day-task.is-done .task-html a,
 html[data-theme="dark"] .task-done {
   color: #a89890;
 }
 
-html[data-theme="dark"] .day-task.is-done .task-field:focus-within input[type="text"] {
+html[data-theme="dark"] .day-task.is-done .task-field:focus-within input[type="text"],
+html[data-theme="dark"] .day-task.is-done .task-field:focus-within .ql-editor {
   color: #f1f1f2;
   text-decoration: none;
 }

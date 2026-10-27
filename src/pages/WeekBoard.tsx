@@ -6,6 +6,7 @@
 import { useBoard } from "../board";
 import { useDraftText } from "../cells";
 import { DAY_NAMES, dailyPoints, taskHasText, withAutomaticTop5 } from "../points";
+import { TaskEditor, TaskHtml } from "../taskRich";
 import type { DayRow } from "../types";
 import { addDays, formatISODate, parseISODate } from "../weeks";
 
@@ -220,7 +221,7 @@ export function DraftField({
   const typed = useDraftText(value);
 
   if (disabled) {
-    return <span className={done ? "task-done" : undefined}>{value || placeholder}</span>;
+    return value ? <TaskHtml value={value} /> : <span className={done ? "task-done" : undefined}>{placeholder}</span>;
   }
 
   if (multiline) {
@@ -236,18 +237,18 @@ export function DraftField({
     );
   }
 
-  // Checked tasks are styled on this input itself: grey text and one
-  // strikethrough. A second copy of the words used to be painted on top so
-  // the line would show in older Chromium, and that copy read as a shadow.
+  // Checked tasks stay grey with one strikethrough until the editor is open.
+  // Quill replaces the text box so a web address can be a link.
   return (
     <span className="task-field">
-      <input
-        type="text"
+      <TaskEditor
         value={typed.draft}
-        aria-label={label}
+        label={label}
         placeholder={placeholder}
-        onChange={(event) => typed.edit(event.target.value)}
-        onBlur={() => typed.commit(onCommit)}
+        onCommit={(next) => {
+          typed.edit(next);
+          typed.commit(onCommit);
+        }}
       />
     </span>
   );

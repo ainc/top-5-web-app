@@ -4,6 +4,8 @@
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { useEffect, useRef, useState } from "react";
 import type { GridRow } from "./types";
+import { taskPlainText } from "./taskMarkup";
+import { TaskEditor, TaskHtml } from "./taskRich";
 
 type TaskFields = {
   doneField: "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone";
@@ -60,7 +62,7 @@ export function TaskCell({ data, context, doneField, labelField }: TaskCellProps
   const label = data?.[labelField] ?? "";
   const done = Boolean(data?.[doneField]);
   const typed = useDraftText(label);
-  const hasText = label.trim().length > 0;
+  const hasText = taskPlainText(label).length > 0;
 
   if (!data) return null;
 
@@ -75,15 +77,17 @@ export function TaskCell({ data, context, doneField, labelField }: TaskCellProps
         onChange={(event) => context.onPatch(data.id, { [doneField]: event.target.checked })}
       />
       {context.canEdit ? (
-        <input
-          type="text"
+        <TaskEditor
           value={typed.draft}
-          aria-label={`${data.person} ${data.day} task`}
-          onChange={(event) => typed.edit(event.target.value)}
-          onBlur={() => typed.commit((next) => context.onPatch(data.id, { [labelField]: next }))}
+          label={`${data.person} ${data.day} task`}
+          placeholder="Add a task"
+          onCommit={(next) => {
+            typed.edit(next);
+            typed.commit((saved) => context.onPatch(data.id, { [labelField]: saved }));
+          }}
         />
       ) : (
-        <span className={done && hasText ? "task-done" : undefined}>{label}</span>
+        <span className={done && hasText ? "task-done" : undefined}>{label ? <TaskHtml value={label} /> : null}</span>
       )}
     </div>
   );

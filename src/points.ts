@@ -90,7 +90,10 @@ const TASK_SLOTS: TaskSlot[] = [
 // A box with no words is not a finished task. Imported sheets sometimes have
 // a checked box and an empty title. Those do not count toward points or Top 5.
 export function taskHasText(label: string): boolean {
-  return label.trim().length > 0;
+  const trimmed = label.trim();
+  if (!trimmed) return false;
+  if (!trimmed.startsWith("<")) return true;
+  return trimmed.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
 }
 
 type TaskDay = Pick<DayRow, TaskSlot["label"] | TaskSlot["done"]>;
