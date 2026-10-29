@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { addDays, mondayOf, parseISODate } from "../weeks";
 import { EditLog } from "./EditLog";
+import { PastSeasons } from "./PastSeasons";
 import { getSupabase } from "../supabaseClient";
 
 const DEFAULT_SEASON_WEEKS = 8;
@@ -827,6 +828,7 @@ export function Admin() {
         </ul>
         {assignRoles ? <SaveButtonView label="Save roles" flash={saveFlash.roles} /> : <p className="field-help">Only an admin can assign roles.</p>}
       </form>
+      <PastSeasons />
       <EditLog people={people.map((person) => ({ id: person.id, name: person.name }))} />
     </section>
   );
