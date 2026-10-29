@@ -1,6 +1,8 @@
 // One task title. At rest, web addresses are real links. Clicking the words
 // opens Quill's bubble editor: select text for the bold and link tooltip,
 // or press Ctrl+B and Ctrl+K. The editor closes when focus leaves it.
+// Tab and Shift+Tab move to the next or previous field. Enter saves and
+// leaves the field. Shift+Enter is the way to add a line break.
 
 import { useEffect, useRef, useState } from "react";
 import Quill from "quill";
@@ -95,9 +97,7 @@ function QuillTask({
     quill.setSelection(length, 0);
     quill.focus();
 
-    const keyboard = quill.getModule("keyboard") as {
-      addBinding: (binding: { key: string; shortKey?: boolean }, handler: (range: { index: number; length: number }) => boolean) => void;
-    };
+    const keyboard = quill.getModule("keyboard") as KeyboardModule;
     // Quill already bolds on Ctrl+B. Ctrl+K opens the same link tooltip as the bubble button.
     keyboard.addBinding({ key: "k", shortKey: true }, (range) => {
       const tooltip = (quill.theme as { tooltip?: LinkTooltip }).tooltip;
@@ -105,10 +105,6 @@ function QuillTask({
       const preview = quill.getText(range.index, range.length).trim();
       const href = preview.startsWith("www.") ? `https://${preview}` : preview;
       tooltip.edit("link", href);
-      return false;
-    });
-    keyboard.addBinding({ key: "Enter" }, () => {
-      finish();
       return false;
     });
 
@@ -120,6 +116,26 @@ function QuillTask({
       const next = taskFromEditorHtml(quill.getSemanticHTML());
       commitRef.current(next);
     };
+    // Quill registers its own Tab and Enter handlers first, and the first
+    // match wins. These go to the front of that list so they run instead.
+    bindFirst(keyboard, { key: "Tab", shiftKey: null }, (_range, context) => {
+      context.event.preventDefault();
+      context.event.stopPropagation();
+      const target = neighborField(host, context.event.shiftKey ? -1 : 1);
+      finish();
+      window.setTimeout(() => target?.focus(), 0);
+      return false;
+    });
+    bindFirst(keyboard, { key: "Enter", shiftKey: false }, (_range, context) => {
+      context.event.preventDefault();
+      context.event.stopPropagation();
+      const parent = host.parentElement;
+      finish();
+      window.setTimeout(() => {
+        parent?.querySelector<HTMLElement>(".task-readout")?.focus();
+      }, 0);
+      return false;
+    });
     const onFocusOut = (event: FocusEvent) => {
       const next = event.relatedTarget;
       if (next instanceof Node && host.contains(next)) return;
@@ -146,6 +162,42 @@ function QuillTask({
   }, []);
 
   return <div ref={hostRef} className="task-editor" aria-label={label} />;
+}
+
+type KeyContext = { event: KeyboardEvent };
+
+type KeyboardModule = {
+  bindings: Record<string, unknown[]>;
+  addBinding: (
+    binding: { key: string; shortKey?: boolean; shiftKey?: boolean | null },
+    handler: (range: { index: number; length: number }, context: KeyContext) => boolean | void,
+  ) => void;
+};
+
+// addBinding appends. Quill keeps the first matching handler, so an override has to be moved to the front.
+function bindFirst(
+  keyboard: KeyboardModule,
+  binding: { key: string; shiftKey?: boolean | null },
+  handler: (range: { index: number; length: number }, context: KeyContext) => boolean | void,
+) {
+  keyboard.addBinding(binding, handler);
+  const list = keyboard.bindings[binding.key];
+  const added = list?.pop();
+  if (added) list.unshift(added);
+}
+
+function neighborField(host: HTMLElement, direction: 1 | -1): HTMLElement | null {
+  const fields = [...document.querySelectorAll<HTMLElement>("a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])")].filter(
+    (field) => {
+      if (field.tabIndex < 0 || host.contains(field)) return false;
+      const style = window.getComputedStyle(field);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      return field.getClientRects().length > 0;
+    },
+  );
+  const position = direction === 1 ? Node.DOCUMENT_POSITION_FOLLOWING : Node.DOCUMENT_POSITION_PRECEDING;
+  const matches = fields.filter((field) => (host.compareDocumentPosition(field) & position) !== 0);
+  return direction === 1 ? (matches[0] ?? null) : (matches[matches.length - 1] ?? null);
 }
 
 function linkifyEditor(quill: Quill): void {
