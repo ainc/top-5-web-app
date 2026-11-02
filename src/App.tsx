@@ -4,6 +4,8 @@
 // plus the words "Top 5" in Exo 2. That word is text, not an image, so it
 // stays sharp next to the 32px logo and picks up the brand red from CSS.
 // The same bar holds the page links, the theme toggle, and Google sign-in.
+// Load sample, Import CSV, New week, and Admin sit in the account menu.
+// That menu is only there for an admin or a commissioner.
 //
 // Under the bar, one week menu is shared by every route. BoardProvider owns
 // the selected Monday, so opening Dashboard does not jump to a different week
@@ -18,7 +20,7 @@
 // the dashboard. Both copies are gone. /streaks still answers, and sends the
 // browser to /leaderboard, so an old bookmark does not 404.
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "./auth";
 import { ThemeToggle } from "./theme";
@@ -84,31 +86,21 @@ export function App() {
           </NavLink>
           <NavLink to="/dashboard">📊 Dashboard</NavLink>
           <NavLink to="/leaderboard">🏆 Leaderboard</NavLink>
-          {/* Hidden until the signed-in profile is admin or commissioner. A loading gap stays hidden so the link does not flash for everyone else. */}
-          {authReady && roleReady && canOpenAdmin(role) ? <NavLink to="/admin">⚙️ Admin</NavLink> : null}
         </nav>
         <div className="actions">
           <ThemeToggle />
           {user ? (
-            <div className="account">
-              {avatarUrl && !photoFailed ? (
-                <img
-                  className="account-photo"
-                  src={avatarUrl}
-                  alt=""
-                  referrerPolicy="no-referrer"
-                  onError={() => setPhotoFailed(true)}
-                />
-              ) : (
-                <span className="account-photo account-initial" aria-hidden="true">
-                  {accountName.slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="account-name">{accountName}</span>
-              <button type="button" onClick={() => void signOut()}>
-                Sign out
-              </button>
-            </div>
+            <AccountMenu
+              staff={staff}
+              accountName={accountName}
+              avatarUrl={avatarUrl}
+              photoFailed={photoFailed}
+              onPhotoError={() => setPhotoFailed(true)}
+              onSignOut={() => void signOut()}
+              onLoadSample={() => void loadSample()}
+              onNewWeek={createNewWeek}
+              onImport={(file) => void importCsv(file)}
+            />
           ) : authReady ? (
             <div className="signin-cue">
               <span className="signin-cue-label">Not signed in · view only</span>
@@ -119,26 +111,6 @@ export function App() {
                 Sign in with Google
               </button>
             </div>
-          ) : null}
-          {/* Fills empty slots on the signed-in person's current week.
-              A task that already has text, on any day, is not replaced.
-              Import CSV stays staff-only because that file replaces a whole week. */}
-          <button type="button" onClick={() => void loadSample()} disabled={Boolean(user) && !roleReady}>
-            Load sample
-          </button>
-          {staff ? (
-            <label className="button">
-              Import CSV
-              <input
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void importCsv(file);
-                }}
-              />
-            </label>
           ) : null}
         </div>
       </header>
@@ -163,11 +135,6 @@ export function App() {
         <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
           Next week
         </button>
-        {staff ? (
-          <button type="button" onClick={createNewWeek}>
-            New week
-          </button>
-        ) : null}
       </div>
       {progress ? (
         <section className="season-strip" aria-label={`Season ${season.name}`}>
@@ -198,7 +165,11 @@ export function App() {
         <p className={`banner ${notice.tone}`}>{notice.text}</p>
       ) : null}
       {weekIsBlank ? (
-        <p className="banner">No tasks for this week yet. Load sample fills your empty slots, or type them on My week.</p>
+        <p className="banner">
+          {staff
+            ? "No tasks for this week yet. Type them on My week, or load a sample from the account menu."
+            : "No tasks for this week yet. Type them on My week."}
+        </p>
       ) : null}
       {/* Scoring tiles under the week menu, on every page. The amounts are the
           open season's rates. A slight tilt is only visual; the gaps stay even. */}
@@ -241,6 +212,155 @@ export function App() {
         <Route path="/streaks" element={<Navigate to="/leaderboard" replace />} />
         <Route path="/admin" element={<AdminGate />} />
       </Routes>
+    </div>
+  );
+}
+
+// Staff tools used to be separate buttons in the header and the week row.
+// They replace or create a week, or open setup, so they stay behind the
+// avatar until an admin or a commissioner opens the menu. A member still
+// sees their name and Sign out, with none of those four actions.
+function AccountMenu({
+  staff,
+  accountName,
+  avatarUrl,
+  photoFailed,
+  onPhotoError,
+  onSignOut,
+  onLoadSample,
+  onNewWeek,
+  onImport,
+}: {
+  staff: boolean;
+  accountName: string;
+  avatarUrl: string;
+  photoFailed: boolean;
+  onPhotoError: () => void;
+  onSignOut: () => void;
+  onLoadSample: () => void;
+  onNewWeek: () => void;
+  onImport: (file: File) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const menuId = useId();
+  const photo =
+    avatarUrl && !photoFailed ? (
+      <img className="account-photo" src={avatarUrl} alt="" referrerPolicy="no-referrer" onError={onPhotoError} />
+    ) : (
+      <span className="account-photo account-initial" aria-hidden="true">
+        {accountName.slice(0, 1).toUpperCase()}
+      </span>
+    );
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  if (!staff) {
+    return (
+      <div className="account">
+        {photo}
+        <span className="account-name">{accountName}</span>
+        <button type="button" onClick={onSignOut}>
+          Sign out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="account-menu" ref={rootRef}>
+      <button
+        type="button"
+        className="account account-menu-button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((shown) => !shown)}
+      >
+        {photo}
+        <span className="account-name">{accountName}</span>
+      </button>
+      {/* The file input stays mounted. Closing the menu before the dialog
+          returns would drop the chosen file. */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".csv,text/csv"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          setOpen(false);
+          onImport(file);
+        }}
+      />
+      {open ? (
+        <ul id={menuId} className="account-menu-list" role="menu" aria-label="Account">
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onLoadSample();
+              }}
+            >
+              Load sample
+            </button>
+          </li>
+          <li role="none">
+            <button type="button" role="menuitem" onClick={() => fileRef.current?.click()}>
+              Import CSV
+            </button>
+          </li>
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onNewWeek();
+              }}
+            >
+              New week
+            </button>
+          </li>
+          <li role="none">
+            <NavLink to="/admin" role="menuitem" onClick={() => setOpen(false)}>
+              Admin
+            </NavLink>
+          </li>
+          <li role="none">
+            <button
+              type="button"
+              role="menuitem"
+              className="account-menu-signout"
+              onClick={() => {
+                setOpen(false);
+                onSignOut();
+              }}
+            >
+              Sign out
+            </button>
+          </li>
+        </ul>
+      ) : null}
     </div>
   );
 }

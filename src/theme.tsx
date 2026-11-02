@@ -65,7 +65,7 @@ export function useTheme(): ThemeValue {
 }
 
 // Header control for the theme above. A word button painted in brand red sat
-// in the same row as Sign out and Load sample and read as the main action.
+// in the same row as Sign out and read as the main action.
 // This is a small switch: checked is light (sun and clouds), unchecked is
 // dark (moon and stars). One checkbox stays mounted so the checked state
 // follows the theme instead of swapping two inputs. The saved choice still

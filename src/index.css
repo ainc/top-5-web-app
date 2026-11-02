@@ -214,6 +214,58 @@ nav a.active {
   padding: 6px 10px;
 }
 
+/* Staff open this from the avatar. The four week and setup actions live
+   here so they are not buttons in the header. */
+.account-menu {
+  position: relative;
+}
+
+.account-menu-button {
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.account-menu-list {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #323232;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+}
+
+.account-menu-list button,
+.account-menu-list a {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #323232;
+  padding: 8px 10px;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: none;
+}
+
+.account-menu-list button:hover,
+.account-menu-list a:hover {
+  background: #f1f1f2;
+}
+
+.account-menu-list .account-menu-signout {
+  margin-top: 4px;
+  color: #939597;
+  border-top: 1px solid #d1d2d4;
+  border-radius: 0;
+}
+
 button,
 .button,
 select,
@@ -2352,6 +2404,29 @@ html[data-theme="dark"] .scorecard-empty,
 html[data-theme="dark"] .account button,
 html[data-theme="dark"] .layout-toggle button {
   color: #d0c4bc;
+}
+
+html[data-theme="dark"] .account-menu-list {
+  background: #2a2a2a;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .account-menu-list button,
+html[data-theme="dark"] .account-menu-list a {
+  background: transparent;
+  color: #f1f1f2;
+  border: 0;
+}
+
+html[data-theme="dark"] .account-menu-list button:hover,
+html[data-theme="dark"] .account-menu-list a:hover {
+  background: #3a3a3a;
+  color: #f1f1f2;
+}
+
+html[data-theme="dark"] .account-menu-list .account-menu-signout {
+  color: #d0c4bc;
+  border-top-color: #4a4a4a;
 }
 
 html[data-theme="dark"] .topbar {
