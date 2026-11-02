@@ -16,19 +16,28 @@
 //
 // Season / This week changes what the podium and the ranks sort by. The
 // columns stay put, so a switch does not reshuffle the table shape.
-// A streak under 3 days is only the number. At 3 days a red dot appears,
-// and at 7 and 21 the dot becomes a flame. Cells are not painted.
+//
+// The streak tracker under this board is the shared scan: name, current,
+// longest, bonus, last active. Next milestone is not here. It is a countdown
+// on My week, and only for the signed-in person ("1 more day for +5").
+// The milestone log is not a cell either. A name opens that person's detail
+// on this page, and the awards are a list there. Last active is the latest
+// weekday with points, so a blank row for today does not mark the roster active.
+//
+// A streak cell is the number. At 7 days, and again at 21, one red badge
+// sits beside it. There is no blue/green/gold scale and no legend of colors.
 // Week winners and teams sit in a narrow column on the right. Side by side
 // with the main table, the winner list left a wide empty score column.
 // Numbers come from saved weeks. People who only exist on the old sheet are
 // absent until those weeks are imported.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth";
 import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
 import { shownName } from "../names";
-import { seasonBoard, streakTone, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
+import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
 import { addDays, parseISODate, type WeekRecord } from "../weeks";
 
 type BoardView = "season" | "week";
@@ -65,28 +74,30 @@ function streakPhrase(person: PersonSeason): string {
   return "no streak yet";
 }
 
-// The number stays the cell. A mark joins it at 3 days, which is the
-// first length that used to paint the cell pale blue. Longer streaks
-// swap the dot for a flame. The cell itself is not filled.
+function prettyDate(iso: string): string {
+  if (!iso) return "—";
+  return parseISODate(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// A person key is "Team|Name". The pipe has to be encoded or the query
+// string cuts the name off. This page reads the same parameter back.
+function personDetailPath(key: string): string {
+  return `/leaderboard?person=${encodeURIComponent(key)}`;
+}
+
+// The number is the streak. The badge is the milestone already reached,
+// 7 or 21, in one style. A shorter run has no badge.
 function StreakCount({ length }: { length: number }) {
-  const tone = streakTone(length);
+  const badge = streakBadge(length);
   return (
     <span className="streak-count">
       {length}
-      {tone === "streak-dot" ? <span className="streak-mark" aria-hidden="true" /> : null}
-      {tone === "streak-green" || tone === "streak-gold" ? <FlameMark tone={tone} /> : null}
+      {badge ? (
+        <span className="streak-badge" aria-label={`${badge}-day milestone`}>
+          {badge}
+        </span>
+      ) : null}
     </span>
-  );
-}
-
-function FlameMark({ tone }: { tone: "streak-green" | "streak-gold" }) {
-  return (
-    <svg className={`streak-flame ${tone}`} viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M8 1c.4 2.2-.2 3.6-1.2 4.8C6 7 5.4 7.8 5.4 8.8c0 .6.2 1.1.5 1.5-.6-1.1-.4-2.3.6-3.4.4 1.6 1.4 2.6 2.4 3.2.4-1 .9-1.7 1.6-2.4.7 1 1.1 2.1 1.1 3.3 0 2.4-1.9 4.3-4.2 4.3S3.2 13.4 3.2 11c0-2 1.1-3.4 2.2-4.7C6.4 4.6 7.3 3.2 8 1z"
-      />
-    </svg>
   );
 }
 
@@ -102,6 +113,7 @@ export function SeasonBoards({
   season,
   nicknames = {},
   you = "",
+  detailKey = "",
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
@@ -110,16 +122,24 @@ export function SeasonBoards({
   season?: SeasonSpan;
   nicknames?: Record<string, string>;
   you?: string;
+  // Set from /leaderboard?person=. Empty means the shared table only.
+  detailKey?: string;
 }) {
   const [view, setView] = useState<BoardView>("season");
+  const roster = useMemo(() => seasonBoard(weeks, undefined, rates, season), [rates, season, weeks]);
   const people = useMemo(
     () =>
-      seasonBoard(weeks, undefined, rates, season).filter((person) => {
+      roster.filter((person) => {
         const label = shownName(person.person, nicknames).toLowerCase();
         return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
       }),
-    [needle, nicknames, rates, season, weeks],
+    [needle, nicknames, roster],
   );
+  const detail = roster.find((person) => person.key === detailKey) ?? null;
+  useEffect(() => {
+    if (!detail) return;
+    document.getElementById("streak-detail")?.scrollIntoView({ block: "nearest" });
+  }, [detail]);
   const winners = useMemo(() => weekWinners(weeks, undefined, rates, season, nicknames), [nicknames, rates, season, weeks]);
   const teams = useMemo(() => (scoringMode === "teams" ? teamStandings(people) : []), [people, scoringMode]);
 
@@ -172,7 +192,11 @@ export function SeasonBoards({
               {podium.map((person) => (
                 <article key={person.key} className={isYou(person.person) ? "podium-card is-you" : "podium-card"} data-place={person.place}>
                   <p>{isYou(person.person) ? `${placeLabel(person.place)} · You` : placeLabel(person.place)}</p>
-                  <h3>{shownName(person.person, nicknames)}</h3>
+                  <h3>
+                    <Link className={detailKey === person.key ? "name-link is-open" : "name-link"} to={personDetailPath(person.key)}>
+                      {shownName(person.person, nicknames)}
+                    </Link>
+                  </h3>
                   <strong>{scoreOf(person, view)}</strong>
                   <span>
                     {view === "season" ? `${person.thisWeek} this week` : `${person.seasonTotal} this season`}
@@ -205,7 +229,11 @@ export function SeasonBoards({
                 table.map((person) => (
                   <tr key={person.key} className={isYou(person.person) ? "is-you" : undefined}>
                     <td>{placeLabel(person.place)}</td>
-                    <td>{shownName(person.person, nicknames)}</td>
+                    <td>
+                      <Link className={detailKey === person.key ? "name-link is-open" : "name-link"} to={personDetailPath(person.key)}>
+                        {shownName(person.person, nicknames)}
+                      </Link>
+                    </td>
                     <td className="num">{person.thisWeek}</td>
                     <td className="num">
                       <StreakCount length={person.currentStreak} />
@@ -261,9 +289,20 @@ export function SeasonBoards({
         </aside>
       </div>
 
+      {detail ? (
+        <StreakDetail person={detail} nicknames={nicknames} />
+      ) : detailKey ? (
+        <section className="board-panel streak-detail" id="streak-detail">
+          <p className="scorecard-empty">That person is not on this season.</p>
+          <Link className="name-link" to="/leaderboard">
+            Close
+          </Link>
+        </section>
+      ) : null}
+
       <div className="board-panel">
         <h2 className="board-title">Streak tracker</h2>
-        <p className="field-help board-note">Weekdays in a row with points. A weekend does not break a streak. Today stays open until it has points.</p>
+        <p className="field-help board-note">Weekdays in a row with points. A weekend does not break a streak. Today stays open until it has points. A name opens that person's milestones.</p>
         <table className="scorecard board-table streak-table">
           <thead>
             <tr>
@@ -271,58 +310,89 @@ export function SeasonBoards({
               <th className="num">Current streak</th>
               <th className="num">Longest streak</th>
               <th className="num">Bonus points earned</th>
-              <th>Next milestone</th>
-              <th>Milestone log</th>
-              <th>Last active</th>
+              <th className="num">Last active</th>
             </tr>
           </thead>
           <tbody>
             {people.length === 0 ? (
               <tr>
-                <td className="scorecard-empty" colSpan={7}>
+                <td className="scorecard-empty" colSpan={5}>
                   No streaks yet.
                 </td>
               </tr>
             ) : (
               people.map((person) => (
                 <tr key={person.key} className={isYou(person.person) ? "is-you" : undefined}>
-                  <td>{shownName(person.person, nicknames)}</td>
+                  <td>
+                    <Link className={detailKey === person.key ? "name-link is-open" : "name-link"} to={personDetailPath(person.key)}>
+                      {shownName(person.person, nicknames)}
+                    </Link>
+                  </td>
                   <td className="num">
                     <StreakCount length={person.currentStreak} />
                   </td>
                   <td className="num">{person.longestStreak}</td>
                   <td className="num">{person.streakBonus}</td>
-                  <td>{person.nextMilestone}</td>
-                  <td className="log">{person.milestoneLog}</td>
-                  <td>{person.lastActive}</td>
+                  <td className="num">{prettyDate(person.lastActive)}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
-        <p className="streak-legend">
-          <span>
-            <span className="streak-mark" aria-hidden="true" /> 3–6 day streak
-          </span>
-          <span>
-            <FlameMark tone="streak-green" /> 7–20 day streak
-          </span>
-          <span>
-            <FlameMark tone="streak-gold" /> 21+ day streak
-          </span>
-        </p>
       </div>
     </>
+  );
+}
+
+function StreakDetail({ person, nicknames }: { person: PersonSeason; nicknames: Record<string, string> }) {
+  const name = shownName(person.person, nicknames);
+  return (
+    <section className="board-panel streak-detail" id="streak-detail" aria-label={`${name} streak detail`}>
+      <div className="streak-detail-head">
+        <h2 className="board-title">{name}</h2>
+        <Link className="name-link" to="/leaderboard">
+          Close
+        </Link>
+      </div>
+      <p className="board-note">
+        {person.currentStreak}-day streak · longest {person.longestStreak} · {person.streakBonus} bonus points
+        {person.lastActive ? ` · last active ${prettyDate(person.lastActive)}` : ""}
+      </p>
+      <h3>Milestones</h3>
+      {person.awards.length === 0 ? (
+        <p className="scorecard-empty">No milestones yet.</p>
+      ) : (
+        <ul className="streak-awards">
+          {person.awards.map((award) => (
+            <li key={`${award.date}-${award.day}`}>
+              <span>Day {award.day}</span>
+              <span>+{award.points}</span>
+              <time dateTime={award.date}>{prettyDate(award.date)}</time>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
 export function LeaderboardPage() {
   const { weeks, rates, scoringMode, season, nicknames, ready } = useBoard();
   const { profileName } = useAuth();
+  const [searchParams] = useSearchParams();
   if (!ready) return <p className="status">Loading the scorecard…</p>;
   return (
     <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} you={profileName} />
+      <SeasonBoards
+        weeks={weeks}
+        needle=""
+        rates={rates}
+        scoringMode={scoringMode}
+        season={season}
+        nicknames={nicknames}
+        you={profileName}
+        detailKey={searchParams.get("person") ?? ""}
+      />
     </section>
   );
 }

@@ -15,12 +15,18 @@
 // How scoring works used to be parchment scraps under the week menu on every
 // page. The numbers belong next to the list you are editing, so the panel
 // is only here. The amounts are the open season's rates.
+//
+// The streak countdown sits on the total, and only when this list is the
+// signed-in person. "1 more day for +5" is a nudge for the person who can
+// still earn it. Looking at someone else does not show their countdown.
+// Their milestone history is the detail opened from a name on the leaderboard.
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { canEditPerson, useAuth } from "../auth";
 import { useBoard } from "../board";
 import { PersonPicker } from "./PersonPicker";
 import { maxDayPoints, maxWeekPoints, personKey, weekPoints } from "../points";
+import { seasonBoard, streakCue } from "../streaks";
 import { getSupabase } from "../supabaseClient";
 import { WeekBoard } from "./WeekBoard";
 import { WeekGrid } from "./WeekGrid";
@@ -42,7 +48,7 @@ function readWeekLayout(): WeekLayout {
 }
 
 export function MyWeek() {
-  const { rows, people, ready, rates, selectedWeek, nicknames } = useBoard();
+  const { rows, people, ready, rates, season, selectedWeek, nicknames, weeks } = useBoard();
   const { nickname, profileId, profileName, role, roleReady, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   // searchParams.get already decodes, so the key matches the roster key.
@@ -74,6 +80,13 @@ export function MyWeek() {
   const average = total / dayCount;
   const averageLabel = String(Math.round(average));
   const canEdit = Boolean(person) && roleReady && canEditPerson(role, profileName, person?.person ?? "");
+  // The countdown is computed for the open season, then shown only when the
+  // list on screen is the signed-in person. Another person's week stays quiet.
+  const streakNote = useMemo(() => {
+    if (!person || person.person !== profileName) return "";
+    const row = seasonBoard(weeks, undefined, rates, season).find((item) => item.key === person.key);
+    return row ? streakCue(row.currentStreak) : "";
+  }, [person, profileName, rates, season, weeks]);
 
   async function saveNickname() {
     const next = nicknameDraft.trim();
@@ -152,6 +165,7 @@ export function MyWeek() {
             <span> / {maxWeekPoints(rates)}</span>
           </strong>
           <span className="week-score-avg">Average {averageLabel} per day</span>
+          {streakNote ? <span className="streak-cue">{streakNote}</span> : null}
         </aside>
         <div className="week-tile">
           <span>Layout</span>

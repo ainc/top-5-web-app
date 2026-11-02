@@ -3,7 +3,17 @@
 // Today stays open until it has points, so a Wednesday morning does not wipe Tuesday's streak.
 //
 // Milestone points are the ones visible on the streak sheet. Each new run can earn them again.
-// The sheet screenshot stops at day 25. A longer run keeps counting, and the next milestone stays blank.
+// The sheet screenshot stops at day 25. A longer run keeps counting. There is no
+// milestone after 25, so the personal cue on My week stays blank past that day.
+//
+// The shared tracker used to print three private columns for every person:
+// the next milestone (the same "Day N" sentence on every short streak), a
+// pipe-joined log, and last active. Last active was the latest saved row,
+// and a blank Monday is saved for the whole roster, so the column read as
+// today for people who had not scored. It is now the latest weekday with
+// points. The next milestone is a countdown, and only My week shows it, and
+// only for the signed-in person. The log is the award list on that person's
+// detail, not a cell in the shared table.
 
 import { shownName } from "./names";
 import { DAY_NAMES, dailyPoints, DEFAULT_RATES, personKey, type ScoreRates } from "./points";
@@ -32,19 +42,14 @@ export type PersonSeason = {
   seasonTotal: number;
   currentStreak: number;
   longestStreak: number;
-  nextMilestone: string;
-  milestoneLog: string;
+  // Each hit on the current season's runs, in the order they were earned.
+  // The detail view reads this. The shared table does not.
+  awards: StreakAward[];
+  // ISO date of the latest weekday with points, or "" when this season has none.
   lastActive: string;
 };
 
 export type WeekWinner = { weekId: string; label: string; names: string; points: number; current: boolean };
-
-function sheetDate(iso: string): string {
-  const date = parseISODate(iso);
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${month}/${day}/${date.getFullYear()}`;
-}
 
 function todayISO(): string {
   return formatISODate(new Date());
@@ -63,9 +68,23 @@ function milestoneFor(length: number): (typeof STREAK_MILESTONES)[number] | unde
   return STREAK_MILESTONES.find((milestone) => milestone.day === length);
 }
 
-function nextMilestoneLabel(current: number): string {
+// "1 more day for +5". Empty once the run is past the last milestone on the
+// sheet. My week is the only place that prints this, and only for the person
+// who is signed in. The leaderboard used to repeat it on every row.
+export function streakCue(current: number): string {
   const next = STREAK_MILESTONES.find((milestone) => milestone.day > current);
-  return next ? `Day ${next.day} (+${next.points} pts)` : "—";
+  if (!next) return "";
+  const left = next.day - current;
+  return `${left} more ${left === 1 ? "day" : "days"} for +${next.points}`;
+}
+
+// One mark, not a color per band. 7 and 21 are the lengths worth a badge.
+// A run that has passed 7 and not yet reached 21 keeps the 7 badge. Under 7
+// the cell is only the number.
+export function streakBadge(length: number): 7 | 21 | null {
+  if (length >= 21) return 21;
+  if (length >= 7) return 7;
+  return null;
 }
 
 type DatedPoints = { date: string; points: number };
@@ -169,11 +188,14 @@ function summarize(
     }
   }
 
-  const lastActive = counted
-    .map((day) => day.date)
-    .filter((date) => date <= today)
-    .sort()
-    .at(-1);
+  // Points only. An empty day row exists so the week grid can render, and
+  // counting it made last active "today" for every person on the roster.
+  const lastActive =
+    counted
+      .filter((day) => day.points > 0 && day.date <= today)
+      .map((day) => day.date)
+      .sort()
+      .at(-1) ?? "";
 
   return {
     earlierWeeks,
@@ -183,9 +205,8 @@ function summarize(
     seasonTotal: weeklyPoints + awards.reduce((sum, award) => sum + award.points, 0),
     currentStreak: current,
     longestStreak: longest,
-    nextMilestone: nextMilestoneLabel(current),
-    milestoneLog: awards.length === 0 ? "—" : awards.map((award) => `Day ${award.day}: +${award.points} pts (${sheetDate(award.date)})`).join(" | "),
-    lastActive: lastActive ? sheetDate(lastActive) : "—",
+    awards,
+    lastActive,
   };
 }
 
@@ -265,16 +286,6 @@ export function teamStandings(people: PersonSeason[]): TeamStanding[] {
   }
   if (!unassigned) teams.delete("Unassigned");
   return [...teams.values()].sort((a, b) => b.seasonTotal - a.seasonTotal || a.team.localeCompare(b.team));
-}
-
-// Empty under 3 days: the cell stays a plain number. A dot marks 3–6,
-// a green flame 7–20, a gold flame 21+. The old pale blue cell fill
-// started at 3 and made a short streak look highlighted.
-export function streakTone(length: number): string {
-  if (length >= 21) return "streak-gold";
-  if (length >= 7) return "streak-green";
-  if (length >= 3) return "streak-dot";
-  return "";
 }
 
 export function currentWeekLeader(

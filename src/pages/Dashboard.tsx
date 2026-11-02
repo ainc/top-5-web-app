@@ -2,7 +2,10 @@
 //
 // The cards at the top follow the person picked in "Look at someone's tasks":
 // their points against the week maximum, tasks finished, season total, and
-// streak. A fifth card, Season leader, is the only season summary kept here.
+// streak. The streak card is the length and the longest run. It does not
+// say how many days are left until the next bonus. That countdown is private
+// to the signed-in person, on My week. A fifth card, Season leader, is the
+// only season summary kept here.
 // The season board, week winners, team standings, and streak tracker used to
 // be copied onto this page and onto their own routes. They now live once, on
 // the Leaderboard, and this card is the link to that page.
@@ -217,11 +220,9 @@ export function Dashboard() {
       : seasonLeader
         ? `${shownName(seasonLeader.person, nicknames)} leads at ${pointsLabel(seasonLeader.seasonTotal)}.`
         : "No season scores yet.";
-  const streakText = !listedSeason
+  const streakText = !listedSeason || listedSeason.longestStreak === 0
     ? "No streak yet."
-    : listedSeason.nextMilestone === "—"
-      ? "Past the last milestone."
-      : `Next milestone: ${listedSeason.nextMilestone}.`;
+    : `Longest is ${listedSeason.longestStreak}.`;
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
 
