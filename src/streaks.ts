@@ -248,16 +248,22 @@ export function weekWinners(
 
 export type TeamStanding = { team: string; thisWeek: number; seasonTotal: number };
 
-// Team rows exist only in a team season. People with no team are left out.
+// Team rows exist only in a team season. Someone with no team is still a
+// score, so they add up under Unassigned instead of disappearing. The row is
+// omitted when every person already has a team.
 export function teamStandings(people: PersonSeason[]): TeamStanding[] {
   const teams = new Map<string, TeamStanding>();
+  let unassigned = false;
   for (const person of people) {
-    if (!person.team) continue;
-    const row = teams.get(person.team) ?? { team: person.team, thisWeek: 0, seasonTotal: 0 };
+    const name = person.team?.trim() || "";
+    if (!name) unassigned = true;
+    const label = name || "Unassigned";
+    const row = teams.get(label) ?? { team: label, thisWeek: 0, seasonTotal: 0 };
     row.thisWeek += person.thisWeek;
     row.seasonTotal += person.seasonTotal;
-    teams.set(person.team, row);
+    teams.set(label, row);
   }
+  if (!unassigned) teams.delete("Unassigned");
   return [...teams.values()].sort((a, b) => b.seasonTotal - a.seasonTotal || a.team.localeCompare(b.team));
 }
 

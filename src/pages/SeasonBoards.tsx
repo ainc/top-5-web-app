@@ -3,15 +3,33 @@
 // now links here with one Season leader card, so this page is the only copy.
 // The tracker sits under the season tables because a streak is part of the
 // season total (the bonus column), not a separate product.
+//
+// The page is one panel style. Colored header bands (the solid red season
+// title, the grey winner band, the pink streak band) made each block look
+// like a different product. Titles are charcoal on the card instead.
+//
+// The top three stand on a podium, ordered 2nd, 1st, 3rd, so first place sits
+// in the middle. The signed-in person is the dark card when they are up there,
+// or a marked row when they are further down. Everyone else with a season
+// total of zero is one line under the table. A six-way tie at zero used to
+// fill the rank list with identical rows.
+//
+// Season / This week changes what the podium and the ranks sort by. The
+// columns stay put, so a switch does not reshuffle the table shape.
+// Week winners and teams sit in a narrow column on the right. Side by side
+// with the main table, the winner list left a wide empty score column.
 // Numbers come from saved weeks. People who only exist on the old sheet are
 // absent until those weeks are imported.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useAuth } from "../auth";
 import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
 import { shownName } from "../names";
-import { currentWeekLeader, seasonBoard, streakTone, teamStandings, weekWinners, type SeasonSpan } from "../streaks";
-import type { WeekRecord } from "../weeks";
+import { seasonBoard, streakTone, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
+import { addDays, parseISODate, type WeekRecord } from "../weeks";
+
+type BoardView = "season" | "week";
 
 function placeLabel(place: number): string {
   const mod100 = place % 100;
@@ -28,6 +46,27 @@ function placeLabel(place: number): string {
   }
 }
 
+// "Oct 26 – 30" in the sidebar. The week menu still uses the longer
+// "Mon, Oct 26 – Fri, Oct 30", which is too wide for this column.
+function shortWeek(weekId: string): string {
+  const start = parseISODate(weekId);
+  const end = parseISODate(addDays(weekId, 4));
+  const startMonth = start.toLocaleDateString("en-US", { month: "short" });
+  const endMonth = end.toLocaleDateString("en-US", { month: "short" });
+  if (start.getMonth() === end.getMonth()) return `${startMonth} ${start.getDate()} – ${end.getDate()}`;
+  return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}`;
+}
+
+function streakPhrase(person: PersonSeason): string {
+  if (person.currentStreak > 0) return `${person.currentStreak}-day streak`;
+  if (person.longestStreak > 0) return `best streak ${person.longestStreak}`;
+  return "no streak yet";
+}
+
+function scoreOf(person: PersonSeason, view: BoardView): number {
+  return view === "season" ? person.seasonTotal : person.thisWeek;
+}
+
 export function SeasonBoards({
   weeks,
   needle,
@@ -35,6 +74,7 @@ export function SeasonBoards({
   scoringMode = "individual",
   season,
   nicknames = {},
+  you = "",
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
@@ -42,7 +82,9 @@ export function SeasonBoards({
   scoringMode?: "individual" | "teams";
   season?: SeasonSpan;
   nicknames?: Record<string, string>;
+  you?: string;
 }) {
+  const [view, setView] = useState<BoardView>("season");
   const people = useMemo(
     () =>
       seasonBoard(weeks, undefined, rates, season).filter((person) => {
@@ -52,136 +94,155 @@ export function SeasonBoards({
     [needle, nicknames, rates, season, weeks],
   );
   const winners = useMemo(() => weekWinners(weeks, undefined, rates, season, nicknames), [nicknames, rates, season, weeks]);
-  const current = useMemo(() => currentWeekLeader(weeks, undefined, rates, nicknames), [nicknames, rates, weeks]);
   const teams = useMemo(() => (scoringMode === "teams" ? teamStandings(people) : []), [people, scoringMode]);
+
+  // Zeros stay out of the rank math. Sorting them in would hand 4th place to
+  // the first name in a tie of nothing. The line under the table lists them.
+  const scoring = useMemo(() => people.filter((person) => person.seasonTotal > 0), [people]);
+  const quiet = useMemo(() => people.filter((person) => person.seasonTotal === 0), [people]);
   const ranked = useMemo(() => {
+    const sorted = [...scoring].sort((a, b) => {
+      const primary = scoreOf(b, view) - scoreOf(a, view);
+      if (primary !== 0) return primary;
+      const secondary = view === "season" ? b.thisWeek - a.thisWeek : b.seasonTotal - a.seasonTotal;
+      if (secondary !== 0) return secondary;
+      return a.person.localeCompare(b.person);
+    });
     let place = 1;
-    return people.map((person, index) => {
-      if (index > 0 && person.seasonTotal < people[index - 1].seasonTotal) place = index + 1;
+    return sorted.map((person, index) => {
+      if (index > 0 && scoreOf(person, view) < scoreOf(sorted[index - 1], view)) place = index + 1;
       return { ...person, place };
     });
-  }, [people]);
+  }, [scoring, view]);
+
+  // The podium is the first three people who actually have a score in the
+  // view that is open. A person with a season total but nothing this week
+  // stays in the table while This week is selected.
+  const podium = ranked.filter((person, index) => index < 3 && scoreOf(person, view) > 0);
+  const podiumKeys = new Set(podium.map((person) => person.key));
+  const table = ranked.filter((person) => !podiumKeys.has(person.key));
+  const lead = teams[0]?.seasonTotal ?? 0;
+  const isYou = (person: string) => you !== "" && person === you;
 
   return (
     <>
+      <div className="board-toolbar">
+        <div className="board-toggle" role="group" aria-label="Rank the leaderboard by">
+          <button type="button" aria-pressed={view === "season"} onClick={() => setView("season")}>
+            Season
+          </button>
+          <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
+            This week
+          </button>
+        </div>
+      </div>
+
       <div className="season-layout">
-        <div className="scorecard-wrap tone-season">
-          <div className="section-head">
-            <h2>🥇 Season leaderboard</h2>
-            <p>Earlier weeks, plus this week, plus the streak bonus, is the season total.</p>
-          </div>
-          <p className="current-week-banner">
-            <strong>{current.label}</strong>
-            <span>{current.detail}</span>
-          </p>
-          <table className="scorecard">
+        <div className="board-panel">
+          <h2 className="board-title">{view === "season" ? "Season leaderboard" : "This week"}</h2>
+          {podium.length > 0 ? (
+            <div className="podium">
+              {podium.map((person) => (
+                <article key={person.key} className={isYou(person.person) ? "podium-card is-you" : "podium-card"} data-place={person.place}>
+                  <p>{isYou(person.person) ? `${placeLabel(person.place)} · You` : placeLabel(person.place)}</p>
+                  <h3>{shownName(person.person, nicknames)}</h3>
+                  <strong>{scoreOf(person, view)}</strong>
+                  <span>
+                    {view === "season" ? `${person.thisWeek} this week` : `${person.seasonTotal} this season`}
+                    {" · "}
+                    {streakPhrase(person)}
+                  </span>
+                </article>
+              ))}
+            </div>
+          ) : null}
+          <table className="scorecard board-table">
             <thead>
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
-                <th>Earlier weeks</th>
-                <th>This week</th>
-                <th>Streak bonus</th>
-                <th>Season total</th>
+                <th className="num">This week</th>
+                <th className="num">Streak</th>
+                <th className="num">Bonus</th>
+                <th className="num">Season</th>
               </tr>
             </thead>
             <tbody>
-              {ranked.length === 0 ? (
+              {table.length === 0 ? (
                 <tr>
                   <td className="scorecard-empty" colSpan={6}>
-                    No season scores yet.
+                    {ranked.length === 0 ? "No season scores yet." : "Everyone with points is on the podium."}
                   </td>
                 </tr>
               ) : (
-                ranked.map((person) => (
-                  <tr key={person.key}>
+                table.map((person) => (
+                  <tr key={person.key} className={isYou(person.person) ? "is-you" : undefined}>
                     <td>{placeLabel(person.place)}</td>
-                    <th scope="row">{shownName(person.person, nicknames)}</th>
-                    <td>{person.earlierWeeks}</td>
-                    <td>{person.thisWeek}</td>
-                    <td>{person.streakBonus}</td>
-                    <td>{person.seasonTotal}</td>
+                    <td>{shownName(person.person, nicknames)}</td>
+                    <td className="num">{person.thisWeek}</td>
+                    <td className="num">
+                      {person.currentStreak} · best {person.longestStreak}
+                    </td>
+                    <td className="num">{person.streakBonus}</td>
+                    <td className="num is-season">{person.seasonTotal}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+          {quiet.length > 0 ? (
+            <p className="bar-zeros">No points yet: {quiet.map((person) => (isYou(person.person) ? `${shownName(person.person, nicknames)} (you)` : shownName(person.person, nicknames))).join(", ")}</p>
+          ) : null}
         </div>
 
-        <div className="scorecard-wrap tone-winners">
-          <div className="section-head">
-            <h2>🏅 Week winners</h2>
-            <p>The highest score in each saved week. Ties list every name.</p>
-          </div>
-          <table className="scorecard">
-            <thead>
-              <tr>
-                <th>Week</th>
-                <th>Top scorer</th>
-                <th>Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {winners.length === 0 ? (
-                <tr>
-                  <td className="scorecard-empty" colSpan={3}>
-                    No weeks yet.
-                  </td>
-                </tr>
-              ) : (
-                winners.map((week) => (
-                  <tr key={week.weekId} className={week.current ? "winner-current" : undefined}>
-                    <td>{week.label}</td>
-                    <td>{week.names}</td>
-                    <td>{week.points}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <aside className="board-side-col">
+          {teams.length > 0 ? (
+            <section className="board-panel board-side">
+              <h2>Teams</h2>
+              <ul className="team-bars">
+                {teams.map((team) => (
+                  <li key={team.team}>
+                    <span>{team.team}</span>
+                    <span className="team-bar-track">
+                      <span className={team.seasonTotal === lead && lead > 0 ? "is-lead" : undefined} style={{ width: lead > 0 ? `${Math.round((team.seasonTotal / lead) * 100)}%` : "0%" }} />
+                    </span>
+                    <strong>{team.seasonTotal}</strong>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+          <section className="board-panel board-side">
+            <h2>Week winners</h2>
+            {winners.length === 0 ? (
+              <p className="scorecard-empty">No weeks yet.</p>
+            ) : (
+              <ul className="winner-list">
+                {winners.map((week) => (
+                  <li key={week.weekId}>
+                    <p>{shortWeek(week.weekId)}</p>
+                    <p>
+                      <span>{week.names}</span>
+                      <strong>{week.points}</strong>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
       </div>
-      {teams.length > 0 ? (
-        <div className="scorecard-wrap tone-teams">
-          <div className="section-head">
-            <h2>🤝 Team standings</h2>
-            <p>People with no team are left out. Season total uses the same split as the individual board.</p>
-          </div>
-          <table className="scorecard">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>This week</th>
-                <th>Season total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map((team, index) => (
-                <tr key={team.team}>
-                  <td>{placeLabel(index + 1)}</td>
-                  <th scope="row">{team.team}</th>
-                  <td>{team.thisWeek}</td>
-                  <td>{team.seasonTotal}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
 
-      <div className="scorecard-wrap tone-streaks">
-        <div className="section-head">
-          <h2>🔥 Streak tracker</h2>
-          <p>Weekdays in a row with points. A weekend does not break a streak. Today stays open until it has points.</p>
-        </div>
-        <table className="scorecard streak-table">
+      <div className="board-panel">
+        <h2 className="board-title">Streak tracker</h2>
+        <p className="field-help board-note">Weekdays in a row with points. A weekend does not break a streak. Today stays open until it has points.</p>
+        <table className="scorecard board-table streak-table">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Current streak</th>
-              <th>Longest streak</th>
-              <th>Bonus points earned</th>
+              <th className="num">Current streak</th>
+              <th className="num">Longest streak</th>
+              <th className="num">Bonus points earned</th>
               <th>Next milestone</th>
               <th>Milestone log</th>
               <th>Last active</th>
@@ -196,11 +257,11 @@ export function SeasonBoards({
               </tr>
             ) : (
               people.map((person) => (
-                <tr key={person.key}>
-                  <th scope="row">{shownName(person.person, nicknames)}</th>
-                  <td className={streakTone(person.currentStreak)}>{person.currentStreak}</td>
-                  <td>{person.longestStreak}</td>
-                  <td>{person.streakBonus}</td>
+                <tr key={person.key} className={isYou(person.person) ? "is-you" : undefined}>
+                  <td>{shownName(person.person, nicknames)}</td>
+                  <td className={`num ${streakTone(person.currentStreak)}`}>{person.currentStreak}</td>
+                  <td className="num">{person.longestStreak}</td>
+                  <td className="num">{person.streakBonus}</td>
                   <td>{person.nextMilestone}</td>
                   <td className="log">{person.milestoneLog}</td>
                   <td>{person.lastActive}</td>
@@ -221,10 +282,11 @@ export function SeasonBoards({
 
 export function LeaderboardPage() {
   const { weeks, rates, scoringMode, season, nicknames, ready } = useBoard();
+  const { profileName } = useAuth();
   if (!ready) return <p className="status">Loading the scorecard…</p>;
   return (
     <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} />
+      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} you={profileName} />
     </section>
   );
 }
