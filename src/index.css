@@ -865,10 +865,74 @@ button:disabled {
   color: #ffffff;
 }
 
-.theme-toggle[aria-pressed="true"] {
-  background: #c12029;
-  border-color: #c12029;
-  color: #ffffff;
+/* Small day/night switch. Checked is the sun on a light sky. Unchecked is
+   the moon on a night sky. The red word button used to sit here and looked
+   like the main action in the header. */
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+
+.theme-switch-input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.theme-switch-track {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34px 8px, #ffffff 1.4px, transparent 2px),
+    radial-gradient(circle at 43px 15px, #ffffff 1px, transparent 1.6px),
+    radial-gradient(circle at 36px 19px, #ffffff 0.9px, transparent 1.5px),
+    #243044;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+}
+
+.theme-switch-input:checked + .theme-switch-track {
+  background:
+    radial-gradient(circle at 10px 20px, #ffffff 6px, transparent 7px),
+    radial-gradient(circle at 18px 22px, #ffffff 5px, transparent 6px),
+    radial-gradient(circle at 24px 18px, #ffffff 4px, transparent 5px),
+    linear-gradient(#8ec8f8, #d7ecff);
+  box-shadow: inset 0 0 0 1px rgb(50 50 50 / 8%);
+}
+
+.theme-switch-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset -6px -2px 0 0 #f4f1ea;
+  transition: transform 0.28s ease, background 0.28s ease, box-shadow 0.28s ease;
+}
+
+.theme-switch-input:checked + .theme-switch-track .theme-switch-thumb {
+  transform: translateX(24px);
+  background: #f6c445;
+  box-shadow: 0 0 0 2px rgb(255 214 80 / 45%);
+}
+
+.theme-switch-input:focus-visible + .theme-switch-track {
+  outline: 2px solid #c12029;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch-thumb {
+    transition: none;
+  }
 }
 
 /* Five weekday columns. They share the width on a wide screen.
@@ -2391,8 +2455,7 @@ html[data-theme="dark"] .admin-card select {
   border-color: #4a4a4a;
 }
 
-html[data-theme="dark"] .layout-toggle button[aria-pressed="true"],
-html[data-theme="dark"] .theme-toggle[aria-pressed="true"] {
+html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
   background: #ed3742;
   border-color: #ed3742;
   color: #323232;

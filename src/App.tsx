@@ -21,7 +21,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "./auth";
-import { useTheme } from "./theme";
+import { ThemeToggle } from "./theme";
 import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
@@ -49,7 +49,6 @@ export function App() {
     dismissNotice,
   } = useBoard();
   const { avatarUrl, displayName, error: authError, nickname, profileName, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => {
     setPhotoFailed(false);
@@ -89,9 +88,7 @@ export function App() {
           {authReady && roleReady && canOpenAdmin(role) ? <NavLink to="/admin">⚙️ Admin</NavLink> : null}
         </nav>
         <div className="actions">
-          <button type="button" className="theme-toggle" aria-pressed={theme === "dark"} onClick={toggleTheme}>
-            {theme === "dark" ? "Dark" : "Light"}
-          </button>
+          <ThemeToggle />
           {user ? (
             <div className="account">
               {avatarUrl && !photoFailed ? (

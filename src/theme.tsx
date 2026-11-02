@@ -63,3 +63,28 @@ export function useTheme(): ThemeValue {
   if (!value) throw new Error("useTheme must be used inside ThemeProvider");
   return value;
 }
+
+// Header control for the theme above. A word button painted in brand red sat
+// in the same row as Sign out and Load sample and read as the main action.
+// This is a small switch: checked is light (sun and clouds), unchecked is
+// dark (moon and stars). One checkbox stays mounted so the checked state
+// follows the theme instead of swapping two inputs. The saved choice still
+// lives in ThemeProvider.
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  const dark = theme === "dark";
+  return (
+    <label className="theme-switch">
+      <input
+        type="checkbox"
+        className="theme-switch-input"
+        checked={!dark}
+        onChange={toggleTheme}
+        aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      />
+      <span className="theme-switch-track" aria-hidden="true">
+        <span className="theme-switch-thumb" />
+      </span>
+    </label>
+  );
+}
