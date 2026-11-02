@@ -1,8 +1,14 @@
-// Horizontal week. Each weekday is a column, the way a Todoist board lays out sections.
-// The five priority slots stay in the same order as the grid. The rank word
-// sits to the right of the text, small, so the task itself is what you read.
-// Labels save on blur so a keystroke does not rewrite the day and move the cursor.
+// Horizontal week. Each weekday is a column.
+// The five slots stay in order, numbered 1–5. The old Top / High / Medium
+// words and their colors are gone: the number is the only rank on the card.
+// A note starts as "+ Note" and opens into the box, so an empty day is not
+// a blank textarea. Top 5 complete is a status badge. It checks itself when
+// all five tasks are done, so it is not a checkbox. Exercise and Reading are
+// toggle chips. The icon sits to the left of each label. The points for those
+// chips live in the sidebar, not on the chip.
 
+import { BadgeCheck, BookOpenCheck, Dumbbell, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useBoard } from "../board";
 import { useDraftText } from "../cells";
 import { DAY_NAMES, dailyPoints, taskHasText, withAutomaticTop5 } from "../points";
@@ -13,11 +19,11 @@ import { addDays, formatISODate, parseISODate } from "../weeks";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const TASKS = [
-  { doneField: "topDone", labelField: "topLabel", name: "Top", rank: "top" },
-  { doneField: "highDone", labelField: "highLabel", name: "High", rank: "high" },
-  { doneField: "med1Done", labelField: "med1Label", name: "Medium", rank: "med" },
-  { doneField: "med2Done", labelField: "med2Label", name: "Medium 2", rank: "med2" },
-  { doneField: "lowDone", labelField: "lowLabel", name: "Low", rank: "low" },
+  { doneField: "topDone", labelField: "topLabel", name: "1", slot: 1 },
+  { doneField: "highDone", labelField: "highLabel", name: "2", slot: 2 },
+  { doneField: "med1Done", labelField: "med1Label", name: "3", slot: 3 },
+  { doneField: "med2Done", labelField: "med2Label", name: "4", slot: 4 },
+  { doneField: "lowDone", labelField: "lowLabel", name: "5", slot: 5 },
 ] as const;
 
 type WeekBoardProps = {
@@ -25,6 +31,10 @@ type WeekBoardProps = {
   weekId: string;
   canEdit: boolean;
 };
+
+function tasksFinished(row: DayRow): number {
+  return TASKS.filter((task) => row[task.doneField] && taskHasText(row[task.labelField])).length;
+}
 
 export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
   const { onPatch, rates } = useBoard();
@@ -59,7 +69,7 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
                       <TaskLine
                         row={scored}
                         name={task.name}
-                        rank={task.rank}
+                        slot={task.slot}
                         done={scored[task.doneField]}
                         label={scored[task.labelField]}
                         canEdit={canEdit}
@@ -69,55 +79,8 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
                     </li>
                   ))}
                 </ul>
-                <label className="day-notes">
-                  Notes
-                  <DraftField
-                    value={scored.notes}
-                    disabled={!canEdit}
-                    label={`${scored.person} ${scored.day} notes`}
-                    placeholder="Notes"
-                    multiline
-                    onCommit={(next) => onPatch(scored.id, { notes: next })}
-                  />
-                </label>
-                <div className="day-scores">
-                  <ScoreBox
-                    label={rates.top5Name}
-                    points={rates.top5}
-                    checked={scored.top5}
-                    disabled
-                    title="Checked when all five tasks are done"
-                    onChange={() => undefined}
-                  />
-                  <ScoreBox
-                    label={rates.exerciseName}
-                    points={rates.exercise}
-                    checked={scored.exercise}
-                    disabled={!canEdit}
-                    onChange={(checked) => onPatch(scored.id, { exercise: checked })}
-                  />
-                  <ScoreBox
-                    label={rates.readingName}
-                    points={rates.reading}
-                    checked={scored.reading}
-                    disabled={!canEdit}
-                    onChange={(checked) => onPatch(scored.id, { reading: checked })}
-                  />
-                  {rates.extras.map((bonus) => (
-                    <ScoreBox
-                      key={bonus.key}
-                      label={bonus.name}
-                      points={bonus.points}
-                      checked={Boolean(scored.extraChecks?.[bonus.key]?.checked)}
-                      disabled={!canEdit}
-                      onChange={(checked) =>
-                        onPatch(scored.id, {
-                          extraChecks: { ...(scored.extraChecks ?? {}), [bonus.key]: { checked } },
-                        })
-                      }
-                    />
-                  ))}
-                </div>
+                <DayNote row={scored} canEdit={canEdit} />
+                <DayScores row={scored} canEdit={canEdit} />
               </>
             ) : (
               <p className="day-empty">This day is not on the week yet.</p>
@@ -129,74 +92,161 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
   );
 }
 
-// showRank is for the board cards, where each line needs its own Top/High note.
-// The weekday matrix already names the slot in the row header, so it hides that note.
 export function TaskLine({
   row,
   name,
-  rank,
+  slot,
   done,
   label,
   canEdit,
-  showRank = true,
   onDone,
   onLabel,
 }: {
   row: DayRow;
   name: string;
-  rank: string;
+  slot?: number;
   done: boolean;
   label: string;
   canEdit: boolean;
-  showRank?: boolean;
   onDone: (checked: boolean) => void;
   onLabel: (next: string) => void;
 }) {
   const hasText = taskHasText(label);
-  const rankClass = showRank ? "" : " no-rank";
   return (
-    <div className={done && hasText ? `day-task is-done rank-${rank}${rankClass}` : `day-task rank-${rank}${rankClass}`}>
+    <div className={slot ? (done && hasText ? "day-task is-done has-slot" : "day-task has-slot") : done && hasText ? "day-task is-done" : "day-task"}>
+      {slot ? <span className="day-task-slot">{slot}</span> : null}
       <input
         type="checkbox"
         checked={done && hasText}
         disabled={!canEdit}
         title={hasText ? undefined : "Type the task before checking it"}
-        aria-label={`${row.person} ${row.day} ${name} done`}
+        aria-label={`${row.person} ${row.day} task ${name} done`}
         onChange={(event) => onDone(event.target.checked)}
       />
       <DraftField
         value={label}
         disabled={!canEdit}
         done={done && hasText}
-        label={`${row.person} ${row.day} ${name}`}
+        label={`${row.person} ${row.day} task ${name}`}
         placeholder="Add a task"
         onCommit={onLabel}
       />
-      {showRank ? <span className="day-task-name">{name}</span> : null}
     </div>
   );
 }
 
-export function ScoreBox({
+// The badge is the finished state of Top 5. Until then the card says how
+// many of the five tasks are done. Exercise and Reading stay clickable.
+export function DayScores({ row, canEdit }: { row: DayRow; canEdit: boolean }) {
+  const { onPatch, rates } = useBoard();
+  const finished = tasksFinished(row);
+  return (
+    <div className="day-scores">
+      {row.top5 ? (
+        <p className="score-badge">
+          <BadgeCheck aria-hidden="true" />
+          <span>
+            {rates.top5Name} · {rates.top5}
+          </span>
+        </p>
+      ) : (
+        <p className="score-progress">
+          {finished} of 5 done
+        </p>
+      )}
+      <div className="score-chips">
+        <ScoreChip
+          icon={Dumbbell}
+          label={rates.exerciseName}
+          checked={row.exercise}
+          disabled={!canEdit}
+          onChange={(checked) => onPatch(row.id, { exercise: checked })}
+        />
+        <ScoreChip
+          icon={BookOpenCheck}
+          label={rates.readingName}
+          checked={row.reading}
+          disabled={!canEdit}
+          onChange={(checked) => onPatch(row.id, { reading: checked })}
+        />
+        {rates.extras.map((bonus) => (
+          <ScoreChip
+            key={bonus.key}
+            label={bonus.name}
+            checked={Boolean(row.extraChecks?.[bonus.key]?.checked)}
+            disabled={!canEdit}
+            onChange={(checked) =>
+              onPatch(row.id, {
+                extraChecks: { ...(row.extraChecks ?? {}), [bonus.key]: { checked } },
+              })
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ScoreChip({
+  icon: Icon,
   label,
-  points,
   checked,
   disabled,
-  title,
   onChange,
 }: {
+  icon?: LucideIcon;
   label: string;
-  points: number;
   checked: boolean;
   disabled: boolean;
-  title?: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className={checked ? "day-score is-on" : "day-score"} title={title}>
-      <input type="checkbox" checked={checked} disabled={disabled} title={title} onChange={(event) => onChange(event.target.checked)} />
+    <button
+      type="button"
+      className={checked ? "score-chip is-on" : "score-chip"}
+      aria-pressed={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+    >
+      {Icon ? <Icon aria-hidden="true" /> : null}
       <span>{label}</span>
-      <b>{points}</b>
+    </button>
+  );
+}
+
+// An empty note is a link. Opening it shows the box. Blurring an empty box
+// puts the link back. A saved note stays open so it can be read.
+export function DayNote({ row, canEdit }: { row: DayRow; canEdit: boolean }) {
+  const { onPatch } = useBoard();
+  const [open, setOpen] = useState(() => row.notes.trim().length > 0);
+  useEffect(() => {
+    if (row.notes.trim()) setOpen(true);
+  }, [row.notes]);
+  if (!canEdit && !row.notes.trim()) return null;
+  if (!open) {
+    return (
+      <button type="button" className="day-note-add" onClick={() => setOpen(true)}>
+        + Note
+      </button>
+    );
+  }
+  return (
+    <label className="day-notes">
+      <DraftField
+        value={row.notes}
+        disabled={!canEdit}
+        label={`${row.person} ${row.day} notes`}
+        placeholder="Note"
+        multiline
+        autoFocus={!row.notes.trim()}
+        onEmptyBlur={() => {
+          if (!row.notes.trim()) setOpen(false);
+        }}
+        onCommit={(next) => {
+          onPatch(row.id, { notes: next });
+          if (!next.trim()) setOpen(false);
+        }}
+      />
     </label>
   );
 }
@@ -208,7 +258,9 @@ export function DraftField({
   label,
   placeholder,
   multiline,
+  autoFocus,
   onCommit,
+  onEmptyBlur,
 }: {
   value: string;
   disabled: boolean;
@@ -216,7 +268,9 @@ export function DraftField({
   label: string;
   placeholder: string;
   multiline?: boolean;
+  autoFocus?: boolean;
   onCommit: (next: string) => void;
+  onEmptyBlur?: () => void;
 }) {
   const typed = useDraftText(value);
 
@@ -231,8 +285,12 @@ export function DraftField({
         rows={2}
         aria-label={label}
         placeholder={placeholder}
+        autoFocus={autoFocus}
         onChange={(event) => typed.edit(event.target.value)}
-        onBlur={() => typed.commit(onCommit)}
+        onBlur={() => {
+          typed.commit(onCommit);
+          if (!typed.draft.trim()) onEmptyBlur?.();
+        }}
       />
     );
   }

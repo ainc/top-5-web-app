@@ -5,10 +5,13 @@
 // person's own week.
 // Previous and next wrap. A five-person roster is short, and a dead button at
 // either end made the control look broken during the rainmaker review.
-// The return button is optional. My week uses it to reselect the signed-in
-// person. The dashboard uses it to leave this page for that person's My week.
-// It stays hidden until a Google account is linked to a roster name, because
-// there is no "your week" to return to.
+// The return button is optional. The dashboard uses it to leave this page for
+// that person's My week. It stays hidden until a Google account is linked to
+// a roster name, because there is no "your week" to return to.
+// My week asks for the compact switcher instead. That one sits beside the
+// page title and reads "Viewing: You" when the list is the signed-in person.
+// The previous, next, and My week buttons are the wide picker the page used
+// to lead with. They stay on the dashboard.
 // The menu is ours, not a native <select>. Chrome on Windows paints that
 // popup as a blank blue bar over the page once the site is in dark mode, and
 // remounting the select did not stop it.
@@ -29,6 +32,7 @@ type PersonPickerProps = {
   onChange: (key: string) => void;
   onReturn?: () => void;
   returnDisabled?: boolean;
+  compact?: boolean;
 };
 
 export function PersonPicker({
@@ -39,6 +43,7 @@ export function PersonPicker({
   onChange,
   onReturn,
   returnDisabled = false,
+  compact = false,
 }: PersonPickerProps) {
   const index = people.findIndex((person) => person.key === value);
   const [open, setOpen] = useState(false);
@@ -56,6 +61,15 @@ export function PersonPicker({
 
   function labelFor(person: PersonChoice) {
     return pickerName(person.person, nicknames, person.person === signedInName);
+  }
+
+  // The closed compact control names the viewer, not the roster nickname.
+  // "You" is the signed-in person. Everyone else is their display name.
+  function closedLabel() {
+    if (!current) return "Viewing";
+    if (!compact) return labelFor(current);
+    if (current.person === signedInName) return "Viewing: You";
+    return `Viewing: ${pickerName(current.person, nicknames, false)}`;
   }
 
   useEffect(() => {
@@ -94,29 +108,31 @@ export function PersonPicker({
   }
 
   return (
-    <div className="person-switch">
+    <div className={compact ? "person-switch is-compact" : "person-switch"}>
       <div className="person-switch-box" ref={boxRef}>
-        <button
-          type="button"
-          className="person-step"
-          aria-label="Previous person"
-          disabled={people.length < 2}
-          onClick={() => step(-1)}
-        >
-          ‹
-        </button>
+        {compact ? null : (
+          <button
+            type="button"
+            className="person-step"
+            aria-label="Previous person"
+            disabled={people.length < 2}
+            onClick={() => step(-1)}
+          >
+            ‹
+          </button>
+        )}
         <div className="person-menu">
           <button
             type="button"
             className="person-menu-button"
-            aria-label="Look at someone's tasks"
+            aria-label={compact ? "Whose week" : "Look at someone's tasks"}
             aria-haspopup="listbox"
             aria-expanded={open}
             aria-controls={listId}
             onClick={() => setOpen((shown) => !shown)}
             onKeyDown={onMenuKey}
           >
-            {current ? labelFor(current) : "Choose a person"}
+            {current ? closedLabel() : "Choose a person"}
           </button>
           {open ? (
             <ul id={listId} className="person-menu-list" role="listbox" aria-label="Look at someone's tasks">
@@ -138,17 +154,19 @@ export function PersonPicker({
             </ul>
           ) : null}
         </div>
-        <button
-          type="button"
-          className="person-step"
-          aria-label="Next person"
-          disabled={people.length < 2}
-          onClick={() => step(1)}
-        >
-          ›
-        </button>
+        {compact ? null : (
+          <button
+            type="button"
+            className="person-step"
+            aria-label="Next person"
+            disabled={people.length < 2}
+            onClick={() => step(1)}
+          >
+            ›
+          </button>
+        )}
       </div>
-      {onReturn ? (
+      {!compact && onReturn ? (
         <button type="button" className="my-week-jump" disabled={returnDisabled} onClick={onReturn}>
           My week
         </button>

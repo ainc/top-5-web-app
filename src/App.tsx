@@ -5,7 +5,8 @@
 // stays sharp next to the 32px logo and picks up the brand red from CSS.
 // The same bar holds the page links, the theme toggle, and Google sign-in.
 // Load sample, Import CSV, New week, and Admin sit in the account menu.
-// That menu is only there for an admin or a commissioner.
+// Those four are only there for an admin or a commissioner. Profile is in
+// the same menu for everyone who is signed in. Team and nickname live there.
 //
 // Under the bar, one row is shared by every route. The left side is a week
 // stepper: previous, the short range (Oct 26 – 30), next, then a Today link
@@ -17,7 +18,8 @@
 // Scoring lives in a compact panel on My week only.
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
-// is the season board and the streak tracker, /admin is staff only.
+// is the season board and the streak tracker, /profile is team and nickname,
+// /admin is staff only.
 //
 // Streaks used to be their own nav item and their own copy of the tracker on
 // the dashboard. Both copies are gone. /streaks still answers, and sends the
@@ -32,6 +34,7 @@ import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
+import { ProfilePage } from "./pages/Profile";
 import { LeaderboardPage } from "./pages/SeasonBoards";
 import { seasonProgress } from "./streaks";
 import { addDays, currentMonday, formatWeekSpan, isPastPlan } from "./weeks";
@@ -179,6 +182,7 @@ export function App() {
         <Route path="/" element={<MyWeek />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         {/* Old Streaks address. The tracker is on the Leaderboard now. */}
         <Route path="/streaks" element={<Navigate to="/leaderboard" replace />} />
         <Route path="/admin" element={<AdminGate />} />
@@ -189,8 +193,9 @@ export function App() {
 
 // Staff tools used to be separate buttons in the header and the week row.
 // They replace or create a week, or open setup, so they stay behind the
-// avatar until an admin or a commissioner opens the menu. A member still
-// sees their name and Sign out, with none of those four actions.
+// avatar until an admin or a commissioner opens the menu. Profile is in
+// that menu for every signed-in person. A member's menu is Profile and
+// Sign out. Staff see those plus Load sample, Import CSV, New week, and Admin.
 function AccountMenu({
   staff,
   accountName,
@@ -241,18 +246,6 @@ function AccountMenu({
     };
   }, [open]);
 
-  if (!staff) {
-    return (
-      <div className="account">
-        {photo}
-        <span className="account-name">{accountName}</span>
-        <button type="button" onClick={onSignOut}>
-          Sign out
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="account-menu" ref={rootRef}>
       <button
@@ -268,55 +261,66 @@ function AccountMenu({
       </button>
       {/* The file input stays mounted. Closing the menu before the dialog
           returns would drop the chosen file. */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept=".csv,text/csv"
-        hidden
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
-          if (!file) return;
-          setOpen(false);
-          onImport(file);
-        }}
-      />
+      {staff ? (
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            setOpen(false);
+            onImport(file);
+          }}
+        />
+      ) : null}
       {open ? (
         <ul id={menuId} className="account-menu-list" role="menu" aria-label="Account">
           <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onLoadSample();
-              }}
-            >
-              Load sample
-            </button>
-          </li>
-          <li role="none">
-            <button type="button" role="menuitem" onClick={() => fileRef.current?.click()}>
-              Import CSV
-            </button>
-          </li>
-          <li role="none">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onNewWeek();
-              }}
-            >
-              New week
-            </button>
-          </li>
-          <li role="none">
-            <NavLink to="/admin" role="menuitem" onClick={() => setOpen(false)}>
-              Admin
+            <NavLink to="/profile" role="menuitem" onClick={() => setOpen(false)}>
+              Profile
             </NavLink>
           </li>
+          {staff ? (
+            <>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    onLoadSample();
+                  }}
+                >
+                  Load sample
+                </button>
+              </li>
+              <li role="none">
+                <button type="button" role="menuitem" onClick={() => fileRef.current?.click()}>
+                  Import CSV
+                </button>
+              </li>
+              <li role="none">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setOpen(false);
+                    onNewWeek();
+                  }}
+                >
+                  New week
+                </button>
+              </li>
+              <li role="none">
+                <NavLink to="/admin" role="menuitem" onClick={() => setOpen(false)}>
+                  Admin
+                </NavLink>
+              </li>
+            </>
+          ) : null}
           <li role="none">
             <button
               type="button"

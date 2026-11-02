@@ -421,6 +421,134 @@ select,
   font-variant-numeric: tabular-nums;
 }
 
+/* Days on the left, the week's numbers on the right. The total, streak,
+   season place, and scoring rates used to be mixed into the tools row. */
+.page-head.my-week-head {
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.my-week-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+.my-week-main {
+  min-width: 0;
+}
+
+.my-week-main .day-column {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.my-week-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.my-week-side .scoring-panel {
+  width: 100%;
+  margin: 0;
+}
+
+.week-side-card,
+.profile-card {
+  padding: 14px 16px;
+  border: 1px solid #d1d2d4;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.profile-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  color: #939597;
+}
+
+.profile-card input {
+  border: 1px solid #d1d2d4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  color: #323232;
+  background: #ffffff;
+}
+
+.week-side-kicker {
+  margin: 0 0 4px;
+  color: #939597;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.week-side-total {
+  margin: 0 0 4px;
+  font-size: 32px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.week-side-total span {
+  color: #939597;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.week-delta {
+  margin: 0 0 12px;
+  color: #939597;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.week-delta.is-up {
+  color: #1f7a45;
+}
+
+.week-delta.is-down {
+  color: #c12029;
+}
+
+.week-side-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.week-side-stat {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.streak-cue {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fde8ea;
+  color: #c12029;
+  font-size: 13px;
+  font-weight: 650;
+}
+
 /* One row: ‹ Oct 26 – 30 › and a Today link on the left, season progress
    on the right. This replaced the previous/menu/this/next buttons and the
    season card that used to sit under them. */
@@ -721,6 +849,36 @@ nav a svg,
   padding: 6px 28px 6px 8px;
   font-weight: 650;
   text-align: left;
+}
+
+.person-switch.is-compact {
+  width: auto;
+  flex: none;
+}
+
+.person-switch.is-compact .person-switch-box {
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.person-switch.is-compact .person-menu {
+  flex: none;
+}
+
+.person-switch.is-compact .person-menu-button {
+  width: auto;
+  height: 36px;
+  border: 1px solid #d1d2d4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 6px 28px 6px 10px;
+  font-weight: 650;
+}
+
+.person-switch.is-compact .person-menu-list {
+  min-width: 220px;
 }
 
 .person-menu-button::after {
@@ -1062,8 +1220,15 @@ nav a svg,
   align-items: center;
 }
 
-.day-task.no-rank {
-  grid-template-columns: 16px minmax(0, 1fr);
+.day-task.has-slot {
+  grid-template-columns: 14px 16px minmax(0, 1fr);
+}
+
+.day-task-slot {
+  color: #939597;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
 }
 
 .day-task input[type="checkbox"],
@@ -1214,38 +1379,80 @@ nav a svg,
 .day-scores {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin-top: auto;
 }
 
-.day-score {
-  display: flex;
+/* Top 5 complete is a status, not a checkbox. It appears when all five
+   tasks are done. Until then the card counts how many are finished.
+   Exercise and Reading are chips. On is a filled chip, off is an outline.
+   The old teal row fill is gone. */
+.score-badge,
+.score-progress,
+.score-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: #f1f1f2;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  border-radius: 999px;
   font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
-.day-score b {
-  margin-left: auto;
+.score-badge svg,
+.score-chip svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.score-badge {
+  padding: 6px 10px;
+  background: #e5f6ec;
+  color: #1f7a45;
+}
+
+.score-progress {
+  padding: 6px 2px;
   color: #939597;
+  font-weight: 650;
 }
 
-/* A checked Top 5, Exercise, or Reading row. The fill is the teal used on
-   awesomeinc.org (#6ec8bf). The points number stays charcoal so it can be read on that fill. */
-.day-score.is-on {
-  background: #6ec8bf;
+.score-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.day-score.is-on b {
+.score-chip {
+  border: 1px solid #d1d2d4;
+  background: #ffffff;
   color: #323232;
+  padding: 6px 10px;
+  cursor: pointer;
 }
 
-.day-score input[type="checkbox"]:disabled {
-  opacity: 1;
+.score-chip.is-on {
+  border-color: #323232;
+  background: #323232;
+  color: #ffffff;
+}
+
+.score-chip:disabled {
   cursor: default;
+}
+
+.day-note-add {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #939597;
+  padding: 4px 0;
+  font-weight: 650;
+  cursor: pointer;
 }
 
 .day-empty {
@@ -2258,12 +2465,6 @@ a.kpi-card:focus-visible {
   line-height: 1;
 }
 
-.streak-cue {
-  color: #c12029;
-  font-size: 13px;
-  font-weight: 650;
-}
-
 .streak-detail {
   display: flex;
   flex-direction: column;
@@ -2551,9 +2752,20 @@ button.save-flash {
   }
 
   .dashboard-top,
-  .season-layout {
+  .season-layout,
+  .my-week-layout {
     display: flex;
     flex-direction: column;
+  }
+
+  .my-week-main .day-column {
+    flex: none;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .my-week-head {
+    align-items: flex-start;
   }
 
   .scorecard-wrap {
@@ -2919,6 +3131,53 @@ html[data-theme="dark"] .day-score.is-on {
 
 html[data-theme="dark"] .day-score.is-on b {
   color: #323232;
+}
+
+html[data-theme="dark"] .week-side-card,
+html[data-theme="dark"] .profile-card,
+html[data-theme="dark"] .person-switch.is-compact .person-menu-button {
+  background: #2a2a2a;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .profile-card input {
+  background: #323232;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .week-side-total,
+html[data-theme="dark"] .week-side-stat,
+html[data-theme="dark"] .scoring-panel dt {
+  color: #f1f1f2;
+}
+
+html[data-theme="dark"] .score-chip {
+  background: transparent;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .score-chip.is-on {
+  background: #f1f1f2;
+  color: #1e1e1e;
+  border-color: #f1f1f2;
+}
+
+html[data-theme="dark"] .score-badge {
+  background: #052e16;
+  color: #86efac;
+}
+
+html[data-theme="dark"] .day-note-add {
+  background: transparent;
+  color: #939597;
+}
+
+html[data-theme="dark"] .streak-cue {
+  background: #4a2430;
+  color: #ffb4bc;
 }
 
 html[data-theme="dark"] .banner.ok {
