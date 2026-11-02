@@ -6,7 +6,14 @@
 // Grid (Legacy) is the original spreadsheet, one table per day.
 // The choice is stored in this browser so a refresh does not flip the layout back.
 // An older save used "grid" for that spreadsheet, so that value still opens Legacy.
+//
+// Dashboard names open this page with ?person=Team|Name. That query is the
+// source of truth while it names someone on the roster, so a refresh stays on
+// the person the link asked for. The picker writes the same parameter. Without
+// it, the signed-in person is shown, same as before the links existed.
+// The daily average is a whole number, matching the points on the dashboard.
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { canEditPerson, useAuth } from "../auth";
 import { useBoard } from "../board";
 import { PersonPicker } from "./PersonPicker";
@@ -34,7 +41,10 @@ function readWeekLayout(): WeekLayout {
 export function MyWeek() {
   const { rows, people, ready, rates, selectedWeek, nicknames } = useBoard();
   const { nickname, profileId, profileName, role, roleReady, user } = useAuth();
-  const [selectedKey, setSelectedKey] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // searchParams.get already decodes, so the key matches the roster key.
+  const requestedKey = searchParams.get("person") ?? "";
+  const [selectedKey, setSelectedKey] = useState(requestedKey);
   const [nicknameDraft, setNicknameDraft] = useState(nickname);
   const [nicknameError, setNicknameError] = useState("");
   useEffect(() => {
@@ -42,13 +52,24 @@ export function MyWeek() {
   }, [nickname]);
   const [layout, setLayout] = useState<WeekLayout>(readWeekLayout);
   const signedInKey = people.find((person) => person.person === profileName)?.key ?? "";
-  const selected = people.some((person) => person.key === selectedKey) ? selectedKey : signedInKey || (people[0]?.key ?? "");
+  const selected = people.some((person) => person.key === requestedKey)
+    ? requestedKey
+    : people.some((person) => person.key === selectedKey)
+      ? selectedKey
+      : signedInKey || (people[0]?.key ?? "");
+
+  function choosePerson(key: string) {
+    setSelectedKey(key);
+    const next = new URLSearchParams(searchParams);
+    next.set("person", key);
+    setSearchParams(next, { replace: true });
+  }
   const person = people.find((item) => item.key === selected);
   const mine = useMemo(() => rows.filter((row) => personKey(row) === selected), [rows, selected]);
   const total = person ? weekPoints(rows, person.key, rates) : 0;
   const dayCount = mine.length || 5;
   const average = total / dayCount;
-  const averageLabel = Number.isInteger(average) ? String(average) : average.toFixed(1);
+  const averageLabel = String(Math.round(average));
   const canEdit = Boolean(person) && roleReady && canEditPerson(role, profileName, person?.person ?? "");
 
   async function saveNickname() {
@@ -90,8 +111,8 @@ export function MyWeek() {
               value={selected}
               nicknames={nicknames}
               signedInName={profileName}
-              onChange={setSelectedKey}
-              onReturn={signedInKey ? () => setSelectedKey(signedInKey) : undefined}
+              onChange={choosePerson}
+              onReturn={signedInKey ? () => choosePerson(signedInKey) : undefined}
               returnDisabled={selected === signedInKey}
             />
           </div>

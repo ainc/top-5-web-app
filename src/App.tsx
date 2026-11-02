@@ -12,7 +12,11 @@
 // bonus rates.
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
-// and /streaks are the season views, /admin is staff only.
+// is the season board and the streak tracker, /admin is staff only.
+//
+// Streaks used to be their own nav item and their own copy of the tracker on
+// the dashboard. Both copies are gone. /streaks still answers, and sends the
+// browser to /leaderboard, so an old bookmark does not 404.
 
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
@@ -22,7 +26,7 @@ import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
-import { LeaderboardPage, StreaksPage } from "./pages/SeasonBoards";
+import { LeaderboardPage } from "./pages/SeasonBoards";
 import { maxDayPoints, maxWeekPoints } from "./points";
 import { seasonProgress } from "./streaks";
 import { addDays, currentMonday, formatWeekOption, isPastPlan } from "./weeks";
@@ -81,7 +85,6 @@ export function App() {
           </NavLink>
           <NavLink to="/dashboard">📊 Dashboard</NavLink>
           <NavLink to="/leaderboard">🏆 Leaderboard</NavLink>
-          <NavLink to="/streaks">🔥 Streaks</NavLink>
           {/* Hidden until the signed-in profile is admin or commissioner. A loading gap stays hidden so the link does not flash for everyone else. */}
           {authReady && roleReady && canOpenAdmin(role) ? <NavLink to="/admin">⚙️ Admin</NavLink> : null}
         </nav>
@@ -237,7 +240,8 @@ export function App() {
         <Route path="/" element={<MyWeek />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/streaks" element={<StreaksPage />} />
+        {/* Old Streaks address. The tracker is on the Leaderboard now. */}
+        <Route path="/streaks" element={<Navigate to="/leaderboard" replace />} />
         <Route path="/admin" element={<AdminGate />} />
       </Routes>
     </div>

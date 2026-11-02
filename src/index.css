@@ -1282,10 +1282,10 @@ button:disabled {
   color: #c12029;
 }
 
-/* Four glance numbers. They sit on the first scan of the page, before the chart and the tables. */
+/* Glance numbers, plus the season leader. They sit on the first scan of the page, before the chart and the tables. */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
 }
 
@@ -1315,6 +1315,23 @@ button:disabled {
   line-height: 1;
 }
 
+.kpi-card .kpi-name {
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+/* The Season leader card is a link. Without this it picks up the default
+   blue underline and no longer matches the other glance cards. */
+a.kpi-card {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.kpi-card:hover,
+a.kpi-card:focus-visible {
+  border-color: #c12029;
+}
+
 .kpi-card p {
   margin: 0;
   color: #323232;
@@ -1322,9 +1339,15 @@ button:disabled {
   line-height: 1.4;
 }
 
-.skim-legend .heat-empty {
-  background: #f1f1f2;
-  color: #323232;
+.skim-legend .heat-dot,
+.skim-legend .heat-ramp {
+  padding: 0;
+  color: transparent;
+  font-weight: 400;
+}
+
+.skim-legend .heat-ramp {
+  border-radius: 999px;
 }
 
 /* Sheet-style scorecard, standings, and the points chart. */
@@ -1381,19 +1404,51 @@ button:disabled {
   border-top: 2px solid #323232;
 }
 
-.heat-done {
-  background: #b7e4c7;
+/* One red scale for the dashboard week table. --heat is set per cell from
+   how many written tasks are checked. Light theme mixes the brand red into
+   white; dark theme mixes the bright red into the card, so a barely-started
+   day stays a faint tint instead of a pastel pink or green block. */
+.skim td.heat-scale {
+  background: color-mix(in srgb, #c12029 var(--heat, 16%), #ffffff);
+  color: #323232;
   font-weight: 700;
 }
 
-.heat-open {
-  background: #f6d5d7;
-  font-weight: 700;
+.skim td.heat-scale.is-solid {
+  color: #ffffff;
 }
 
-.heat-empty {
+.skim td.heat-empty {
   color: #939597;
   font-weight: 550;
+}
+
+.heat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b5b5b5;
+  vertical-align: middle;
+}
+
+.heat-ramp {
+  display: inline-block;
+  width: 88px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, #c12029 16%, #ffffff), #c12029);
+}
+
+/* Today's column. The header gets a bright red underline and each cell in
+   that column gets a brand-red edge, same mark the day cards use on My week.
+   A past week has no .is-today, so the outline does not linger on Friday. */
+.scorecard.skim thead th.is-today {
+  box-shadow: inset 0 -4px 0 #ed3742;
+}
+
+.scorecard.skim td.is-today {
+  box-shadow: inset 2px 0 0 #c12029, inset -2px 0 0 #c12029;
 }
 
 .section-head {
@@ -1660,6 +1715,13 @@ button:disabled {
   white-space: nowrap;
 }
 
+.bar-name .name-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bar-track {
   height: 16px;
   background: #f3eae3;
@@ -1676,6 +1738,16 @@ button:disabled {
 
 .bar-value {
   text-align: right;
+}
+
+/* The one-line roster under a chart or table: people with no points, or
+   people with nothing written. Same type in both places so the two lists match. */
+.bar-zeros {
+  margin: 0;
+  padding: 12px 14px 14px;
+  color: #5e5e5e;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 .season-layout {
@@ -2359,8 +2431,23 @@ html[data-theme="dark"] .scorecard .person-start td {
   border-top-color: #d0c4bc;
 }
 
-html[data-theme="dark"] .heat-done,
-html[data-theme="dark"] .heat-open,
+html[data-theme="dark"] .skim td.heat-scale {
+  background: color-mix(in srgb, #ed3742 var(--heat, 16%), #2a2a2a);
+  color: #f1f1f2;
+}
+
+html[data-theme="dark"] .skim td.heat-scale.is-solid {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .heat-dot {
+  background: #8a8a8a;
+}
+
+html[data-theme="dark"] .heat-ramp {
+  background: linear-gradient(90deg, color-mix(in srgb, #ed3742 16%, #2a2a2a), #ed3742);
+}
+
 html[data-theme="dark"] .streak-blue,
 html[data-theme="dark"] .streak-green,
 html[data-theme="dark"] .streak-gold {
@@ -2369,6 +2456,10 @@ html[data-theme="dark"] .streak-gold {
 
 html[data-theme="dark"] .bar-track {
   background: #3a2e32;
+}
+
+html[data-theme="dark"] .bar-zeros {
+  color: #c8c8c8;
 }
 
 html[data-theme="dark"] .bar-fill {

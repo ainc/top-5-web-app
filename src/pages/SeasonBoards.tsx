@@ -1,5 +1,10 @@
-// Season leaderboard and streak tracker, matching the two sheet tabs.
-// Numbers come from saved weeks. People who only exist on the old sheet are absent until those weeks are imported.
+// Season leaderboard, week winners, team standings, and the streak tracker.
+// These used to be rendered again at the bottom of the dashboard. The dashboard
+// now links here with one Season leader card, so this page is the only copy.
+// The tracker sits under the season tables because a streak is part of the
+// season total (the bonus column), not a separate product.
+// Numbers come from saved weeks. People who only exist on the old sheet are
+// absent until those weeks are imported.
 
 import { useMemo } from "react";
 import { useBoard } from "../board";
@@ -30,7 +35,6 @@ export function SeasonBoards({
   scoringMode = "individual",
   season,
   nicknames = {},
-  part = "all",
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
@@ -38,7 +42,6 @@ export function SeasonBoards({
   scoringMode?: "individual" | "teams";
   season?: SeasonSpan;
   nicknames?: Record<string, string>;
-  part?: "all" | "leaderboard" | "streaks";
 }) {
   const people = useMemo(
     () =>
@@ -59,13 +62,8 @@ export function SeasonBoards({
     });
   }, [people]);
 
-  const showLeaderboard = part === "all" || part === "leaderboard";
-  const showStreaks = part === "all" || part === "streaks";
-
   return (
     <>
-      {showLeaderboard ? (
-      <>
       <div className="season-layout">
         <div className="scorecard-wrap tone-season">
           <div className="section-head">
@@ -171,10 +169,7 @@ export function SeasonBoards({
           </table>
         </div>
       ) : null}
-      </>
-      ) : null}
 
-      {showStreaks ? (
       <div className="scorecard-wrap tone-streaks">
         <div className="section-head">
           <h2>🔥 Streak tracker</h2>
@@ -220,7 +215,6 @@ export function SeasonBoards({
           <span className="streak-gold">Gold, 21+ day streak</span>
         </p>
       </div>
-      ) : null}
     </>
   );
 }
@@ -230,17 +224,7 @@ export function LeaderboardPage() {
   if (!ready) return <p className="status">Loading the scorecard…</p>;
   return (
     <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} part="leaderboard" />
-    </section>
-  );
-}
-
-export function StreaksPage() {
-  const { weeks, rates, season, nicknames, ready } = useBoard();
-  if (!ready) return <p className="status">Loading the scorecard…</p>;
-  return (
-    <section className="page">
-      <SeasonBoards weeks={weeks} needle="" rates={rates} season={season} nicknames={nicknames} part="streaks" />
+      <SeasonBoards weeks={weeks} needle="" rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} />
     </section>
   );
 }

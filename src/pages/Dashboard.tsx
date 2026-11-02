@@ -1,29 +1,44 @@
-// Read-only week, arranged as a glance then a comparison then the detail.
-// The top cards are the person you picked: points against the week maximum,
-// tasks they finished, season total against the leader, and the streak.
-// The bar list compares everyone. The tables under it are the breakdown.
-// A day cell is tasks finished over tasks written. Empty days stay blank
-// instead of red, because nothing written is not a missed day.
-// The full task grid stays collapsed, one card per person. It uses AG Grid
-// Community only. Sparklines, integrated charts, and master-detail rows are
-// paid features, so the summary stays as numbers and a labeled bar list.
-// A shared grid put the next person on the following row, so the names blended together.
+// Read-only week. The page is a glance, then a comparison, then the detail.
+//
+// The cards at the top follow the person picked in "Look at someone's tasks":
+// their points against the week maximum, tasks finished, season total, and
+// streak. A fifth card, Season leader, is the only season summary kept here.
+// The season board, week winners, team standings, and streak tracker used to
+// be copied onto this page and onto their own routes. They now live once, on
+// the Leaderboard, and this card is the link to that page.
+//
+// The bar list is this week's points. People at zero are named on one line
+// under the bars, because a chart that is half empty bars hides the people
+// who actually scored. Percents and points are whole numbers (75%, 80). A
+// trailing .00 or .0 made a finished day look more precise than the scoring is.
+//
+// The week table is one red scale: a light tint is little done, solid brand
+// red is every written task done. An empty day is a gray dot, not a red cell,
+// because nothing written is not a missed day. Rows are highest points first.
+// Today's column is marked only while this week is the one on screen. People
+// with nothing written all week leave the table and sit on one line under it.
+//
+// A name is a link to My week for that person. The old embedded week under
+// this table squeezed five days into one row and the task text was too small
+// to read. My week is the readable view, and it already knows how to lock
+// edits. The collapsed All tasks list is still here for a scan of every card.
+//
+// That list uses AG Grid Community only. Sparklines, integrated charts, and
+// master-detail rows are paid features, so the summary stays as numbers and
+// a labeled bar list. A shared grid put the next person on the following row,
+// so the names blended together.
 
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState, type CSSProperties } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
-import { SeasonBoards } from "./SeasonBoards";
 import { pickerName, shownName } from "../names";
 import { PersonPicker } from "./PersonPicker";
 import { DAY_NAMES, dailyPoints, maxWeekPoints, personKey, weekPoints } from "../points";
 import { seasonBoard } from "../streaks";
-import { taskPlainText } from "../taskMarkup";
-import { TaskHtml } from "../taskRich";
 import type { DayRow } from "../types";
-import { addDays } from "../weeks";
+import { addDays, formatISODate } from "../weeks";
 
-const SLOT_NAMES = ["Top", "High", "Medium", "Medium 2", "Low"];
 const TASKS: Array<[label: keyof DayRow, done: keyof DayRow]> = [
   ["topLabel", "topDone"],
   ["highLabel", "highDone"],
@@ -56,24 +71,37 @@ function dayScore(row: DayRow | undefined): DayScore {
   return { completed, total };
 }
 
-function heatClass(score: DayScore): string {
-  if (score.total === 0) return "heat-empty";
-  if (score.completed === score.total) return "heat-done";
-  return "heat-open";
+// --heat is how much brand red to mix into the cell. 16% is the light end
+// (tasks written, none finished). 100% is solid red. White text starts at
+// 80% done, where the red is dark enough that charcoal numbers disappear.
+function heatStyle(score: DayScore): { className: string; style?: CSSProperties } {
+  if (score.total === 0) return { className: "heat-empty" };
+  const ratio = score.completed / score.total;
+  const heat = Math.round(16 + ratio * 84);
+  return {
+    className: ratio >= 0.8 ? "heat-scale is-solid" : "heat-scale",
+    style: { "--heat": `${heat}%` } as CSSProperties,
+  };
 }
 
 function dayLabel(score: DayScore): string {
-  if (score.total === 0) return "—";
+  if (score.total === 0) return "";
   return `${score.completed}/${score.total}`;
 }
 
 function percentLabel(completed: number, total: number): string {
   if (total === 0) return "—";
-  return `${((completed / total) * 100).toFixed(2)}%`;
+  return `${Math.round((completed / total) * 100)}%`;
 }
 
 function pointsLabel(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return String(Math.round(value));
+}
+
+// A person key is "Team|Name", so the pipe has to be encoded or the query
+// string cuts the name off. My week reads this same parameter.
+function personWeekPath(key: string): string {
+  return `/?person=${encodeURIComponent(key)}`;
 }
 
 function placeLabel(place: number): string {
@@ -92,7 +120,7 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, people: weekPeople, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, scoringMode, season, nicknames } = useBoard();
+  const { rows, people: weekPeople, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, season, nicknames } = useBoard();
   const { profileName } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -146,6 +174,9 @@ export function Dashboard() {
   const seasonPeople = useMemo(() => seasonBoard(weeks, undefined, rates, season), [rates, season, weeks]);
   const listedSeason = seasonPeople.find((person) => person.key === listed?.key);
   const seasonLeader = seasonPeople[0];
+  // A tie for the top season total lists every name on the card. A season
+  // where the best total is still 0 has no leader yet.
+  const seasonLeaders = seasonLeader && seasonLeader.seasonTotal > 0 ? seasonPeople.filter((person) => person.seasonTotal === seasonLeader.seasonTotal) : [];
 
   const weekCompleted = people.reduce((sum, person) => sum + person.completed, 0);
   const weekTotal = people.reduce((sum, person) => sum + person.total, 0);
@@ -157,7 +188,19 @@ export function Dashboard() {
       return { ...person, place };
     });
   }, [people]);
-  const topPoints = ranked.reduce((max, person) => Math.max(max, person.points), 0);
+  // Chart membership uses the rounded points the bars print, so a value that
+  // displays as 0 does not still draw a bar. The table split is different:
+  // someone who wrote tasks but scored 0 stays in the grid; someone with no
+  // task text at all is only a name under it.
+  const withPoints = ranked.filter((person) => Math.round(person.points) > 0);
+  const withoutPoints = ranked.filter((person) => Math.round(person.points) <= 0);
+  const writtenRows = ranked.filter((person) => person.total > 0);
+  const unwritten = ranked.filter((person) => person.total === 0);
+  const topPoints = withPoints.reduce((max, person) => Math.max(max, person.points), 0);
+  // Monday is index 0. A Saturday or a past week matches no column, so the
+  // mark does not stick to Friday after the week has ended.
+  const todayIso = formatISODate(new Date());
+  const todayIndex = DAY_NAMES.findIndex((_, index) => addDays(selectedWeek, index) === todayIso);
   const deltaText = !listed
     ? "No one is on this week yet."
     : !priorHasListed
@@ -187,7 +230,6 @@ export function Dashboard() {
       <div className="page-head">
         <div>
           <h1>📊 Dashboard</h1>
-          <p>The numbers are for the person you pick. The chart and tables compare everyone in the filter.</p>
         </div>
         <input
           className="filter"
@@ -210,7 +252,6 @@ export function Dashboard() {
               onReturn={profileName ? () => navigate("/") : undefined}
             />
           </div>
-          <p>These four numbers follow the person above. Change tasks on My week.</p>
         </div>
       ) : null}
 
@@ -238,32 +279,47 @@ export function Dashboard() {
           <strong>{listedSeason ? listedSeason.currentStreak : "—"}</strong>
           <p>{streakText}</p>
         </article>
+        <Link className="kpi-card" to="/leaderboard">
+          <span>Season leader</span>
+          <strong className="kpi-name">{seasonLeaders.length > 0 ? seasonLeaders.map((person) => shownName(person.person, nicknames)).join(", ") : "—"}</strong>
+          <p>{seasonLeaders.length > 0 ? `${pointsLabel(seasonLeaders[0].seasonTotal)} this season` : "No season scores yet."}</p>
+        </Link>
       </div>
 
       <div className="chart-card tone-chart">
         <div className="section-head">
           <h2>📈 Points this week</h2>
-          <p>Longest bar is the highest score. Place is on the name, so the bar does not have to be hovered.</p>
         </div>
         {ranked.length === 0 ? (
           <p className="status">No scores for this filter yet.</p>
         ) : (
-          <div className="bars">
-            {ranked.map((person) => {
-              const width = topPoints === 0 ? 0 : (person.points / topPoints) * 100;
-              return (
-                <div className="bar-row" key={person.key}>
-                  <span className="bar-name">
-                    {placeLabel(person.place)} {person.person}
-                  </span>
-                  <div className="bar-track" role="img" aria-label={`${placeLabel(person.place)} ${person.person}, ${person.points} points`}>
-                    <div className="bar-fill" style={{ width: `${width}%` }} />
-                  </div>
-                  <span className="bar-value">{person.points.toFixed(1)}</span>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            {withPoints.length > 0 ? (
+              <div className="bars">
+                {withPoints.map((person) => {
+                  const width = topPoints === 0 ? 0 : (person.points / topPoints) * 100;
+                  return (
+                    <div className="bar-row" key={person.key}>
+                      <span className="bar-name">
+                        <Link className="name-link" to={personWeekPath(person.key)}>
+                          {placeLabel(person.place)} {person.person}
+                        </Link>
+                      </span>
+                      <div className="bar-track" role="img" aria-label={`${placeLabel(person.place)} ${person.person}, ${pointsLabel(person.points)} points`}>
+                        <div className="bar-fill" style={{ width: `${width}%` }} />
+                      </div>
+                      <span className="bar-value">{pointsLabel(person.points)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+            {withoutPoints.length > 0 ? (
+              <p className="bar-zeros">
+                No points yet: <PersonNames people={withoutPoints} />
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -271,20 +327,21 @@ export function Dashboard() {
         <div className="section-head">
           <h2>📋 {isCurrentWeek ? "This week" : "Selected week"}</h2>
           <p>
-            {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}). A name opens that list below.
+            {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}).
           </p>
         </div>
         <p className="skim-legend">
-          <span className="heat-done">Done</span>
-          <span className="heat-open">Still open</span>
-          <span className="heat-empty">Nothing written</span>
+          <span className="heat-dot" />
+          <span className="heat-ramp" />
         </p>
         <table className="scorecard skim">
           <thead>
             <tr>
               <th>Name</th>
-              {DAY_NAMES.map((day) => (
-                <th key={day}>{day}</th>
+              {DAY_NAMES.map((day, index) => (
+                <th key={day} className={index === todayIndex ? "is-today" : undefined} aria-current={index === todayIndex ? "date" : undefined}>
+                  {day}
+                </th>
               ))}
               <th>Week</th>
               <th>Points</th>
@@ -298,64 +355,39 @@ export function Dashboard() {
                 </td>
               </tr>
             ) : (
-              people.map((person) => (
+              writtenRows.map((person) => (
                 <tr key={person.key}>
                   <th scope="row">
-                    <button
-                      type="button"
-                      className={person.key === listed?.key ? "name-link is-open" : "name-link"}
-                      onClick={() => setListKey(person.key)}
-                    >
+                    <Link className={person.key === listed?.key ? "name-link is-open" : "name-link"} to={personWeekPath(person.key)}>
                       {person.person}
-                    </button>
+                    </Link>
                   </th>
-                  {person.days.map((score, index) => (
-                    <td key={DAY_NAMES[index]} className={heatClass(score)}>
-                      {dayLabel(score)}
-                    </td>
-                  ))}
+                  {person.days.map((score, index) => {
+                    const paint = heatStyle(score);
+                    return (
+                      <td
+                        key={DAY_NAMES[index]}
+                        className={`${paint.className}${index === todayIndex ? " is-today" : ""}`}
+                        style={paint.style}
+                        aria-label={score.total === 0 ? "Nothing written" : undefined}
+                      >
+                        {score.total === 0 ? <span className="heat-dot" aria-hidden="true" /> : dayLabel(score)}
+                      </td>
+                    );
+                  })}
                   <td>{percentLabel(person.completed, person.total)}</td>
-                  <td>{person.points.toFixed(1)}</td>
+                  <td>{pointsLabel(person.points)}</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+        {unwritten.length > 0 ? (
+          <p className="bar-zeros">
+            Nothing written: <PersonNames people={unwritten} />
+          </p>
+        ) : null}
       </div>
-
-      {listed ? (
-        <article className="shared-list tone-list">
-          <header className="section-head">
-            <h2>👀 {pickerName(listed.person, nicknames, listed.person === profileName)}</h2>
-            <p>{listed.team || "No team"}</p>
-          </header>
-          <div className="shared-days">
-            {DAY_NAMES.map((day, dayIndex) => {
-              const row = listedDays[dayIndex];
-              return (
-                <section key={day}>
-                  <h3>{day}</h3>
-                  <ol>
-                    {TASKS.map(([label, done], slot) => {
-                      const stored = String(row?.[label] ?? "");
-                      const title = taskPlainText(stored);
-                      const finished = title.length > 0 && Boolean(row?.[done]);
-                      return (
-                        <li key={label} className={finished ? "is-done" : undefined}>
-                          <span>{SLOT_NAMES[slot]}</span>
-                          {title ? <TaskHtml value={stored} /> : "—"}
-                        </li>
-                      );
-                    })}
-                  </ol>
-                </section>
-              );
-            })}
-          </div>
-        </article>
-      ) : null}
-
-      <SeasonBoards weeks={weeks} needle={needle} rates={rates} scoringMode={scoringMode} season={season} nicknames={nicknames} />
 
       {/* All tasks is the parent section. Its summary is sized in CSS above the
           person headers inside, so opening the list does not make every name
@@ -370,10 +402,14 @@ export function Dashboard() {
             {people.map((person) => (
               <article className="person-tasks" key={person.key}>
                 <header>
-                  <h3>{person.person}</h3>
+                  <h3>
+                    <Link className="name-link" to={personWeekPath(person.key)}>
+                      {person.person}
+                    </Link>
+                  </h3>
                   <span>
                     {person.team ? `${person.team} · ` : ""}
-                    {person.points.toFixed(1)} pts
+                    {pointsLabel(person.points)} pts
                   </span>
                 </header>
                 <ScoreGrid
@@ -390,4 +426,15 @@ export function Dashboard() {
       </details>
     </section>
   );
+}
+
+function PersonNames({ people }: { people: Array<{ key: string; person: string }> }) {
+  return people.map((person, index) => (
+    <span key={person.key}>
+      {index > 0 ? ", " : null}
+      <Link className="name-link" to={personWeekPath(person.key)}>
+        {person.person}
+      </Link>
+    </span>
+  ));
 }
