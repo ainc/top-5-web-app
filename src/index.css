@@ -135,6 +135,30 @@ nav a.active {
   align-items: center;
 }
 
+/* Today's finished items, sitting immediately left of the Google account.
+   An item that is not done is absent, so the cluster only grows as the day
+   is finished. */
+.header-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-badge {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e5f6ec;
+  color: #1f7a45;
+}
+
+.header-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
 .signin-cue {
   display: flex;
   align-items: center;
@@ -568,6 +592,17 @@ select,
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.dashboard-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-toolbar:empty {
+  display: none;
 }
 
 .week-step {
@@ -2933,6 +2968,11 @@ html[data-theme="dark"] .account-menu-list .account-menu-signout {
 html[data-theme="dark"] .topbar {
   background: #323232;
   border-bottom-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .header-badge {
+  background: #052e16;
+  color: #86efac;
 }
 
 html[data-theme="dark"] nav a {

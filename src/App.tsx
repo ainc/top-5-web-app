@@ -3,7 +3,9 @@
 // The bar across the top is the Awesome Inc logo (a link to awesomeinc.org)
 // plus the words "Top 5" in Exo 2. That word is text, not an image, so it
 // stays sharp next to the 32px logo and picks up the brand red from CSS.
-// The same bar holds the page links, the theme toggle, and Google sign-in.
+// The same bar holds the page links, the theme toggle, today's done marks,
+// and Google sign-in. The marks sit just left of the account chip. Each one
+// appears only when that item is done today for the signed-in person.
 // Load sample, Import CSV, New week, and Admin sit in the account menu.
 // Those four are only there for an admin or a commissioner. Profile is in
 // the same menu for everyone who is signed in. Team and nickname live there.
@@ -25,8 +27,8 @@
 // the dashboard. Both copies are gone. /streaks still answers, and sends the
 // browser to /leaderboard, so an old bookmark does not 404.
 
-import { useEffect, useId, useRef, useState } from "react";
-import { LayoutDashboard, NotebookPen, Trophy } from "lucide-react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { BadgeCheck, BookOpenCheck, Dumbbell, LayoutDashboard, NotebookPen, Trophy, type LucideIcon } from "lucide-react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "./auth";
 import { ThemeToggle } from "./theme";
@@ -36,8 +38,9 @@ import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { ProfilePage } from "./pages/Profile";
 import { LeaderboardPage } from "./pages/SeasonBoards";
+import { DAY_NAMES, withAutomaticTop5 } from "./points";
 import { seasonProgress } from "./streaks";
-import { addDays, currentMonday, formatWeekSpan, isPastPlan } from "./weeks";
+import { addDays, currentMonday, formatISODate, formatWeekSpan, isPastPlan } from "./weeks";
 
 export function App() {
   const {
@@ -53,6 +56,8 @@ export function App() {
     createNewWeek,
     loadSample,
     dismissNotice,
+    weeks,
+    rates,
   } = useBoard();
   const { avatarUrl, displayName, error: authError, nickname, profileName, ready: authReady, role, roleReady, signInWithGoogle, signOut, user } = useAuth();
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -68,6 +73,26 @@ export function App() {
   const staff = authReady && roleReady && canOpenAdmin(role);
   const accountName = nickname || profileName || displayName;
   const progress = season.name ? seasonProgress(season) : null;
+  // Today's row for the signed-in person, not the person open on My week
+  // and not the week the stepper is showing. A weekend has no row, so the
+  // marks stay hidden until Monday.
+  const todayMarks = useMemo(() => {
+    if (!profileName) return [];
+    const today = formatISODate(new Date());
+    const monday = currentMonday();
+    const index = DAY_NAMES.findIndex((_, dayIndex) => addDays(monday, dayIndex) === today);
+    if (index < 0) return [];
+    const row = weeks[monday]?.rows.find((item) => item.person === profileName && item.day === DAY_NAMES[index]);
+    if (!row) return [];
+    const scored = withAutomaticTop5(row);
+    // The hover text is the reason the mark is next to the name. The icon
+    // alone does not say that it is today's finished item.
+    const marks: { icon: LucideIcon; label: string }[] = [];
+    if (scored.top5) marks.push({ icon: BadgeCheck, label: `${rates.top5Name} for today` });
+    if (scored.exercise) marks.push({ icon: Dumbbell, label: `${rates.exerciseName} done for today` });
+    if (scored.reading) marks.push({ icon: BookOpenCheck, label: `${rates.readingName} done for today` });
+    return marks;
+  }, [profileName, rates, weeks]);
 
   return (
     <div className="app">
@@ -102,6 +127,15 @@ export function App() {
         </nav>
         <div className="actions">
           <ThemeToggle />
+          {todayMarks.length ? (
+            <span className="header-badges" aria-label="Done today">
+              {todayMarks.map(({ icon: Icon, label }) => (
+                <span key={label} className="header-badge" role="img" aria-label={label} title={label}>
+                  <Icon aria-hidden="true" />
+                </span>
+              ))}
+            </span>
+          ) : null}
           {user ? (
             <AccountMenu
               staff={staff}
@@ -141,6 +175,9 @@ export function App() {
           <button type="button" className="week-today" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
             Today
           </button>
+          {/* Dashboard fills this. My week and the other pages leave it empty,
+              and an empty slot takes no space. */}
+          <div id="dashboard-toolbar" className="dashboard-toolbar" />
         </div>
         {progress ? (
           <div className="season-strip" aria-label={`Season ${season.name}`}>

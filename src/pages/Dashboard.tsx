@@ -1,6 +1,10 @@
 // Read-only week. The page is a glance, then a comparison, then the detail.
 //
-// The cards at the top follow the person picked in "Look at someone's tasks":
+// The person switcher and the team menu live in the date row, the same
+// compact "Viewing: You" control My week uses. The wide picker under the
+// title is gone. Team filters the chart, the week table, and the person
+// list. Everyone is the whole roster. The cards at the top still follow
+// the person in the switcher.
 // their points against the week maximum, tasks finished, season total, and
 // streak. The streak card is the length and the longest run. It does not
 // say how many days are left until the next bonus. That countdown is private
@@ -32,8 +36,9 @@
 // so the names blended together.
 
 import { ChartColumn, ClipboardList, LayoutDashboard, SquareCheck } from "lucide-react";
-import { useMemo, useState, type CSSProperties } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
 import { pickerName, shownName } from "../names";
@@ -126,13 +131,42 @@ function placeLabel(place: number): string {
 export function Dashboard() {
   const { rows, people: weekPeople, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, season, nicknames } = useBoard();
   const { profileName } = useAuth();
-  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [listKey, setListKey] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
+  const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setToolbar(document.getElementById("dashboard-toolbar"));
+  }, []);
   const needle = query.trim().toLowerCase();
+  const teamNames = useMemo(() => {
+    const names = new Set<string>();
+    let unassigned = false;
+    for (const person of weekPeople) {
+      if (person.team) names.add(person.team);
+      else unassigned = true;
+    }
+    const list = [...names].sort((a, b) => a.localeCompare(b));
+    if (unassigned) list.push("Unassigned");
+    return list;
+  }, [weekPeople]);
+  const roster = useMemo(
+    () =>
+      weekPeople.filter((person) => {
+        if (!teamFilter) return true;
+        if (teamFilter === "Unassigned") return !person.team;
+        return person.team === teamFilter;
+      }),
+    [teamFilter, weekPeople],
+  );
 
   const people = useMemo<PersonScore[]>(() => {
     return weekPeople
+      .filter((person) => {
+        if (teamFilter === "Unassigned") return !person.team;
+        if (teamFilter) return person.team === teamFilter;
+        return true;
+      })
       .filter((person) => {
         const label = shownName(person.person, nicknames).toLowerCase();
         return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
@@ -151,11 +185,11 @@ export function Dashboard() {
           points: mine.reduce((sum, row) => sum + dailyPoints(row, rates), 0),
         };
       });
-  }, [needle, nicknames, rates, rows, weekPeople]);
+  }, [needle, nicknames, rates, rows, teamFilter, weekPeople]);
 
-  const roster = weekPeople;
-  // Nothing chosen yet means the signed-in person, same as My week. The first
-  // roster name is only used when this Google account is not on the board.
+  // Nothing chosen yet means the signed-in person, same as My week. A team
+  // filter that does not include that person falls through to the first
+  // person still on screen.
   const signedInKey = roster.find((person) => person.person === profileName)?.key ?? "";
   const listed =
     roster.find((person) => person.key === listKey) ??
@@ -229,6 +263,22 @@ export function Dashboard() {
 
   return (
     <section className="page">
+      {toolbar
+        ? createPortal(
+            <>
+              <PersonPicker
+                compact
+                people={roster}
+                value={listed?.key ?? ""}
+                nicknames={nicknames}
+                signedInName={profileName}
+                onChange={setListKey}
+              />
+              <TeamMenu teams={teamNames} value={teamFilter} onChange={setTeamFilter} />
+            </>,
+            toolbar,
+          )
+        : null}
       <div className="page-head">
         <div>
           <h1>
@@ -243,22 +293,6 @@ export function Dashboard() {
           onChange={(event) => setQuery(event.target.value)}
         />
       </div>
-
-      {listed ? (
-        <div className="whose-week">
-          <div className="whose-week-field">
-            <span>Look at someone's tasks</span>
-            <PersonPicker
-              people={roster}
-              value={listed.key}
-              nicknames={nicknames}
-              signedInName={profileName}
-              onChange={setListKey}
-              onReturn={profileName ? () => navigate("/") : undefined}
-            />
-          </div>
-        </div>
-      ) : null}
 
       <div className="kpi-row">
         <article className="kpi-card">
@@ -451,4 +485,81 @@ function PersonNames({ people }: { people: Array<{ key: string; person: string }
       </Link>
     </span>
   ));
+}
+
+// Same closed shape as the compact person switcher. A native select paints
+// a blank bar in dark mode, so the list is ours. Everyone means no filter.
+function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; onChange: (team: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const label = value ? `Team: ${value}` : "Team: Everyone";
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="person-switch is-compact">
+      <div className="person-switch-box" ref={boxRef}>
+        <div className="person-menu">
+          <button
+            type="button"
+            className="person-menu-button"
+            aria-label="Team"
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            aria-controls={listId}
+            onClick={() => setOpen((shown) => !shown)}
+          >
+            {label}
+          </button>
+          {open ? (
+            <ul id={listId} className="person-menu-list" role="listbox" aria-label="Team">
+              <li role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={!value}
+                  onClick={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  Everyone
+                </button>
+              </li>
+              {teams.map((team) => (
+                <li key={team} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={value === team}
+                    onClick={() => {
+                      onChange(team);
+                      setOpen(false);
+                    }}
+                  >
+                    {team}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 }
