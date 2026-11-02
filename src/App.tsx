@@ -9,9 +9,8 @@
 //
 // Under the bar, one week menu is shared by every route. BoardProvider owns
 // the selected Monday, so opening Dashboard does not jump to a different week
-// than My week. The scoring tiles under that menu are also shared: they are
-// rendered here, outside <Routes>, and the numbers come from the open season's
-// bonus rates.
+// than My week. The parchment scoring scraps used to sit under that menu on
+// every page. Scoring now lives in a compact panel on My week only.
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
 // is the season board and the streak tracker, /admin is staff only.
@@ -29,7 +28,6 @@ import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage } from "./pages/SeasonBoards";
-import { maxDayPoints, maxWeekPoints } from "./points";
 import { seasonProgress } from "./streaks";
 import { addDays, currentMonday, formatWeekOption, isPastPlan } from "./weeks";
 
@@ -41,7 +39,6 @@ export function App() {
     weekIds,
     weekIsBlank,
     season,
-    rates,
     selectWeek,
     goToPreviousWeek,
     goToNextWeek,
@@ -171,38 +168,6 @@ export function App() {
             : "No tasks for this week yet. Type them on My week."}
         </p>
       ) : null}
-      {/* Scoring tiles under the week menu, on every page. The amounts are the
-          open season's rates. A slight tilt is only visual; the gaps stay even. */}
-      <ul className="legend" aria-label="How points are scored">
-        <li>
-          <span>{rates.top5Name}</span>
-          <b>= {rates.top5} Points</b>
-        </li>
-        <li>
-          <span>{rates.exerciseName}</span>
-          <b>= {rates.exercise} Points</b>
-        </li>
-        <li>
-          <span>{rates.readingName}</span>
-          <b>= {rates.reading} Points</b>
-        </li>
-        {rates.extras.map((bonus) => (
-          <li key={bonus.key}>
-            <span>{bonus.name}</span>
-            <b>= {bonus.points} Points</b>
-          </li>
-        ))}
-        {rates.pointsPerTask > 0 ? (
-          <li>
-            <span>Each finished task</span>
-            <b>= {rates.pointsPerTask} Points</b>
-          </li>
-        ) : null}
-        <li>
-          <span>Full day {maxDayPoints(rates)} Points</span>
-          <span>Full week {maxWeekPoints(rates)} Points</span>
-        </li>
-      </ul>
       {/* My week edits one person. Dashboard is the same week, read only. */}
       <Routes>
         <Route path="/" element={<MyWeek />} />

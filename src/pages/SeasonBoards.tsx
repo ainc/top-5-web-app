@@ -16,6 +16,8 @@
 //
 // Season / This week changes what the podium and the ranks sort by. The
 // columns stay put, so a switch does not reshuffle the table shape.
+// A streak under 3 days is only the number. At 3 days a red dot appears,
+// and at 7 and 21 the dot becomes a flame. Cells are not painted.
 // Week winners and teams sit in a narrow column on the right. Side by side
 // with the main table, the winner list left a wide empty score column.
 // Numbers come from saved weeks. People who only exist on the old sheet are
@@ -61,6 +63,31 @@ function streakPhrase(person: PersonSeason): string {
   if (person.currentStreak > 0) return `${person.currentStreak}-day streak`;
   if (person.longestStreak > 0) return `best streak ${person.longestStreak}`;
   return "no streak yet";
+}
+
+// The number stays the cell. A mark joins it at 3 days, which is the
+// first length that used to paint the cell pale blue. Longer streaks
+// swap the dot for a flame. The cell itself is not filled.
+function StreakCount({ length }: { length: number }) {
+  const tone = streakTone(length);
+  return (
+    <span className="streak-count">
+      {length}
+      {tone === "streak-dot" ? <span className="streak-mark" aria-hidden="true" /> : null}
+      {tone === "streak-green" || tone === "streak-gold" ? <FlameMark tone={tone} /> : null}
+    </span>
+  );
+}
+
+function FlameMark({ tone }: { tone: "streak-green" | "streak-gold" }) {
+  return (
+    <svg className={`streak-flame ${tone}`} viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M8 1c.4 2.2-.2 3.6-1.2 4.8C6 7 5.4 7.8 5.4 8.8c0 .6.2 1.1.5 1.5-.6-1.1-.4-2.3.6-3.4.4 1.6 1.4 2.6 2.4 3.2.4-1 .9-1.7 1.6-2.4.7 1 1.1 2.1 1.1 3.3 0 2.4-1.9 4.3-4.2 4.3S3.2 13.4 3.2 11c0-2 1.1-3.4 2.2-4.7C6.4 4.6 7.3 3.2 8 1z"
+      />
+    </svg>
+  );
 }
 
 function scoreOf(person: PersonSeason, view: BoardView): number {
@@ -181,7 +208,8 @@ export function SeasonBoards({
                     <td>{shownName(person.person, nicknames)}</td>
                     <td className="num">{person.thisWeek}</td>
                     <td className="num">
-                      {person.currentStreak} · best {person.longestStreak}
+                      <StreakCount length={person.currentStreak} />
+                      <span className="streak-best"> · best {person.longestStreak}</span>
                     </td>
                     <td className="num">{person.streakBonus}</td>
                     <td className="num is-season">{person.seasonTotal}</td>
@@ -259,7 +287,9 @@ export function SeasonBoards({
               people.map((person) => (
                 <tr key={person.key} className={isYou(person.person) ? "is-you" : undefined}>
                   <td>{shownName(person.person, nicknames)}</td>
-                  <td className={`num ${streakTone(person.currentStreak)}`}>{person.currentStreak}</td>
+                  <td className="num">
+                    <StreakCount length={person.currentStreak} />
+                  </td>
                   <td className="num">{person.longestStreak}</td>
                   <td className="num">{person.streakBonus}</td>
                   <td>{person.nextMilestone}</td>
@@ -271,9 +301,15 @@ export function SeasonBoards({
           </tbody>
         </table>
         <p className="streak-legend">
-          <span className="streak-blue">Blue, 3–6 day streak</span>
-          <span className="streak-green">Green, 7–20 day streak</span>
-          <span className="streak-gold">Gold, 21+ day streak</span>
+          <span>
+            <span className="streak-mark" aria-hidden="true" /> 3–6 day streak
+          </span>
+          <span>
+            <FlameMark tone="streak-green" /> 7–20 day streak
+          </span>
+          <span>
+            <FlameMark tone="streak-gold" /> 21+ day streak
+          </span>
         </p>
       </div>
     </>

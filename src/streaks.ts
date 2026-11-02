@@ -267,10 +267,13 @@ export function teamStandings(people: PersonSeason[]): TeamStanding[] {
   return [...teams.values()].sort((a, b) => b.seasonTotal - a.seasonTotal || a.team.localeCompare(b.team));
 }
 
+// Empty under 3 days: the cell stays a plain number. A dot marks 3–6,
+// a green flame 7–20, a gold flame 21+. The old pale blue cell fill
+// started at 3 and made a short streak look highlighted.
 export function streakTone(length: number): string {
   if (length >= 21) return "streak-gold";
   if (length >= 7) return "streak-green";
-  if (length >= 3) return "streak-blue";
+  if (length >= 3) return "streak-dot";
   return "";
 }
 

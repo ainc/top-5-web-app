@@ -12,12 +12,15 @@
 // the person the link asked for. The picker writes the same parameter. Without
 // it, the signed-in person is shown, same as before the links existed.
 // The daily average is a whole number, matching the points on the dashboard.
+// How scoring works used to be parchment scraps under the week menu on every
+// page. The numbers belong next to the list you are editing, so the panel
+// is only here. The amounts are the open season's rates.
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { canEditPerson, useAuth } from "../auth";
 import { useBoard } from "../board";
 import { PersonPicker } from "./PersonPicker";
-import { maxWeekPoints, personKey, weekPoints } from "../points";
+import { maxDayPoints, maxWeekPoints, personKey, weekPoints } from "../points";
 import { getSupabase } from "../supabaseClient";
 import { WeekBoard } from "./WeekBoard";
 import { WeekGrid } from "./WeekGrid";
@@ -165,6 +168,43 @@ export function MyWeek() {
           </div>
         </div>
       </div>
+      <aside className="scoring-panel" aria-label="How scoring works">
+        <h2>How scoring works</h2>
+        <dl>
+          <div>
+            <dt>{rates.top5Name}</dt>
+            <dd>{rates.top5}</dd>
+          </div>
+          <div>
+            <dt>{rates.exerciseName}</dt>
+            <dd>{rates.exercise}</dd>
+          </div>
+          <div>
+            <dt>{rates.readingName}</dt>
+            <dd>{rates.reading}</dd>
+          </div>
+          {rates.extras.map((bonus) => (
+            <div key={bonus.key}>
+              <dt>{bonus.name}</dt>
+              <dd>{bonus.points}</dd>
+            </div>
+          ))}
+          {rates.pointsPerTask > 0 ? (
+            <div>
+              <dt>Each finished task</dt>
+              <dd>{rates.pointsPerTask}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Full day</dt>
+            <dd>{maxDayPoints(rates)}</dd>
+          </div>
+          <div>
+            <dt>Full week</dt>
+            <dd>{maxWeekPoints(rates)}</dd>
+          </div>
+        </dl>
+      </aside>
       {layout === "board" ? (
         <WeekBoard rows={mine} weekId={selectedWeek} canEdit={canEdit} />
       ) : layout === "matrix" ? (
