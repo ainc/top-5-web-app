@@ -31,7 +31,7 @@
 // a labeled bar list. A shared grid put the next person on the following row,
 // so the names blended together.
 
-import { ChartColumn, ClipboardList, LayoutDashboard } from "lucide-react";
+import { ChartColumn, ClipboardList, LayoutDashboard, SquareCheck } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -404,7 +404,10 @@ export function Dashboard() {
           person headers inside, so opening the list does not make every name
           look like another page title. */}
       <details className="task-details">
-        <summary>✅ All tasks</summary>
+        <summary>
+          <SquareCheck aria-hidden="true" />
+          All tasks
+        </summary>
         <p className="field-help">Each person has their own Monday–Friday. Changes are made on My week.</p>
         {people.length === 0 ? (
           <p className="status">No one matches that filter.</p>
