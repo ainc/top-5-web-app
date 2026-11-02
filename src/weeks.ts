@@ -86,6 +86,18 @@ export function formatWeekLabel(iso: string): string {
   return `${shortDate(monday)} – ${shortDate(addDays(monday, 4))}`;
 }
 
+// "Oct 26 – 30" in the week stepper. The longer "Mon, Oct 26 – Fri, Oct 30"
+// is still what notices and the old week menu used.
+export function formatWeekSpan(iso: string): string {
+  const monday = mondayOf(parseISODate(iso));
+  const start = parseISODate(monday);
+  const end = parseISODate(addDays(monday, 4));
+  const startMonth = MONTHS[start.getMonth()];
+  const endMonth = MONTHS[end.getMonth()];
+  if (start.getMonth() === end.getMonth()) return `${startMonth} ${start.getDate()} – ${end.getDate()}`;
+  return `${startMonth} ${start.getDate()} – ${endMonth} ${end.getDate()}`;
+}
+
 export function formatWeekOption(iso: string, today = currentMonday()): string {
   const label = formatWeekLabel(iso);
   return mondayOf(parseISODate(iso)) === today ? `${label} (This week)` : label;

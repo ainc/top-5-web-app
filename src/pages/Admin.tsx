@@ -11,6 +11,7 @@
 // edited. The board keeps reading the active season until Activate closes it
 // and opens the draft. Days and scores are not copied.
 
+import { Calendar, Gift, Handshake, IdCard, Settings, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { addDays, mondayOf, parseISODate } from "../weeks";
@@ -508,13 +509,19 @@ export function Admin() {
 
   return (
     <section className="page admin">
-      <h1>⚙️ Admin</h1>
+      <h1>
+        <Settings aria-hidden="true" />
+        Admin
+      </h1>
       <p>Scoring, teams, the roster, and the next season. A commissioner or an admin can change these. Only an admin can assign roles. One season is live. The next one can be drafted and edited before it is activated.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
       <div className="admin-card tone-season">
-        <h2>📅 Season</h2>
+        <h2>
+          <Calendar aria-hidden="true" />
+          Season
+        </h2>
         <label className="admin-field">
           Editing
           <select
@@ -639,7 +646,10 @@ export function Admin() {
           runSave("bonuses", saveBonuses, "Could not save bonuses.");
         }}
       >
-        <h2>🎁 Bonuses</h2>
+        <h2>
+          <Gift aria-hidden="true" />
+          Bonuses
+        </h2>
         <p className="field-help">
           Top 5, Exercise, and Reading stay on every day. Top 5 checks itself when all five tasks are done. Type another bonus below and save to put a new checkbox on each day. Removing one hides that checkbox. A day that already earned it keeps those points.
         </p>
@@ -688,7 +698,10 @@ export function Admin() {
       </form>
 
       <div className="admin-card tone-roster">
-        <h2>👥 Roster</h2>
+        <h2>
+          <Users aria-hidden="true" />
+          Roster
+        </h2>
         <p className="field-help">
           {season.status === "draft"
             ? "People copied onto this draft. Adding or removing someone changes the upcoming roster only. A nickname still changes that person's name on every page."
@@ -740,7 +753,10 @@ export function Admin() {
 
       {season.scoring_mode === "teams" ? (
         <div className="admin-card tone-teams">
-          <h2>🤝 Teams</h2>
+          <h2>
+            <Handshake aria-hidden="true" />
+            Teams
+          </h2>
           <p className="field-help">Shown because scoring is set to Teams. Each person can be on one team. No team leaves them out of the team standing.</p>
           <form
             className="admin-row"
@@ -805,7 +821,10 @@ export function Admin() {
           runSave("roles", saveRoles, "Could not save roles.");
         }}
       >
-        <h2>🪪 Roles</h2>
+        <h2>
+          <IdCard aria-hidden="true" />
+          Roles
+        </h2>
         <p className="field-help">
           A member can fill in and check off their own tasks, including past days. A commissioner can also edit anyone's tasks, create teams, move players between teams, and set point values. Only an admin can change these roles.
         </p>

@@ -115,6 +115,9 @@ nav {
 }
 
 nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: #323232;
   text-decoration: none;
   padding: 6px 12px;
@@ -418,64 +421,90 @@ select,
   font-variant-numeric: tabular-nums;
 }
 
-/* Previous week, the week menu, and next week. */
+/* One row: ‹ Oct 26 – 30 › and a Today link on the left, season progress
+   on the right. This replaced the previous/menu/this/next buttons and the
+   season card that used to sit under them. */
 .week-switcher {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 8px 20px 0;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #d1d2d4;
 }
 
-.week-switcher label {
+.week-nav {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #939597;
-  font-size: 13px;
+  min-width: 0;
 }
 
-.week-switcher select {
-  min-width: 340px;
-  font-weight: 650;
+.week-step {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.week-span {
+  font-weight: 750;
   color: #323232;
+  white-space: nowrap;
+}
+
+.week-today {
+  border: 0;
+  background: transparent;
+  padding: 0 4px;
+  color: #323232;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.week-today:disabled {
+  opacity: 1;
+  color: #939597;
+  text-decoration: none;
+  cursor: default;
 }
 
 .season-strip {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  width: min(420px, calc(100% - 40px));
-  margin: 14px auto 0;
-  padding: 12px 16px 14px;
-  border: 1px solid #d1d2d4;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 10px 24px rgb(80 20 30 / 6%);
-  text-align: center;
-}
-
-.season-strip-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #c12029;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  width: auto;
 }
 
 .season-strip strong {
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 750;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .season-track {
-  width: 100%;
-  height: 8px;
-  margin-top: 2px;
+  width: 120px;
+  height: 4px;
+  margin: 0;
   border-radius: 999px;
-  background: #f3d6d8;
+  background: #e4e4e6;
   overflow: hidden;
+  flex: none;
 }
 
 .season-track span {
@@ -487,7 +516,8 @@ select,
 
 .season-strip small {
   color: #939597;
-  font-size: 12px;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 button:disabled {
@@ -509,6 +539,27 @@ button:disabled {
   justify-content: space-between;
   gap: 16px;
   align-items: flex-end;
+}
+
+.page-head h1,
+.page h1,
+.page h2,
+.section-head h2,
+.admin-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+nav a svg,
+.page h1 svg,
+.page-head h1 svg,
+.page h2 svg,
+.section-head h2 svg,
+.admin-card h2 svg {
+  width: 1.1em;
+  height: 1.1em;
+  flex: none;
 }
 
 .page-head h1,
@@ -1955,10 +2006,21 @@ a.kpi-card:focus-visible {
   gap: 16px;
 }
 
-/* Wide screens put 1st in the middle. Narrow screens keep 1st, 2nd, 3rd
-   in reading order because three cramped cards side by side do not scan. */
+/* Wide screens put 1st in the middle and give that card the extra width
+   and type size. The side cards stay shorter, so the winner reads as the
+   step in the middle. Narrow screens stack 1st, 2nd, 3rd and drop the
+   size difference, because three cramped cards side by side do not scan. */
 .podium-card[data-place="1"] {
   order: 2;
+  padding: 22px 20px 24px;
+}
+
+.podium-card[data-place="1"] h3 {
+  font-size: 28px;
+}
+
+.podium-card[data-place="1"] strong {
+  font-size: 56px;
 }
 
 .podium-card[data-place="2"] {
@@ -1968,11 +2030,27 @@ a.kpi-card:focus-visible {
 .podium-card[data-place="3"] {
   order: 3;
 }
+
+.podium-card[data-place="2"],
+.podium-card[data-place="3"] {
+  padding: 12px 14px;
+}
+
+.podium-card[data-place="2"] h3,
+.podium-card[data-place="3"] h3 {
+  font-size: 18px;
+}
+
+.podium-card[data-place="2"] strong,
+.podium-card[data-place="3"] strong {
+  font-size: 32px;
+}
+
 .podium {
   display: grid;
-  grid-template-columns: 1fr 1.08fr 1fr;
+  grid-template-columns: 1fr 1.45fr 1fr;
   gap: 12px;
-  align-items: stretch;
+  align-items: center;
   margin-bottom: 16px;
 }
 
@@ -2450,27 +2528,19 @@ button.save-flash {
 
   .week-switcher {
     flex-wrap: wrap;
-    justify-content: stretch;
-    margin: 8px 12px 0;
+    gap: 10px 16px;
+    padding: 10px 12px;
   }
 
-  .week-switcher label {
+  .season-strip {
     flex: 1 1 100%;
-  }
-
-  .week-switcher select {
-    min-width: 0;
-    width: 100%;
+    justify-content: flex-start;
   }
 
   .banner,
   .banner.plan-limit {
     margin-left: 12px;
     margin-right: 12px;
-  }
-
-  .season-strip {
-    width: calc(100% - 24px);
   }
 
   .dashboard-top,
@@ -2662,7 +2732,6 @@ html[data-theme="dark"] .filter,
 html[data-theme="dark"] .account,
 html[data-theme="dark"] .team-readout,
 html[data-theme="dark"] .layout-toggle,
-html[data-theme="dark"] .season-strip,
 html[data-theme="dark"] .week-tile,
 html[data-theme="dark"] .day-column,
 html[data-theme="dark"] .day-strip,
@@ -2733,7 +2802,6 @@ html[data-theme="dark"] .my-week-jump {
   color: #ffffff;
 }
 
-html[data-theme="dark"] .week-switcher select,
 html[data-theme="dark"] .person-picker input,
 html[data-theme="dark"] .admin-card input,
 html[data-theme="dark"] .admin-card select {
@@ -2748,13 +2816,29 @@ html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
   color: #323232;
 }
 
-html[data-theme="dark"] .season-strip {
-  border-color: #651316;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+html[data-theme="dark"] .week-switcher {
+  background: #1e1e1e;
+  border-bottom-color: #4a4a4a;
 }
 
-html[data-theme="dark"] .season-strip-label {
-  color: #ed3742;
+html[data-theme="dark"] .week-step,
+html[data-theme="dark"] .week-today {
+  background: transparent;
+  color: #f1f1f2;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .week-today {
+  border: 0;
+}
+
+html[data-theme="dark"] .week-today:disabled {
+  color: #939597;
+}
+
+html[data-theme="dark"] .week-span,
+html[data-theme="dark"] .season-strip strong {
+  color: #f1f1f2;
 }
 
 html[data-theme="dark"] .season-track {
@@ -2958,6 +3042,24 @@ html[data-theme="dark"] .team-bar-track span.is-lead {
 
   .podium-card[data-place="1"] {
     order: 1;
+    padding: 14px 16px 16px;
+  }
+
+  .podium-card[data-place="1"] h3,
+  .podium-card[data-place="2"] h3,
+  .podium-card[data-place="3"] h3 {
+    font-size: 20px;
+  }
+
+  .podium-card[data-place="1"] strong,
+  .podium-card[data-place="2"] strong,
+  .podium-card[data-place="3"] strong {
+    font-size: 40px;
+  }
+
+  .podium-card[data-place="2"],
+  .podium-card[data-place="3"] {
+    padding: 14px 16px 16px;
   }
 
   .podium-card[data-place="2"] {

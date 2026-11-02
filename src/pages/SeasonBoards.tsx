@@ -9,7 +9,8 @@
 // like a different product. Titles are charcoal on the card instead.
 //
 // The top three stand on a podium, ordered 2nd, 1st, 3rd, so first place sits
-// in the middle. The signed-in person is the dark card when they are up there,
+// in the middle. That middle card is wider and taller than the two beside it.
+// The signed-in person is the dark card when they are up there,
 // or a marked row when they are further down. Everyone else with a season
 // total of zero is one line under the table. A six-way tie at zero used to
 // fill the rank list with identical rows.

@@ -3,6 +3,7 @@
 // list has no save buttons. Weeks from before the edit log are included:
 // the log never copied them, and dropping an old log line does not drop a day.
 
+import { Library } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabase } from "../supabaseClient";
 import { addDays, formatWeekLabel, mondayOf, parseISODate } from "../weeks";
@@ -144,7 +145,10 @@ export function PastSeasons() {
 
   return (
     <section className="admin-card tone-log">
-      <h2>📚 Past seasons</h2>
+      <h2>
+        <Library aria-hidden="true" />
+        Past seasons
+      </h2>
       <p className="field-help">
         The edit log is not a copy of the scorecard. Days saved before the log started are still stored on their season, and closing a season does not delete them. A closed season opens here and cannot be changed. Older weeks of the season that is live stay on the week menu, where people can still edit their own days.
       </p>

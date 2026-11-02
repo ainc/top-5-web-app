@@ -20,6 +20,7 @@
 // signed-in person. "1 more day for +5" is a nudge for the person who can
 // still earn it. Looking at someone else does not show their countdown.
 // Their milestone history is the detail opened from a name on the leaderboard.
+import { NotebookPen } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { canEditPerson, useAuth } from "../auth";
@@ -115,7 +116,10 @@ export function MyWeek() {
     <section className="page">
       <div className="page-head">
         <div>
-          <h1>📝 My week</h1>
+          <h1>
+            <NotebookPen aria-hidden="true" />
+            My week
+          </h1>
           <p>Top 5 checks itself when all five tasks are done. Exercise and Reading are still checked by hand.</p>
         </div>
       </div>

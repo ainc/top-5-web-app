@@ -31,6 +31,7 @@
 // a labeled bar list. A shared grid put the next person on the following row,
 // so the names blended together.
 
+import { ChartColumn, ClipboardList, LayoutDashboard } from "lucide-react";
 import { useMemo, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -230,7 +231,10 @@ export function Dashboard() {
     <section className="page">
       <div className="page-head">
         <div>
-          <h1>📊 Dashboard</h1>
+          <h1>
+            <LayoutDashboard aria-hidden="true" />
+            Dashboard
+          </h1>
         </div>
         <input
           className="filter"
@@ -289,7 +293,10 @@ export function Dashboard() {
 
       <div className="chart-card tone-chart">
         <div className="section-head">
-          <h2>📈 Points this week</h2>
+          <h2>
+            <ChartColumn aria-hidden="true" />
+            Points this week
+          </h2>
         </div>
         {ranked.length === 0 ? (
           <p className="status">No scores for this filter yet.</p>
@@ -326,7 +333,10 @@ export function Dashboard() {
 
       <div className="scorecard-wrap tone-week">
         <div className="section-head">
-          <h2>📋 {isCurrentWeek ? "This week" : "Selected week"}</h2>
+          <h2>
+            <ClipboardList aria-hidden="true" />
+            {isCurrentWeek ? "This week" : "Selected week"}
+          </h2>
           <p>
             {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}).
           </p>

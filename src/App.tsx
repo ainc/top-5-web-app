@@ -7,10 +7,14 @@
 // Load sample, Import CSV, New week, and Admin sit in the account menu.
 // That menu is only there for an admin or a commissioner.
 //
-// Under the bar, one week menu is shared by every route. BoardProvider owns
-// the selected Monday, so opening Dashboard does not jump to a different week
-// than My week. The parchment scoring scraps used to sit under that menu on
-// every page. Scoring now lives in a compact panel on My week only.
+// Under the bar, one row is shared by every route. The left side is a week
+// stepper: previous, the short range (Oct 26 – 30), next, then a Today link
+// back to the Monday that contains today. That replaced five controls
+// (previous, a week menu, this week, next, and a season card under them).
+// The season progress sits on the right of the same row: the season name,
+// a thin bar, and "Week 3 of 8". BoardProvider owns the selected Monday, so
+// opening Dashboard does not jump to a different week than My week.
+// Scoring lives in a compact panel on My week only.
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
 // is the season board and the streak tracker, /admin is staff only.
@@ -20,6 +24,7 @@
 // browser to /leaderboard, so an old bookmark does not 404.
 
 import { useEffect, useId, useRef, useState } from "react";
+import { LayoutDashboard, NotebookPen, Trophy } from "lucide-react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "./auth";
 import { ThemeToggle } from "./theme";
@@ -29,7 +34,7 @@ import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { LeaderboardPage } from "./pages/SeasonBoards";
 import { seasonProgress } from "./streaks";
-import { addDays, currentMonday, formatWeekOption, isPastPlan } from "./weeks";
+import { addDays, currentMonday, formatWeekSpan, isPastPlan } from "./weeks";
 
 export function App() {
   const {
@@ -39,7 +44,6 @@ export function App() {
     weekIds,
     weekIsBlank,
     season,
-    selectWeek,
     goToPreviousWeek,
     goToNextWeek,
     goToCurrentWeek,
@@ -78,11 +82,20 @@ export function App() {
           <p className="top5-word">Top 5</p>
         </div>
         <nav>
+          {/* Line icons are Lucide (lucide.dev), the ISC set that continues
+              Feather. Each mark is the same stroke weight as the others. */}
           <NavLink to="/" end>
-            📝 My week
+            <NotebookPen aria-hidden="true" />
+            My week
           </NavLink>
-          <NavLink to="/dashboard">📊 Dashboard</NavLink>
-          <NavLink to="/leaderboard">🏆 Leaderboard</NavLink>
+          <NavLink to="/dashboard">
+            <LayoutDashboard aria-hidden="true" />
+            Dashboard
+          </NavLink>
+          <NavLink to="/leaderboard">
+            <Trophy aria-hidden="true" />
+            Leaderboard
+          </NavLink>
         </nav>
         <div className="actions">
           <ThemeToggle />
@@ -111,45 +124,38 @@ export function App() {
           ) : null}
         </div>
       </header>
-      {/* Both pages read this week. New week can start a Monday up to four weeks from this one. */}
+      {/* Both pages read this week. The stepper moves one Monday at a time.
+          Today jumps back to the Monday that contains today's date. */}
       <div className="week-switcher">
-        <button type="button" onClick={goToPreviousWeek}>
-          Previous week
-        </button>
-        <label>
-          Week
-          <select value={weekIds.includes(selectedWeek) ? selectedWeek : ""} onChange={(event) => selectWeek(event.target.value)}>
-            {weekIds.map((weekId) => (
-              <option key={weekId} value={weekId}>
-                {formatWeekOption(weekId)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
-          This week
-        </button>
-        <button type="button" onClick={goToNextWeek} disabled={!canGoNext}>
-          Next week
-        </button>
-      </div>
-      {progress ? (
-        <section className="season-strip" aria-label={`Season ${season.name}`}>
-          <span className="season-strip-label">Season</span>
-          <strong>{season.name}</strong>
-          <div
-            className="season-track"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={progress.weeks}
-            aria-valuenow={progress.week}
-            aria-label={progress.finished ? `${season.name} is complete` : `${season.name}, week ${progress.week} of ${progress.weeks}`}
-          >
-            <span style={{ width: `${progress.percent}%` }} />
+        <div className="week-nav">
+          <button type="button" className="week-step" aria-label="Previous week" onClick={goToPreviousWeek}>
+            ‹
+          </button>
+          <span className="week-span">{formatWeekSpan(selectedWeek)}</span>
+          <button type="button" className="week-step" aria-label="Next week" onClick={goToNextWeek} disabled={!canGoNext}>
+            ›
+          </button>
+          <button type="button" className="week-today" onClick={goToCurrentWeek} disabled={selectedWeek === currentMonday()}>
+            Today
+          </button>
+        </div>
+        {progress ? (
+          <div className="season-strip" aria-label={`Season ${season.name}`}>
+            <strong>{season.name}</strong>
+            <div
+              className="season-track"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={progress.weeks}
+              aria-valuenow={progress.week}
+              aria-label={progress.finished ? `${season.name} is complete` : `${season.name}, week ${progress.week} of ${progress.weeks}`}
+            >
+              <span style={{ width: `${progress.percent}%` }} />
+            </div>
+            <small>{progress.finished ? "Complete" : progress.week === 0 ? "Not started" : `Week ${progress.week} of ${progress.weeks}`}</small>
           </div>
-          <small>{progress.finished ? "Complete" : progress.week === 0 ? "Not started" : `Week ${progress.week} of ${progress.weeks}`}</small>
-        </section>
-      ) : null}
+        ) : null}
+      </div>
       {authError ? <p className="banner error">{authError}</p> : null}
       {notice?.planLimit ? (
         <p className="banner plan-limit">
