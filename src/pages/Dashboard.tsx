@@ -126,14 +126,12 @@ function placeLabel(place: number): string {
 export function Dashboard() {
   const { rows, people: weekPeople, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, season, nicknames } = useBoard();
   const { profileName } = useAuth();
-  const [query, setQuery] = useState("");
   const [listKey, setListKey] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     setToolbar(document.getElementById("dashboard-toolbar"));
-  }, []);
-  const needle = query.trim().toLowerCase();
+  }, []);s
   const teamNames = useMemo(() => {
     const names = new Set<string>();
     let unassigned = false;
@@ -161,10 +159,6 @@ export function Dashboard() {
         if (teamFilter === "Unassigned") return !person.team;
         if (teamFilter) return person.team === teamFilter;
         return true;
-      })
-      .filter((person) => {
-        const label = shownName(person.person, nicknames).toLowerCase();
-        return person.person.toLowerCase().includes(needle) || label.includes(needle) || (person.team ?? "").toLowerCase().includes(needle);
       })
       .map((person) => {
         const mine = rows.filter((row) => personKey(row) === person.key);
