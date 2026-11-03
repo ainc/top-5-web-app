@@ -3113,6 +3113,19 @@ button.save-flash {
     flex-direction: column;
   }
 
+  .my-week-layout {
+    align-items: stretch;
+  }
+
+  /* The week's numbers, the rate list, and the layout switch sit under the
+     viewing picker, before the day cards. They use the full row, the same
+     way the dashboard cards do. On a wide screen they stay in the right column. */
+  .my-week-side {
+    order: -1;
+    gap: 16px;
+    width: 100%;
+  }
+
   .my-week-main .day-column {
     flex: none;
     width: 100%;
