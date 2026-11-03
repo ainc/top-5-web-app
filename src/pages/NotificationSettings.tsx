@@ -2,10 +2,10 @@
 // staff-only. Each switch is the org's setting, not a personal one, so two
 // commissioners do not end up with different feeds.
 //
-// Lock is the admin override. It is only drawn for an admin. A commissioner
-// sees a locked switch as disabled, with one line saying an admin locked it.
+// The lock is a small icon beside On. Only an admin can press it. A
+// commissioner sees a closed lock and cannot move a locked switch.
 
-import { Inbox } from "lucide-react";
+import { Inbox, Lock, LockOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { NOTICE_KINDS, loadNoticeSettings, saveNoticeSetting, type NoticeKind, type NoticeSetting } from "../notifications";
@@ -60,21 +60,33 @@ export function NotificationSettings() {
                   <p className="field-help">{kind.help}</p>
                   {held ? <p className="field-help">An admin locked this.</p> : null}
                 </div>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={enabled}
-                    disabled={held}
-                    onChange={(event) => void change(kind.kind, { enabled: event.target.checked })}
-                  />
-                  On
-                </label>
-                {admin ? (
+                <span className="notice-switch">
                   <label>
-                    <input type="checkbox" checked={locked} onChange={(event) => void change(kind.kind, { locked: event.target.checked })} />
-                    Only admins can change this
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      disabled={held}
+                      onChange={(event) => void change(kind.kind, { enabled: event.target.checked })}
+                    />
+                    On
                   </label>
-                ) : null}
+                  {admin ? (
+                    <button
+                      type="button"
+                      className={locked ? "notice-lock is-locked" : "notice-lock"}
+                      aria-pressed={locked}
+                      aria-label={locked ? "Unlock. Only admins can change this." : "Lock so only admins can change this."}
+                      title={locked ? "Only admins can change this" : "Commissioners can change this"}
+                      onClick={() => void change(kind.kind, { locked: !locked })}
+                    >
+                      {locked ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
+                    </button>
+                  ) : held ? (
+                    <span className="notice-lock is-locked" role="img" aria-label="An admin locked this" title="An admin locked this">
+                      <Lock aria-hidden="true" />
+                    </span>
+                  ) : null}
+                </span>
               </li>
             );
           })}

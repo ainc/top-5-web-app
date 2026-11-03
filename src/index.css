@@ -291,6 +291,35 @@ nav a.active {
   font-size: 14px;
 }
 
+.notice-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notice-lock {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #d1d2d4;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #939597;
+}
+
+.notice-lock.is-locked {
+  color: #c12029;
+  border-color: #e7b4b8;
+  background: #fdecee;
+}
+
+.notice-lock svg {
+  width: 14px;
+  height: 14px;
+}
+
 .signin-cue {
   display: flex;
   align-items: center;
@@ -3197,6 +3226,18 @@ html[data-theme="dark"] .notice-feed button:hover {
 html[data-theme="dark"] .notice-feed small,
 html[data-theme="dark"] .notice-feed time {
   color: #b9b3ae;
+}
+
+html[data-theme="dark"] .notice-lock {
+  background: #2a2a2a;
+  color: #b9b3ae;
+  border-color: #4a4a4a;
+}
+
+html[data-theme="dark"] .notice-lock.is-locked {
+  color: #ed3742;
+  border-color: #6e3036;
+  background: #3a2226;
 }
 
 html[data-theme="dark"] nav a {
