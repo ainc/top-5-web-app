@@ -21,7 +21,9 @@
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
 // is the season board and the streak tracker, /profile is team and nickname,
-// /admin is staff only.
+// /notifications is the staff inbox, /admin is staff only.
+// The inbox icon is drawn only for an admin or a commissioner, just left of
+// the account chip. Members do not get the icon or the page.
 //
 // Streaks used to be their own nav item and their own copy of the tracker on
 // the dashboard. Both copies are gone. /streaks still answers, and sends the
@@ -36,6 +38,7 @@ import { useBoard } from "./board";
 import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
+import { NotificationsPage, StaffInbox } from "./pages/Notifications";
 import { ProfilePage } from "./pages/Profile";
 import { LeaderboardPage } from "./pages/SeasonBoards";
 import { DAY_NAMES, withAutomaticTop5 } from "./points";
@@ -136,6 +139,7 @@ export function App() {
               ))}
             </span>
           ) : null}
+          {staff ? <StaffInbox /> : null}
           {user ? (
             <AccountMenu
               staff={staff}
@@ -220,6 +224,7 @@ export function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         {/* Old Streaks address. The tracker is on the Leaderboard now. */}
         <Route path="/streaks" element={<Navigate to="/leaderboard" replace />} />
         <Route path="/admin" element={<AdminGate />} />

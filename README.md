@@ -47,7 +47,7 @@ A streak is consecutive weekdays with points. Weekends do not break it. A missed
 Roles live on the roster profile in `user_roles`, not on the Google account by itself. Someone has to sign in once so their profile exists. An admin or commissioner then sets the role on the Admin page.
 
 - **Member.** Edit your own tasks, notes, and Exercise and Reading checks. Read everyone's board, leaderboard, and streaks.
-- **Admin or commissioner.** Both can open Admin, edit anyone's tasks, start a new week, and import a CSV. Admin covers the season, bonuses, roster, teams, points per completed task, and roles.
+- **Admin or commissioner.** Both can open Admin, edit anyone's tasks, start a new week, and import a CSV. Both also see the inbox beside the account menu: new signups, team changes on the live season, and a reminder in the last week of the season. Admin covers the season, bonuses, roster, teams, points per completed task, and roles. An admin can also lock a notification switch so a commissioner cannot change it.
 
 A signed-out visitor can read the board and cannot write. The developer key is the Supabase service role in `.env.local`. It is not a role in the app, and it never ships to the browser.
 
@@ -56,10 +56,11 @@ The same rules are enforced in the database. A member's session can update only 
 ## Screens
 
 - **My week** (`/`). One person's Monday–Friday. **Board** is the default: five day columns. **Grid** is the AG Grid table. The choice is remembered in this browser. Signing in opens your own rows. You can look at someone else, and the fields stay locked unless you are that person or staff.
-- **Dashboard** (`/dashboard`). Read-only. One row per person for the selected week, then the season leaderboard, the streak tracker, and the full task list. The filter box searches those grids.
-- **Leaderboard** (`/leaderboard`). Rank, name, earlier weeks, this week, and season total. Team standings show up only when the season scores teams.
-- **Streaks** (`/streaks`). Current streak, longest streak, and the milestone ladder.
-- **Admin** (`/admin`). Hidden unless the signed-in profile is an admin or a commissioner. Season dates and length, individual or team scoring, bonuses, roster, teams, and roles.
+- **Dashboard** (`/dashboard`). Read-only glance for the selected week: tasks done, who is active, the week leader, the season leader, and the weekly heatmap.
+- **Leaderboard** (`/leaderboard`). Season podium, rank table, week winners, and team bars. Streaks live on this page. `/streaks` redirects here.
+- **Profile** (`/profile`). The signed-in person's team and nickname.
+- **Notifications** (`/notifications`). Hidden unless the signed-in profile is an admin or a commissioner. A running feed of new signups, team signups on the live season, and the season-ending reminder. The icon in the header opens this page. Each staff member marks their own items read.
+- **Admin** (`/admin`). Hidden unless the signed-in profile is an admin or a commissioner. Season dates and length, individual or team scoring, bonuses, roster, teams, roles, and the notification switches.
 
 The week control under the title applies to My week and Dashboard together.
 
@@ -93,6 +94,8 @@ The first sign-in links the Google user to a roster profile with the same displa
 ## Data
 
 `profiles` (including `auth_user_id` once they sign in), `user_roles` (`member`, `admin`, `commissioner`), `seasons` (`scoring_mode` is `individual` or `teams`), `season_members`, `teams` and `team_members` (used when scoring mode is `teams`), `scoring_rules`, `bonus_definitions`, `day_entries`, `tasks` (one row per person, date, and slot), `bonus_checks` (checked flag plus the points saved at check time), and `week_meta` (the label for a week, such as a CSV file name). `day_scores` is a view of the daily total.
+
+`notification_settings` holds the three switches (`signup`, `team`, `season_end`) and whether an admin has locked each one. `notifications` is the shared feed. `notification_reads` is which staff member has marked which row. A first sign-in and a live-season team change write a row from a database trigger. The season reminder is written once, when a staff member opens the app during the last 7 days. Older signups are not copied in.
 
 The seeded season starts Monday, September 28, 2026, and runs twelve weeks. Scoring mode, bonuses, and the roster are changed on the Admin page after that. ACES, Alpha, and Awesomes were section labels on the old sheet, not teams.
 
@@ -150,7 +153,10 @@ src/
   pages/WeekBoard.tsx   Monday–Friday columns
   pages/Dashboard.tsx   Read-only scorecard, standings, and tasks
   pages/SeasonBoards.tsx  Leaderboard and streak pages
-  pages/Admin.tsx       Season, bonuses, roster, teams, and roles
+  pages/Notifications.tsx Inbox icon and the notification feed
+  pages/NotificationSettings.tsx  The three switches on Admin
+  pages/Admin.tsx       Season, bonuses, roster, teams, roles, and notifications
+  notifications.ts      Load the feed, mark it read, and refresh the season reminder
   points.ts             Daily and weekly points, including automatic Top 5
   streaks.ts            Season totals, streak runs, and the milestone ladder
   weeks.ts              Monday dates, blank weeks, and the four-week limit

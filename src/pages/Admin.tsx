@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { addDays, mondayOf, parseISODate } from "../weeks";
 import { EditLog } from "./EditLog";
+import { NotificationSettings } from "./NotificationSettings";
 import { PastSeasons } from "./PastSeasons";
 import { getSupabase } from "../supabaseClient";
 
@@ -513,7 +514,7 @@ export function Admin() {
         <Settings aria-hidden="true" />
         Admin
       </h1>
-      <p>Scoring, teams, the roster, and the next season. A commissioner or an admin can change these. Only an admin can assign roles. One season is live. The next one can be drafted and edited before it is activated.</p>
+      <p>Scoring, teams, the roster, notifications, and the next season. A commissioner or an admin can change these. Only an admin can assign roles, and only an admin can lock a notification. One season is live. The next one can be drafted and edited before it is activated.</p>
       {message ? <p className="banner ok">{message}</p> : null}
       {error ? <p className="banner error">{error}</p> : null}
 
@@ -847,6 +848,7 @@ export function Admin() {
         </ul>
         {assignRoles ? <SaveButtonView label="Save roles" flash={saveFlash.roles} /> : <p className="field-help">Only an admin can assign roles.</p>}
       </form>
+      <NotificationSettings />
       <PastSeasons />
       <EditLog people={people.map((person) => ({ id: person.id, name: person.name }))} />
     </section>
