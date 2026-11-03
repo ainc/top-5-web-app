@@ -410,6 +410,10 @@ nav a.active {
   padding: 6px 4px;
 }
 
+.account-theme {
+  display: none;
+}
+
 /* Staff open this from the avatar. The four week and setup actions live
    here so they are not buttons in the header. */
 .account-menu {
@@ -2972,21 +2976,80 @@ button.save-flash {
     align-items: stretch;
   }
 
+  .topbar {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 12px;
+  }
+
+  .brand-name,
+  .account-name,
+  .header-theme,
+  .signin-cue-label,
+  .signin-arrow {
+    display: none;
+  }
+
+  .top5-word {
+    font-size: 20px;
+  }
+
+  .account-theme {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    color: #323232;
+    border-bottom: 1px solid #e4e4e6;
+  }
+
+  nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    width: 100%;
+    overflow: visible;
+    justify-content: space-around;
+    gap: 0;
+    padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
+    background: #111111;
+    border-top: 1px solid #2a2a2a;
+  }
+
+  nav a {
+    flex-direction: column;
+    gap: 2px;
+    min-width: 72px;
+    min-height: 48px;
+    justify-content: center;
+    padding: 6px 8px;
+    border-bottom: 0;
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  nav a.active {
+    border-bottom-color: transparent;
+    color: #ffffff;
+  }
+
+  nav a.active svg {
+    color: #c12029;
+  }
+
+  .app {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
   .week-tools {
     grid-template-columns: 1fr;
   }
 
-  .topbar {
-    padding: 12px;
-  }
-
-  nav {
-    width: 100%;
-    overflow-x: auto;
-  }
-
   .actions {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .signin-cue {
@@ -3004,7 +3067,22 @@ button.save-flash {
 
   .brand-logo,
   .top5-word {
-    font-size: 22px;
+    font-size: 20px;
+  }
+
+  html[data-theme="dark"] nav a.active {
+    background: transparent;
+    border-bottom-color: transparent;
+    color: #ffffff;
+  }
+
+  html[data-theme="dark"] nav a.active svg {
+    color: #ed3742;
+  }
+
+  html[data-theme="dark"] .account-theme {
+    color: #f1f1f2;
+    border-bottom-color: #4a4a4a;
   }
 
   .page {
@@ -3376,8 +3454,6 @@ html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
   background: #f1f1f2;
   color: #111111;
   border-color: #f1f1f2;
-}
-  color: #323232;
 }
 
 html[data-theme="dark"] .week-switcher {

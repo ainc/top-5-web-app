@@ -4,9 +4,10 @@
 // with a small red triangle in front. Both are text, so they stay sharp.
 // The words are charcoal on the white bar and white on the dark bar.
 // "Top 5" stays brand red. The words link to awesomeinc.org.
-// The same bar holds the page links, the theme toggle, today's done marks,
-// and Google sign-in. The marks sit just left of the account chip. Each one
-// appears only when that item is done today for the signed-in person.
+// On a phone the three pages move to a bottom bar. They are the whole app,
+// so they stay on screen instead of sitting behind a hamburger. The top row
+// keeps the mark, today's badges, the inbox, and the account. The theme
+// switch moves into the account menu, because it is a preference, not a page.
 // Load sample, Import CSV, New week, and Admin sit in the account menu.
 // Those four are only there for an admin or a commissioner. Profile is in
 // the same menu for everyone who is signed in. Team and nickname live there.
@@ -107,12 +108,12 @@ export function App() {
             <svg className="brand-mark" viewBox="0 0 16 14" aria-hidden="true">
               <path d="M8 0 L16 14 L0 14 Z" />
             </svg>
-            Awesome Inc
+            <span className="brand-name">Awesome Inc</span>
           </a>
           {/* Same Exo 2, italic, heavy. CSS uppercases it. */}
           <p className="top5-word">Top 5</p>
         </div>
-        <nav>
+        <nav aria-label="Pages">
           {/* Line icons are Lucide (lucide.dev), the ISC set that continues
               Feather. Each mark is the same stroke weight as the others. */}
           <NavLink to="/" end>
@@ -129,7 +130,9 @@ export function App() {
           </NavLink>
         </nav>
         <div className="actions">
-          <ThemeToggle />
+          <div className="header-theme">
+            <ThemeToggle />
+          </div>
           {todayMarks.length ? (
             <span className="header-badges" aria-label="Done today">
               {todayMarks.map(({ icon: Icon, label }) => (
@@ -320,6 +323,10 @@ function AccountMenu({
       ) : null}
       {open ? (
         <ul id={menuId} className="account-menu-list" role="menu" aria-label="Account">
+          <li className="account-theme" role="none">
+            <span>Theme</span>
+            <ThemeToggle />
+          </li>
           <li role="none">
             <NavLink to="/profile" role="menuitem" onClick={() => setOpen(false)}>
               Profile
