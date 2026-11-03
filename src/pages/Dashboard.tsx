@@ -131,7 +131,7 @@ export function Dashboard() {
   const [toolbar, setToolbar] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     setToolbar(document.getElementById("dashboard-toolbar"));
-  }, []);s
+  }, []);
   const teamNames = useMemo(() => {
     const names = new Set<string>();
     let unassigned = false;
@@ -174,7 +174,7 @@ export function Dashboard() {
           points: mine.reduce((sum, row) => sum + dailyPoints(row, rates), 0),
         };
       });
-  }, [needle, nicknames, rates, rows, teamFilter, weekPeople]);
+  }, [nicknames, rates, rows, teamFilter, weekPeople]);
 
   // Nothing chosen yet means the signed-in person, same as My week. A team
   // filter that does not include that person falls through to the first
