@@ -9,8 +9,9 @@
 
 import { Inbox } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { Navigate, NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "../auth";
+import { ForbiddenPage } from "./Forbidden";
 import { loadNotices, markNoticesRead, refreshSeasonReminder, subscribeToNotices, unreadCount, type StaffNotice } from "../notifications";
 
 function when(iso: string): string {
@@ -89,7 +90,7 @@ export function NotificationsPage() {
   }, [profileId, refresh]);
 
   if (!ready || !roleReady) return null;
-  if (!canOpenAdmin(role)) return <Navigate to="/" replace />;
+  if (!canOpenAdmin(role)) return <ForbiddenPage />;
 
   async function mark(ids: number[]) {
     if (!profileId || ids.length === 0) return;

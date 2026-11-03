@@ -23,7 +23,8 @@
 //
 // Routes: / edits one person, /dashboard is the read-only glance, /leaderboard
 // is the season board and the streak tracker, /profile is team and nickname,
-// /notifications is the staff inbox, /admin is staff only.
+// /notifications is the staff inbox, /admin is staff only. A person who is
+// not staff sees the 403 page on those two. Anything else renders the 404.
 // The inbox icon is drawn only for an admin or a commissioner, just left of
 // the account chip. Members do not get the icon or the page.
 //
@@ -41,6 +42,8 @@ import { Dashboard } from "./pages/Dashboard";
 import { Admin } from "./pages/Admin";
 import { MyWeek } from "./pages/MyWeek";
 import { NotificationsPage, StaffInbox } from "./pages/Notifications";
+import { ForbiddenPage } from "./pages/Forbidden";
+import { NotFoundPage } from "./pages/NotFound";
 import { ProfilePage } from "./pages/Profile";
 import { LeaderboardPage } from "./pages/SeasonBoards";
 import { DAY_NAMES, withAutomaticTop5 } from "./points";
@@ -231,6 +234,7 @@ export function App() {
         {/* Old Streaks address. The tracker is on the Leaderboard now. */}
         <Route path="/streaks" element={<Navigate to="/leaderboard" replace />} />
         <Route path="/admin" element={<AdminGate />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   );
@@ -392,6 +396,6 @@ function AccountMenu({
 function AdminGate() {
   const { ready, role, roleReady } = useAuth();
   if (!ready || !roleReady) return null;
-  if (!canOpenAdmin(role)) return <Navigate to="/" replace />;
+  if (!canOpenAdmin(role)) return <ForbiddenPage />;
   return <Admin />;
 }

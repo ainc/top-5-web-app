@@ -880,6 +880,90 @@ button:disabled {
   align-items: flex-end;
 }
 
+.not-found {
+  align-items: center;
+  text-align: center;
+  padding-top: 28px;
+}
+
+.not-found-art {
+  width: min(420px, 100%);
+  padding: 8px 12px 0;
+  border-radius: 20px;
+  background: #111111;
+}
+
+.not-found-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.not-found p {
+  margin: 0;
+  color: #939597;
+}
+
+.not-found-home {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #111111;
+  color: #ffffff;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.not-found-credit {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.not-found-credit a {
+  color: inherit;
+}
+
+.forbidden-art {
+  width: min(220px, 72%);
+  padding: 28px 16px;
+}
+
+.forbidden-lock {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: forbidden-bob 2.4s ease-in-out infinite;
+}
+
+.not-found h1.forbidden-code {
+  justify-content: center;
+  font-size: 64px;
+  line-height: 1;
+}
+
+.forbidden-lead {
+  color: #c12029;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+@keyframes forbidden-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forbidden-lock {
+    animation: none;
+  }
+}
+
 .page-head h1,
 .page h1,
 .page h2,
@@ -3308,6 +3392,15 @@ html[data-theme="dark"] .account-menu-list .account-menu-signout {
 html[data-theme="dark"] .topbar {
   background: #111111;
   border-bottom-color: #111111;
+}
+
+html[data-theme="dark"] .forbidden-lead {
+  color: #ed3742;
+}
+
+html[data-theme="dark"] .not-found-home {
+  background: #f1f1f2;
+  color: #111111;
 }
 
 html[data-theme="dark"] .header-badge {
