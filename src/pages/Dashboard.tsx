@@ -1,15 +1,10 @@
 // Read-only week. The page is a glance, then a comparison, then the detail.
 //
-// The person switcher and the team menu live in the date row, the same
-// compact "Viewing: You" control My week uses. The wide picker under the
-// title is gone. Team filters the chart, the week table, and the person
-// list. Everyone is the whole roster. The cards at the top still follow
-// the person in the switcher.
-// their points against the week maximum, tasks finished, season total, and
-// streak. The streak card is the length and the longest run. It does not
-// say how many days are left until the next bonus. That countdown is private
-// to the signed-in person, on My week. A fifth card, Season leader, is the
-// only season summary kept here.
+// The cards at the top are the week, not one person. Tasks done is how many
+// written tasks are checked. Active this week is how many people wrote
+// anything. Week leader is the highest score on this week. Season leader
+// is the link to the Leaderboard. The person switcher still highlights a
+// row and opens that person's list. It does not change these four numbers.
 // The season board, week winners, team standings, and streak tracker used to
 // be copied onto this page and onto their own routes. They now live once, on
 // the Leaderboard, and this card is the link to that page.
@@ -41,9 +36,9 @@ import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
-import { pickerName, shownName } from "../names";
+import { shownName } from "../names";
 import { PersonPicker } from "./PersonPicker";
-import { DAY_NAMES, dailyPoints, maxWeekPoints, personKey, weekPoints } from "../points";
+import { DAY_NAMES, dailyPoints, personKey } from "../points";
 import { seasonBoard } from "../streaks";
 import type { DayRow } from "../types";
 import { addDays, formatISODate } from "../weeks";
@@ -195,22 +190,7 @@ export function Dashboard() {
     roster.find((person) => person.key === listKey) ??
     roster.find((person) => person.key === signedInKey) ??
     roster[0];
-  const listedDays = useMemo(() => {
-    if (!listed) return [];
-    const byDay = new Map(rows.filter((row) => personKey(row) === listed.key).map((row) => [row.day, row]));
-    return DAY_NAMES.map((day) => byDay.get(day));
-  }, [listed, rows]);
-  const listedScores = listedDays.map((row) => dayScore(row));
-  const listedCompleted = listedScores.reduce((sum, day) => sum + day.completed, 0);
-  const listedTotal = listedScores.reduce((sum, day) => sum + day.total, 0);
-  const weekCap = maxWeekPoints(rates);
-  const listedPoints = listed ? weekPoints(rows, listed.key, rates) : 0;
-  const priorRows = weeks[addDays(selectedWeek, -7)]?.rows ?? [];
-  const priorHasListed = listed ? priorRows.some((row) => personKey(row) === listed.key) : false;
-  const priorPoints = listed && priorHasListed ? weekPoints(priorRows, listed.key, rates) : 0;
-  const pointsDelta = listedPoints - priorPoints;
   const seasonPeople = useMemo(() => seasonBoard(weeks, undefined, rates, season), [rates, season, weeks]);
-  const listedSeason = seasonPeople.find((person) => person.key === listed?.key);
   const seasonLeader = seasonPeople[0];
   // A tie for the top season total lists every name on the card. A season
   // where the best total is still 0 has no leader yet.
@@ -235,29 +215,11 @@ export function Dashboard() {
   const writtenRows = ranked.filter((person) => person.total > 0);
   const unwritten = ranked.filter((person) => person.total === 0);
   const topPoints = withPoints.reduce((max, person) => Math.max(max, person.points), 0);
+  const weekLeaders = withPoints.length > 0 ? withPoints.filter((person) => person.points === withPoints[0].points) : [];
   // Monday is index 0. A Saturday or a past week matches no column, so the
   // mark does not stick to Friday after the week has ended.
   const todayIso = formatISODate(new Date());
   const todayIndex = DAY_NAMES.findIndex((_, index) => addDays(selectedWeek, index) === todayIso);
-  const deltaText = !listed
-    ? "No one is on this week yet."
-    : !priorHasListed
-      ? "No saved score for the week before."
-      : pointsDelta > 0
-        ? `Up ${pointsLabel(pointsDelta)} from last week.`
-        : pointsDelta < 0
-          ? `Down ${pointsLabel(Math.abs(pointsDelta))} from last week.`
-          : "Same as last week.";
-  const seasonText = !listedSeason
-    ? "No season score yet."
-    : seasonLeader && seasonLeader.key === listedSeason.key
-      ? "Leads the season."
-      : seasonLeader
-        ? `${shownName(seasonLeader.person, nicknames)} leads at ${pointsLabel(seasonLeader.seasonTotal)}.`
-        : "No season scores yet.";
-  const streakText = !listedSeason || listedSeason.longestStreak === 0
-    ? "No streak yet."
-    : `Longest is ${listedSeason.longestStreak}.`;
 
   if (!ready) return <p className="status">Loading the scorecard…</p>;
 
@@ -296,32 +258,49 @@ export function Dashboard() {
 
       <div className="kpi-row">
         <article className="kpi-card">
-          <span>{listed && listed.person === profileName ? "Your points" : "Points"}</span>
-          <strong>{listed ? pointsLabel(listedPoints) : "—"}</strong>
+          <span>Tasks done</span>
+          <strong>{percentLabel(weekCompleted, weekTotal)}</strong>
+          <p>{weekTotal === 0 ? "Nothing written yet." : `${weekCompleted} of ${weekTotal} written`}</p>
+        </article>
+        <article className="kpi-card">
+          <span>Active this week</span>
+          <strong>
+            {writtenRows.length}
+            <span className="kpi-of"> of {people.length}</span>
+          </strong>
           <p>
-            {listed && listed.person !== profileName ? `${pickerName(listed.person, nicknames, false)}. ` : ""}
-            Of {weekCap} possible. {deltaText}
+            {unwritten.length === 0
+              ? "Everyone has written tasks."
+              : unwritten.length === 1
+                ? "1 hasn't written tasks."
+                : `${unwritten.length} haven't written tasks.`}
           </p>
         </article>
         <article className="kpi-card">
-          <span>Tasks finished</span>
-          <strong>{listed ? percentLabel(listedCompleted, listedTotal) : "—"}</strong>
-          <p>{listed ? `${listedCompleted} of ${listedTotal} written tasks are done.` : "No tasks yet."}</p>
-        </article>
-        <article className="kpi-card">
-          <span>Season total</span>
-          <strong>{listedSeason ? pointsLabel(listedSeason.seasonTotal) : "—"}</strong>
-          <p>{seasonText}</p>
-        </article>
-        <article className="kpi-card">
-          <span>Current streak</span>
-          <strong>{listedSeason ? listedSeason.currentStreak : "—"}</strong>
-          <p>{streakText}</p>
+          <span>Week leader</span>
+          <strong className="kpi-name">
+            {weekLeaders.length > 0 ? (
+              weekLeaders.map((person, index) => (
+                <span key={person.key}>
+                  {index > 0 ? ", " : null}
+                  <Link className="name-link" to={personWeekPath(person.key)}>
+                    {person.person}
+                  </Link>
+                </span>
+              ))
+            ) : (
+              "—"
+            )}
+          </strong>
+          <p>{weekLeaders.length > 0 ? `${pointsLabel(weekLeaders[0].points)} points` : "No points yet."}</p>
         </article>
         <Link className="kpi-card" to="/leaderboard">
           <span>Season leader</span>
           <strong className="kpi-name">{seasonLeaders.length > 0 ? seasonLeaders.map((person) => shownName(person.person, nicknames)).join(", ") : "—"}</strong>
-          <p>{seasonLeaders.length > 0 ? `${pointsLabel(seasonLeaders[0].seasonTotal)} this season` : "No season scores yet."}</p>
+          <p>
+            {seasonLeaders.length > 0 ? `${pointsLabel(seasonLeaders[0].seasonTotal)} points` : "No season scores yet."}
+            <span className="kpi-more"> · Full leaderboard</span>
+          </p>
         </Link>
       </div>
 
@@ -371,24 +350,18 @@ export function Dashboard() {
             <ClipboardList aria-hidden="true" />
             {isCurrentWeek ? "This week" : "Selected week"}
           </h2>
-          <p>
-            {weekLabel}. {weekCompleted} of {weekTotal} written tasks done ({percentLabel(weekCompleted, weekTotal)}).
-          </p>
+          <p>{weekLabel}.</p>
         </div>
-        <p className="skim-legend">
-          <span className="heat-dot" />
-          <span className="heat-ramp" />
-        </p>
         <table className="scorecard skim">
           <thead>
             <tr>
               <th>Name</th>
               {DAY_NAMES.map((day, index) => (
                 <th key={day} className={index === todayIndex ? "is-today" : undefined} aria-current={index === todayIndex ? "date" : undefined}>
-                  {day}
+                  {index === todayIndex ? `${day} · Today` : day}
                 </th>
               ))}
-              <th>Week</th>
+              <th>Done</th>
               <th>Points</th>
             </tr>
           </thead>
@@ -427,11 +400,20 @@ export function Dashboard() {
             )}
           </tbody>
         </table>
-        {unwritten.length > 0 ? (
-          <p className="bar-zeros">
-            Nothing written: <PersonNames people={unwritten} />
+        <div className="week-foot">
+          {unwritten.length > 0 ? (
+            <p className="bar-zeros">
+              Nothing written this week: <PersonNames people={unwritten} />
+            </p>
+          ) : (
+            <span />
+          )}
+          <p className="skim-legend">
+            <span>Fewer</span>
+            <span className="heat-ramp" aria-hidden="true" />
+            <span>More done</span>
           </p>
-        ) : null}
+        </div>
       </div>
 
       {/* All tasks is the parent section. Its summary is sized in CSS above the

@@ -1727,8 +1727,25 @@ nav a svg,
 
 .kpi-card span {
   color: #939597;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kpi-card .kpi-of {
+  color: #939597;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.kpi-card .kpi-more {
+  color: #c12029;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .kpi-card strong {
@@ -1742,6 +1759,17 @@ nav a svg,
 .kpi-card .kpi-name {
   font-size: 22px;
   line-height: 1.15;
+  text-transform: none;
+  letter-spacing: -0.03em;
+}
+
+.kpi-card .kpi-name span,
+.kpi-card .kpi-name .name-link {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
 }
 
 /* The Season leader card is a link. Without this it picks up the default
@@ -1908,11 +1936,34 @@ a.kpi-card:focus-visible {
   line-height: 1.4;
 }
 
-.skim-legend {
+.week-foot {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
+  gap: 16px;
+  padding: 10px 14px 14px;
+}
+
+.week-foot .bar-zeros {
+  margin: 0;
+}
+
+.week-foot .skim-legend {
+  margin-left: auto;
+  padding: 0;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 8px;
-  padding: 12px 14px 0;
+}
+
+.week-foot .skim-legend span {
+  padding: 0;
+  border-radius: 0;
+  color: #939597;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: none;
 }
 
 .skim-legend span {
