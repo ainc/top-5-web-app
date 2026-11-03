@@ -308,10 +308,22 @@ export function SeasonBoards({
           <thead>
             <tr>
               <th>Name</th>
-              <th className="num">Current streak</th>
-              <th className="num">Longest streak</th>
-              <th className="num">Bonus points earned</th>
-              <th className="num">Last active</th>
+              <th className="num" title="Current streak">
+                <span className="col-full">Current streak</span>
+                <span className="col-short">Now</span>
+              </th>
+              <th className="num" title="Longest streak">
+                <span className="col-full">Longest streak</span>
+                <span className="col-short">Best</span>
+              </th>
+              <th className="num" title="Bonus points earned">
+                <span className="col-full">Bonus points earned</span>
+                <span className="col-short">Bonus</span>
+              </th>
+              <th className="num" title="Last active">
+                <span className="col-full">Last active</span>
+                <span className="col-short">Last</span>
+              </th>
             </tr>
           </thead>
           <tbody>

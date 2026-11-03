@@ -2717,8 +2717,11 @@ a.kpi-card:focus-visible {
 }
 
 .board-panel tr.is-you td {
-  box-shadow: inset 3px 0 0 #c12029;
   font-weight: 700;
+}
+
+.board-panel tr.is-you td:first-child {
+  box-shadow: inset 3px 0 0 #c12029;
 }
 
 .team-bars,
@@ -2802,6 +2805,10 @@ a.kpi-card:focus-visible {
   background: #323232;
   color: #ffffff;
   font-weight: 650;
+}
+
+.col-short {
+  display: none;
 }
 
 .streak-count {
@@ -3861,6 +3868,48 @@ html[data-theme="dark"] .team-bar-track span.is-lead {
 
   .podium-card[data-place="3"] {
     order: 3;
+  }
+
+  /* Five long titles do not fit a phone. The columns share the row, the
+     titles shorten, and numbers stay on one line. */
+  .streak-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .streak-table .col-full {
+    display: none;
+  }
+
+  .streak-table .col-short {
+    display: inline;
+  }
+
+  .streak-table th,
+  .streak-table td {
+    padding: 8px 3px;
+    overflow-wrap: break-word;
+  }
+
+  .streak-table thead th {
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 1.2;
+  }
+
+  .streak-table th:first-child,
+  .streak-table td:first-child {
+    width: 30%;
+    text-align: left;
+  }
+
+  .streak-table .num,
+  .streak-count {
+    white-space: nowrap;
+  }
+
+  .streak-count {
+    gap: 4px;
   }
 }
 
