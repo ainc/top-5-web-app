@@ -159,8 +159,8 @@ nav a.active {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: #e5f6ec;
-  color: #1f7a45;
+  background: #fde8ea;
+  color: #c12029;
 }
 
 .header-badge svg {
@@ -1624,8 +1624,8 @@ nav a svg,
 
 .score-badge {
   padding: 6px 10px;
-  background: #e5f6ec;
-  color: #1f7a45;
+  background: #fde8ea;
+  color: #c12029;
 }
 
 .score-progress {
@@ -3311,8 +3311,8 @@ html[data-theme="dark"] .topbar {
 }
 
 html[data-theme="dark"] .header-badge {
-  background: #052e16;
-  color: #86efac;
+  background: #fde8ea;
+  color: #c12029;
 }
 
 html[data-theme="dark"] .inbox-link {
@@ -3600,8 +3600,8 @@ html[data-theme="dark"] .score-chip.is-on {
 }
 
 html[data-theme="dark"] .score-badge {
-  background: #052e16;
-  color: #86efac;
+  background: #fde8ea;
+  color: #c12029;
 }
 
 html[data-theme="dark"] .day-note-add {
