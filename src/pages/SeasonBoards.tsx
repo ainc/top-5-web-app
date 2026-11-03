@@ -208,12 +208,15 @@ export function SeasonBoards({
               ))}
             </div>
           ) : null}
-          <table className="scorecard board-table">
+          <table className="scorecard board-table season-table">
             <thead>
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
-                <th className="num">This week</th>
+                <th className="num" title="This week">
+                  <span className="col-full">This week</span>
+                  <span className="col-short">Week</span>
+                </th>
                 <th className="num">Streak</th>
                 <th className="num">Bonus</th>
                 <th className="num">Season</th>

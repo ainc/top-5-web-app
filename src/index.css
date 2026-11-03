@@ -21,6 +21,11 @@ body {
   margin: 0;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 button,
 select,
 input {
@@ -29,6 +34,8 @@ input {
 
 .app {
   min-height: 100vh;
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -3101,8 +3108,10 @@ button.save-flash {
     right: 0;
     bottom: 0;
     z-index: 30;
-    width: 100%;
-    overflow: visible;
+    width: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
     justify-content: space-around;
     gap: 0;
     padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
@@ -3111,12 +3120,14 @@ button.save-flash {
   }
 
   nav a {
+    flex: 1 1 0;
     flex-direction: column;
     gap: 2px;
-    min-width: 72px;
+    min-width: 0;
+    max-width: 34%;
     min-height: 48px;
     justify-content: center;
-    padding: 6px 8px;
+    padding: 6px 4px;
     border-bottom: 0;
     font-size: 11px;
     font-weight: 650;
@@ -3178,12 +3189,60 @@ button.save-flash {
 
   .page {
     padding: 8px 12px 16px;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .week-switcher {
     flex-wrap: wrap;
     gap: 10px 16px;
     padding: 10px 12px;
+    max-width: 100%;
+  }
+
+  .week-nav {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* The person and team menus appear only on Dashboard. They take the
+     next line, so they cannot stretch the week row past the screen. */
+  .dashboard-toolbar {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .dashboard-toolbar .person-switch.is-compact {
+    flex: 1 1 140px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .dashboard-toolbar .person-switch.is-compact .person-switch-box,
+  .dashboard-toolbar .person-switch.is-compact .person-menu {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .person-switch.is-compact .person-menu-button {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .person-switch.is-compact .person-menu-list {
+    left: 0;
+    right: auto;
+    width: auto;
+    min-width: max(100%, 11rem);
+    max-width: calc(100vw - 24px);
+  }
+
+  .dashboard-toolbar .person-switch.is-compact:last-child .person-menu-list {
+    left: auto;
+    right: 0;
   }
 
   .season-strip {
@@ -3202,6 +3261,23 @@ button.save-flash {
   .my-week-layout {
     display: flex;
     flex-direction: column;
+  }
+
+  /* Teams and week winners are short lists. Side by side they fill the
+     row that used to sit empty beside each card. */
+  .board-side-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+
+  .board-side-col > :only-child {
+    grid-column: 1 / -1;
+  }
+
+  .board-side {
+    min-width: 0;
+    padding: 12px;
   }
 
   .my-week-layout {
@@ -3228,6 +3304,8 @@ button.save-flash {
   }
 
   .scorecard-wrap {
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
   }
 
@@ -3910,6 +3988,54 @@ html[data-theme="dark"] .team-bar-track span.is-lead {
 
   .streak-count {
     gap: 4px;
+  }
+
+  /* Six columns share the phone. "This week" shortens to Week. The
+     "best" note stays in the streak tracker, so this streak cell is
+     only the current run and its milestone badge. */
+  .season-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .season-table .col-full {
+    display: none;
+  }
+
+  .season-table .col-short {
+    display: inline;
+  }
+
+  .season-table th,
+  .season-table td {
+    padding: 8px 2px;
+    overflow-wrap: break-word;
+  }
+
+  .season-table thead th {
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 1.2;
+  }
+
+  .season-table .num,
+  .season-table .streak-count {
+    white-space: nowrap;
+  }
+
+  .season-table .streak-best {
+    display: none;
+  }
+
+  .season-table th:nth-child(1),
+  .season-table td:nth-child(1) {
+    width: 12%;
+  }
+
+  .season-table th:nth-child(2),
+  .season-table td:nth-child(2) {
+    width: 26%;
+    text-align: left;
   }
 }
 
