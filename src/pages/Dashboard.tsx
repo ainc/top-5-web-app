@@ -248,12 +248,6 @@ export function Dashboard() {
             Dashboard
           </h1>
         </div>
-        <input
-          className="filter"
-          value={query}
-          placeholder="Filter people"
-          onChange={(event) => setQuery(event.target.value)}
-        />
       </div>
 
       <div className="kpi-row">
