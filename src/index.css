@@ -1,14 +1,14 @@
 /* Page chrome, week switcher, and the task-cell layout inside AG Grid.
    Colors follow Awesome Inc: charcoal #323232, brand red #c12029, the grey
    steps from variables.scss, and bright red #ed3742 in dark mode.
-   Open Sans is the body. Exo 2 is only the "Top 5" word in the header.
+   Open Sans is the body. Exo 2 is the "Awesome Inc" and "Top 5" wordmark.
    Sections below, in order: header, sign-in cue, week switcher, person
    picker, My week tiles, board and grid layouts, dashboard cards, admin,
    the phone layout, then dark mode. */
 
 :root {
   color: #323232;
-  background: #f1f1f2;
+  background: #f6f6f7;
   font-family: "Open Sans", "Segoe UI", sans-serif;
   font-size: 15px;
 }
@@ -36,12 +36,17 @@ input {
 /* Title bar, page links, and the import buttons. */
 .topbar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 16px;
-  padding: 12px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #d1d2d4;
+  padding: 0 22px;
+  background: #111111;
+  border-bottom: 0;
+}
+
+.brand,
+.actions {
+  padding: 12px 0;
 }
 
 .brand {
@@ -51,13 +56,13 @@ input {
   gap: 10px;
 }
 
-/* "TOP 5" beside the Awesome Inc logo. Exo 2 is loaded in index.html.
-   nowrap keeps the two words on one line when the nav crowds the brand.
-   flex: none stops the top bar from squeezing the word down to a few letters. */
+/* "AWESOME INC" and "TOP 5" share Exo 2. The triangle is the only drawn
+   mark. nowrap keeps each name on one line when the nav crowds the brand.
+   flex: none stops the top bar from squeezing a word down to a few letters. */
+.brand-logo,
 .top5-word {
   margin: 0;
   flex: none;
-  color: #c12029;
   font-family: "Exo 2", "Open Sans", sans-serif;
   font-style: italic;
   font-weight: 800;
@@ -66,28 +71,29 @@ input {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
+  text-decoration: none;
 }
 
 .brand-logo {
   display: flex;
-  line-height: 0;
+  align-items: baseline;
+  gap: 7px;
+  color: #ffffff;
 }
 
-.brand-logo img {
-  height: 32px;
-  width: auto;
+.brand-mark {
+  height: 0.75em;
+  width: calc(0.75em * 16 / 14);
+  flex: none;
+  fill: #c12029;
 }
 
-.logo-for-dark {
-  display: none;
+.top5-word {
+  color: #c12029;
 }
 
-html[data-theme="dark"] .logo-for-light {
-  display: none;
-}
-
-html[data-theme="dark"] .logo-for-dark {
-  display: block;
+html[data-theme="dark"] .brand-logo {
+  color: #ffffff;
 }
 
 html[data-theme="dark"] .top5-word {
@@ -112,21 +118,24 @@ html[data-theme="dark"] .top5-word {
 nav {
   display: flex;
   gap: 6px;
+  align-items: stretch;
 }
 
 nav a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #323232;
+  color: #ffffff;
   text-decoration: none;
-  padding: 6px 12px;
-  border-radius: 999px;
+  padding: 10px 12px 8px;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
 }
 
 nav a.active {
-  background: #c12029;
+  background: transparent;
   color: #ffffff;
+  border-bottom-color: #c12029;
 }
 
 .actions {
@@ -167,10 +176,10 @@ nav a.active {
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid #3a3a3a;
   border-radius: 10px;
-  background: #ffffff;
-  color: #323232;
+  background: transparent;
+  color: #ffffff;
 }
 
 .inbox-link svg {
@@ -362,10 +371,11 @@ nav a.active {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 4px 3px 3px;
-  border: 1px solid #d1d2d4;
+  padding: 3px 10px 3px 3px;
+  border: 1px solid #3a3a3a;
   border-radius: 999px;
-  background: #ffffff;
+  background: #2a2a2a;
+  color: #ffffff;
 }
 
 .account-photo {
@@ -396,8 +406,8 @@ nav a.active {
 .account button {
   border: none;
   background: transparent;
-  color: #939597;
-  padding: 6px 10px;
+  color: #ffffff;
+  padding: 6px 4px;
 }
 
 /* Staff open this from the avatar. The four week and setup actions live
@@ -785,18 +795,19 @@ select,
 }
 
 .week-today {
-  border: 0;
-  background: transparent;
-  padding: 0 4px;
+  border: 1px solid #d1d2d4;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px 12px;
   color: #323232;
   font-weight: 650;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 .week-today:disabled {
   opacity: 1;
-  color: #939597;
+  color: #323232;
+  background: #f4f4f5;
   text-decoration: none;
   cursor: default;
 }
@@ -887,9 +898,10 @@ nav a svg,
 }
 
 .page-head h1,
-.page h2 {
+.page h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 32px;
+  font-weight: 750;
   letter-spacing: -0.03em;
 }
 
@@ -899,6 +911,7 @@ nav a svg,
 }
 
 .page h2 {
+  margin: 0;
   font-size: 16px;
 }
 
@@ -1276,7 +1289,7 @@ nav a svg,
 }
 
 .layout-toggle button[aria-pressed="true"] {
-  background: #c12029;
+  background: #111111;
   color: #ffffff;
 }
 
@@ -1364,15 +1377,15 @@ nav a svg,
   flex-direction: column;
   gap: 10px;
   min-height: 420px;
-  padding: 12px;
-  border: 1px solid #d1d2d4;
-  border-radius: 14px;
+  padding: 14px;
+  border: 1px solid #e4e4e6;
+  border-radius: 16px;
   background: #ffffff;
 }
 
 .day-column.is-today {
-  border-color: #c12029;
-  box-shadow: inset 0 3px 0 #c12029;
+  border: 2px solid #c12029;
+  box-shadow: none;
 }
 
 .day-column-head {
@@ -1395,7 +1408,7 @@ nav a svg,
 }
 
 .day-column-head b {
-  font-size: 22px;
+  font-size: 26px;
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -2140,6 +2153,11 @@ a.kpi-card:focus-visible {
    text, so a full-strength red is not on every title. The table row under a
    title is always charcoal. */
 .tone-week > .section-head,
+.tone-chart > .section-head {
+  background: #ffffff;
+  color: #323232;
+}
+
 .tone-season > .section-head {
   background: #c12029;
 }
@@ -2149,7 +2167,6 @@ a.kpi-card:focus-visible {
   background: #323232;
 }
 
-.tone-chart > .section-head,
 .tone-streaks > .section-head {
   background: #f3d4d6;
 }
@@ -2165,7 +2182,13 @@ a.kpi-card:focus-visible {
 
 .tone-chart > .section-head,
 .tone-chart > .section-head h2,
+.tone-week > .section-head,
+.tone-week > .section-head h2 {
+  color: #323232;
+}
+
 .tone-chart > .section-head p,
+.tone-week > .section-head p,
 .tone-streaks > .section-head,
 .tone-streaks > .section-head h2,
 .tone-streaks > .section-head p,
@@ -2178,12 +2201,20 @@ a.kpi-card:focus-visible {
   color: #323232;
 }
 
-.tone-week .scorecard thead th,
 .tone-season .scorecard thead th,
 .tone-winners .scorecard thead th,
 .tone-teams .scorecard thead th,
 .tone-streaks .scorecard thead th {
   background: #323232;
+}
+
+.tone-week .scorecard.skim thead th {
+  background: transparent;
+  color: #939597;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .scorecard thead th:first-child,
@@ -2211,11 +2242,13 @@ a.kpi-card:focus-visible {
 .task-details summary {
   cursor: pointer;
   padding: 16px 18px;
-  background: #f3d4d6;
+  background: #ffffff;
   color: #323232;
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 750;
   letter-spacing: -0.03em;
+  border: 1px solid #e4e4e6;
+  border-radius: 16px;
 }
 
 .task-details summary svg {
@@ -2552,9 +2585,9 @@ a.kpi-card:focus-visible {
 }
 
 .podium-card.is-you {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
-  box-shadow: inset 0 3px 0 #c12029;
+  background: #111111;
+  border-color: #111111;
+  box-shadow: inset 0 4px 0 #c12029;
 }
 
 .podium-card.is-you p,
@@ -2969,10 +3002,7 @@ button.save-flash {
     max-width: 96px;
   }
 
-  .brand-logo img {
-    height: 26px;
-  }
-
+  .brand-logo,
   .top5-word {
     font-size: 22px;
   }
@@ -3080,8 +3110,15 @@ html[data-theme="dark"] .task-details summary {
   color: #ffffff;
 }
 
+html[data-theme="dark"] .tone-week > .section-head,
 html[data-theme="dark"] .tone-chart > .section-head,
-html[data-theme="dark"] .tone-streaks > .section-head,
+html[data-theme="dark"] .tone-week > .section-head h2,
+html[data-theme="dark"] .tone-chart > .section-head h2,
+html[data-theme="dark"] .tone-week > .section-head p,
+html[data-theme="dark"] .tone-chart > .section-head p {
+  background: #2a2a2a;
+  color: #f1f1f2;
+}
 html[data-theme="dark"] .task-details summary,
 html[data-theme="dark"] .admin-card.tone-bonus h2,
 html[data-theme="dark"] .person-tasks:nth-child(5n + 3) header {
@@ -3178,8 +3215,8 @@ html[data-theme="dark"] .account-menu-list .account-menu-signout {
 }
 
 html[data-theme="dark"] .topbar {
-  background: #323232;
-  border-bottom-color: #4a4a4a;
+  background: #111111;
+  border-bottom-color: #111111;
 }
 
 html[data-theme="dark"] .header-badge {
@@ -3241,12 +3278,13 @@ html[data-theme="dark"] .notice-lock.is-locked {
 }
 
 html[data-theme="dark"] nav a {
-  color: #f1f1f2;
+  color: #ffffff;
 }
 
 html[data-theme="dark"] nav a.active {
-  background: #ed3742;
+  background: transparent;
   color: #ffffff;
+  border-bottom-color: #ed3742;
 }
 
 html[data-theme="dark"] button,
@@ -3335,8 +3373,10 @@ html[data-theme="dark"] .admin-card select {
 }
 
 html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
-  background: #ed3742;
-  border-color: #ed3742;
+  background: #f1f1f2;
+  color: #111111;
+  border-color: #f1f1f2;
+}
   color: #323232;
 }
 
@@ -3387,8 +3427,8 @@ html[data-theme="dark"] .matrix-slot span {
 html[data-theme="dark"] .day-column.is-today,
 html[data-theme="dark"] .matrix-day.is-today,
 html[data-theme="dark"] .day-strip.is-today {
-  border-color: #ed3742;
-  box-shadow: inset 0 3px 0 #ed3742;
+  border: 2px solid #ed3742;
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .day-task input[type="text"],

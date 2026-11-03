@@ -1,8 +1,9 @@
 // Shell around every page. Nothing in here is a scorecard row.
 //
-// The bar across the top is the Awesome Inc logo (a link to awesomeinc.org)
-// plus the words "Top 5" in Exo 2. That word is text, not an image, so it
-// stays sharp next to the 32px logo and picks up the brand red from CSS.
+// The bar across the top is "Awesome Inc" in the same Exo 2 as "Top 5",
+// with a small red triangle in front. Both are text, so they stay sharp.
+// The words are charcoal on the white bar and white on the dark bar.
+// "Top 5" stays brand red. The words link to awesomeinc.org.
 // The same bar holds the page links, the theme toggle, today's done marks,
 // and Google sign-in. The marks sit just left of the account chip. Each one
 // appears only when that item is done today for the signed-in person.
@@ -102,14 +103,13 @@ export function App() {
       {/* Title, the two pages, and the buttons that replace the selected week's rows. */}
       <header className="topbar">
         <div className="brand">
-          <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer" aria-label="Awesome Inc">
-            <img className="logo-for-light" src="/ainc-logo-dark.png" alt="" />
-            <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
+          <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer">
+            <svg className="brand-mark" viewBox="0 0 16 14" aria-hidden="true">
+              <path d="M8 0 L16 14 L0 14 Z" />
+            </svg>
+            Awesome Inc
           </a>
-          {/* Exo 2, italic, heavy. Sized to the Awesome Inc mark beside it.
-              CSS uppercases it. An image wordmark was tried first; text keeps
-              the credit off the header and matches light and dark without a
-              second file. */}
+          {/* Same Exo 2, italic, heavy. CSS uppercases it. */}
           <p className="top5-word">Top 5</p>
         </div>
         <nav>
@@ -119,13 +119,13 @@ export function App() {
             <NotebookPen aria-hidden="true" />
             My week
           </NavLink>
-          <NavLink to="/dashboard">
-            <LayoutDashboard aria-hidden="true" />
-            Dashboard
-          </NavLink>
           <NavLink to="/leaderboard">
             <Trophy aria-hidden="true" />
             Leaderboard
+          </NavLink>
+          <NavLink to="/dashboard">
+            <LayoutDashboard aria-hidden="true" />
+            Dashboard
           </NavLink>
         </nav>
         <div className="actions">
