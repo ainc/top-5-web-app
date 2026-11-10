@@ -2782,10 +2782,20 @@ a.kpi-card:focus-visible {
 }
 
 .board-panel {
+  position: relative;
   background: #ffffff;
   border: 1px solid #d1d2d4;
   border-radius: 12px;
   padding: 16px;
+}
+
+.winner-confetti {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 3;
 }
 
 .page .board-title,

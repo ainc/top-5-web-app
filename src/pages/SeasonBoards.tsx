@@ -10,6 +10,8 @@
 //
 // The top three stand on a podium, ordered 2nd, 1st, 3rd, so first place sits
 // in the middle. That middle card is wider and taller than the two beside it.
+// First place throws a short burst of confetti from the top of its card when
+// the board opens, and a smaller one when the pointer enters that card.
 // The signed-in person is the dark card when they are up there,
 // or a marked row when they are further down. Everyone else with a season
 // total of zero is one line under the table. A six-way tie at zero used to
@@ -35,7 +37,7 @@
 // Numbers come from saved weeks. People who only exist on the old sheet are
 // absent until those weeks are imported.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Clover,
@@ -57,6 +59,7 @@ import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
 import { shownName } from "../names";
 import { ScorecardLoading } from "../ScorecardLoading";
+import { WinnerConfetti, type WinnerConfettiHandle } from "../winnerConfetti";
 import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
 import { addDays, parseISODate, type WeekRecord } from "../weeks";
 
@@ -209,6 +212,11 @@ export function SeasonBoards({
   // view that is open. A person with a season total but nothing this week
   // stays in the table while This week is selected.
   const podium = ranked.filter((person, index) => index < 3 && scoreOf(person, view) > 0);
+  const winnerKey = podium
+    .filter((person) => person.place === 1)
+    .map((person) => person.key)
+    .join("|");
+  const confettiRef = useRef<WinnerConfettiHandle>(null);
   const podiumKeys = new Set(podium.map((person) => person.key));
   const table = ranked.filter((person) => !podiumKeys.has(person.key));
   const lead = teams[0]?.seasonTotal ?? 0;
@@ -229,10 +237,16 @@ export function SeasonBoards({
             </h1>
           </div>
           <div className="board-panel">
+          <WinnerConfetti ref={confettiRef} winnerKey={winnerKey ? `${view}:${winnerKey}` : ""} />
           {podium.length > 0 ? (
             <div className="podium">
               {podium.map((person) => (
-                <article key={person.key} className={isYou(person.person) ? "podium-card is-you" : "podium-card"} data-place={person.place}>
+                <article
+                  key={person.key}
+                  className={isYou(person.person) ? "podium-card is-you" : "podium-card"}
+                  data-place={person.place}
+                  onMouseEnter={person.place === 1 ? () => confettiRef.current?.burst(40) : undefined}
+                >
                   <p>{isYou(person.person) ? `${placeLabel(person.place)} · You` : placeLabel(person.place)}</p>
                   <h3>
                     <Link className={detailKey === person.key ? "name-link is-open" : "name-link"} to={personDetailPath(person.key)}>
