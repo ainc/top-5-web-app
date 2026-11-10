@@ -1804,6 +1804,14 @@ nav a svg,
   min-height: 0;
 }
 
+/* Grid rows share a line under each task. Board keeps the tasks stacked
+   in a card without these rules. */
+.matrix-cell.is-task,
+.matrix-labels .matrix-slot.is-task {
+  border-bottom: 1px solid #e4e4e6;
+  padding-bottom: 8px;
+}
+
 .matrix-slot-inline {
   display: none;
 }
@@ -3689,6 +3697,11 @@ html[data-theme="dark"] .day-task.rank-top .day-task-name {
 
 html[data-theme="dark"] .matrix-slot span {
   color: #f1f1f2;
+}
+
+html[data-theme="dark"] .matrix-cell.is-task,
+html[data-theme="dark"] .matrix-labels .matrix-slot.is-task {
+  border-bottom-color: #4a4a4a;
 }
 
 html[data-theme="dark"] .day-column.is-today,

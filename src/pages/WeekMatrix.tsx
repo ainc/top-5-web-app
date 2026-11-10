@@ -51,7 +51,7 @@ export function WeekMatrix({ rows, weekId, canEdit }: WeekMatrixProps) {
       <div className="matrix-labels" aria-hidden="true">
         <div className="matrix-corner" />
         {TASKS.map((task) => (
-          <div className="matrix-slot" key={task.labelField}>
+          <div className="matrix-slot is-task" key={task.labelField}>
             <span>{task.slot}</span>
           </div>
         ))}
@@ -75,7 +75,7 @@ export function WeekMatrix({ rows, weekId, canEdit }: WeekMatrixProps) {
             </b>
           </header>
           {TASKS.map((task) => (
-            <div className="matrix-cell" key={task.labelField}>
+            <div className="matrix-cell is-task" key={task.labelField}>
               <div className="matrix-slot matrix-slot-inline">
                 <span>{task.slot}</span>
               </div>
