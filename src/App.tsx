@@ -1,9 +1,9 @@
 // Shell around every page. Nothing in here is a scorecard row.
 //
-// The bar across the top is "Awesome Inc" in the same Exo 2 as "Top 5",
-// with a small red triangle in front. Both are text, so they stay sharp.
-// The words are charcoal on the white bar and white on the dark bar.
-// "Top 5" stays brand red. The words link to awesomeinc.org.
+// The bar across the top is the Awesome Inc logo, then "Top 5" in Exo 2.
+// The logo is the horizontal mark: charcoal letters on the light bar, white
+// letters on the dark bar. "Top 5" stays brand red. The logo links to
+// awesomeinc.org.
 // On a phone the three pages move to a bottom bar. They are the whole app,
 // so they stay on screen instead of sitting behind a hamburger. The top row
 // keeps the mark, today's badges, the inbox, and the account. The theme
@@ -107,13 +107,11 @@ export function App() {
       {/* Title, the two pages, and the buttons that replace the selected week's rows. */}
       <header className="topbar">
         <div className="brand">
-          <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer">
-            <svg className="brand-mark" viewBox="0 0 16 14" aria-hidden="true">
-              <path d="M8 0 L16 14 L0 14 Z" />
-            </svg>
-            <span className="brand-name">Awesome Inc</span>
+          <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer" aria-label="Awesome Inc">
+            <img className="logo-for-light" src="/ainc-logo-dark.png" alt="" />
+            <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
           </a>
-          {/* Same Exo 2, italic, heavy. CSS uppercases it. */}
+          {/* Exo 2, italic, heavy. Sized to the mark beside it. */}
           <p className="top5-word">Top 5</p>
         </div>
         <nav aria-label="Pages">

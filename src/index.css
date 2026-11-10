@@ -47,8 +47,8 @@ input {
   justify-content: space-between;
   gap: 16px;
   padding: 0 22px;
-  background: #111111;
-  border-bottom: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e4e4e6;
 }
 
 .brand,
@@ -63,13 +63,39 @@ input {
   gap: 10px;
 }
 
-/* "AWESOME INC" and "TOP 5" share Exo 2. The triangle is the only drawn
-   mark. nowrap keeps each name on one line when the nav crowds the brand.
-   flex: none stops the top bar from squeezing a word down to a few letters. */
+/* The logo and "TOP 5" share one line. The image has transparent padding,
+   so its box is a little taller than the red word and the two centers meet. */
 .brand-logo,
 .top5-word {
   margin: 0;
   flex: none;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.brand-logo img {
+  height: 34px;
+  width: auto;
+}
+
+.logo-for-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .logo-for-light {
+  display: none;
+}
+
+html[data-theme="dark"] .logo-for-dark {
+  display: block;
+}
+
+.top5-word {
+  color: #c12029;
   font-family: "Exo 2", "Open Sans", sans-serif;
   font-style: italic;
   font-weight: 800;
@@ -78,33 +104,21 @@ input {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
-  text-decoration: none;
-}
-
-.brand-logo {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  color: #ffffff;
-}
-
-.brand-mark {
-  height: 0.75em;
-  width: calc(0.75em * 16 / 14);
-  flex: none;
-  fill: #c12029;
-}
-
-.top5-word {
-  color: #c12029;
-}
-
-html[data-theme="dark"] .brand-logo {
-  color: #ffffff;
 }
 
 html[data-theme="dark"] .top5-word {
   color: #ed3742;
+}
+
+.topbar nav a,
+.topbar nav a.active,
+.topbar .account button,
+.topbar .inbox-link {
+  color: #323232;
+}
+
+.topbar .inbox-link {
+  border-color: #d1d2d4;
 }
 
 .brand strong {
@@ -3574,9 +3588,18 @@ button.save-flash {
     max-width: 96px;
   }
 
-  .brand-logo,
+  .brand-logo img {
+    height: 24px;
+  }
+
   .top5-word {
     font-size: 20px;
+  }
+
+  /* The page links leave the white bar and sit on the black bottom bar. */
+  .topbar nav a,
+  .topbar nav a.active {
+    color: #ffffff;
   }
 
   html[data-theme="dark"] nav a.active {
