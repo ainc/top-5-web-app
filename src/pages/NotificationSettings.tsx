@@ -2,11 +2,13 @@
 // staff-only. Each switch is the org's setting, not a personal one, so two
 // commissioners do not end up with different feeds.
 //
-// The lock is a small icon beside On. Only an admin can press it. A
-// commissioner sees a closed lock and cannot move a locked switch.
+// The control is a bell and a pill. Off shows a muted bell and a quiet line.
+// On rings the bell once and swaps in a cheerful line. The lock sits beside
+// the pill. Only an admin can press it. A commissioner sees a closed lock
+// and cannot move a locked switch.
 
-import { Inbox, Lock, LockOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Bell, BellOff, Inbox, Lock, LockOpen } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { NOTICE_KINDS, loadNoticeSettings, saveNoticeSetting, type NoticeKind, type NoticeSetting } from "../notifications";
 
@@ -50,48 +52,79 @@ export function NotificationSettings() {
         <ul className="notice-settings">
           {NOTICE_KINDS.map((kind) => {
             const row = settings.find((item) => item.kind === kind.kind);
-            const enabled = row?.enabled ?? true;
-            const locked = row?.locked ?? false;
-            const held = locked && !admin;
             return (
-              <li key={kind.kind}>
-                <div>
-                  <strong>{kind.label}</strong>
-                  <p className="field-help">{kind.help}</p>
-                  {held ? <p className="field-help">An admin locked this.</p> : null}
-                </div>
-                <span className="notice-switch">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={enabled}
-                      disabled={held}
-                      onChange={(event) => void change(kind.kind, { enabled: event.target.checked })}
-                    />
-                    On
-                  </label>
-                  {admin ? (
-                    <button
-                      type="button"
-                      className={locked ? "notice-lock is-locked" : "notice-lock"}
-                      aria-pressed={locked}
-                      aria-label={locked ? "Unlock. Only admins can change this." : "Lock so only admins can change this."}
-                      title={locked ? "Only admins can change this" : "Commissioners can change this"}
-                      onClick={() => void change(kind.kind, { locked: !locked })}
-                    >
-                      {locked ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
-                    </button>
-                  ) : held ? (
-                    <span className="notice-lock is-locked" role="img" aria-label="An admin locked this" title="An admin locked this">
-                      <Lock aria-hidden="true" />
-                    </span>
-                  ) : null}
-                </span>
-              </li>
+              <NoticeSwitch
+                key={kind.kind}
+                kind={kind}
+                enabled={row?.enabled ?? true}
+                locked={row?.locked ?? false}
+                admin={admin}
+                onEnabled={(enabled) => void change(kind.kind, { enabled })}
+                onLock={() => void change(kind.kind, { locked: !(row?.locked ?? false) })}
+              />
             );
           })}
         </ul>
       )}
     </div>
+  );
+}
+
+function NoticeSwitch({
+  kind,
+  enabled,
+  locked,
+  admin,
+  onEnabled,
+  onLock,
+}: {
+  kind: (typeof NOTICE_KINDS)[number];
+  enabled: boolean;
+  locked: boolean;
+  admin: boolean;
+  onEnabled: (enabled: boolean) => void;
+  onLock: () => void;
+}) {
+  const id = useId();
+  const held = locked && !admin;
+  return (
+    <li className={enabled ? "notice-row is-on" : "notice-row"}>
+      <span className="notice-bell" aria-hidden="true">
+        <BellOff className="notice-bell-off" />
+        <Bell className="notice-bell-on" />
+      </span>
+      <div className="notice-copy">
+        <strong>
+          {kind.label}
+          <span className="notice-state-off">Off</span>
+          <span className="notice-state-on">On</span>
+        </strong>
+        <p className="field-help">{kind.help}</p>
+        <p className="notice-line notice-line-off">{kind.quiet}</p>
+        <p className="notice-line notice-line-on">{kind.cheer}</p>
+        {held ? <p className="field-help">An admin locked this.</p> : null}
+      </div>
+      <label className="notice-toggle" htmlFor={id}>
+        <input id={id} type="checkbox" role="switch" checked={enabled} disabled={held} aria-label={`${kind.label} ${enabled ? "on" : "off"}`} onChange={(event) => onEnabled(event.target.checked)} />
+      </label>
+      {admin ? (
+        <button
+          type="button"
+          className={locked ? "notice-lock is-locked" : "notice-lock"}
+          aria-pressed={locked}
+          aria-label={locked ? "Unlock. Only admins can change this." : "Lock so only admins can change this."}
+          title={locked ? "Only admins can change this" : "Commissioners can change this"}
+          onClick={onLock}
+        >
+          {locked ? <Lock aria-hidden="true" /> : <LockOpen aria-hidden="true" />}
+        </button>
+      ) : held ? (
+        <span className="notice-lock is-locked" role="img" aria-label="An admin locked this" title="An admin locked this">
+          <Lock aria-hidden="true" />
+        </span>
+      ) : (
+        <span className="notice-lock-gap" aria-hidden="true" />
+      )}
+    </li>
   );
 }

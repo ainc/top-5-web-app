@@ -30,10 +30,11 @@ export type NoticeSetting = {
 };
 
 // Labels stay here so Admin and the feed describe the same three switches.
-export const NOTICE_KINDS: { kind: NoticeKind; label: string; help: string }[] = [
-  { kind: "signup", label: "New signups", help: "Someone signs in for the first time." },
-  { kind: "team", label: "Team signups", help: "A team is added on the live season, or someone is placed on a team." },
-  { kind: "season_end", label: "Season ending", help: "One reminder during the last week of the live season." },
+// quiet is the line under a switch that is off. cheer is the line when it is on.
+export const NOTICE_KINDS: { kind: NoticeKind; label: string; help: string; quiet: string; cheer: string }[] = [
+  { kind: "signup", label: "New signups", help: "Someone signs in for the first time.", quiet: "The inbox can rest.", cheer: "A new hello will land here." },
+  { kind: "team", label: "Team signups", help: "A team is added on the live season, or someone is placed on a team.", quiet: "Team news can wait.", cheer: "You'll hear when a team changes." },
+  { kind: "season_end", label: "Season ending", help: "One reminder during the last week of the live season.", quiet: "No closing reminder.", cheer: "A friendly nudge before the season ends." },
 ];
 
 const FEED_LIMIT = 100;
