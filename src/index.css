@@ -1278,6 +1278,12 @@ nav a svg,
   background: transparent;
 }
 
+.person-switch.is-compact .person-step {
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+}
+
 .person-switch.is-compact .person-menu {
   flex: none;
 }
@@ -3618,6 +3624,12 @@ button.save-flash {
     flex: 1 1 140px;
     min-width: 0;
     max-width: 100%;
+  }
+
+  /* The viewing control carries a previous and next button. It takes the
+     whole row so those buttons are not covered by the team menu. */
+  .dashboard-toolbar .person-switch.is-compact:not(:last-child) {
+    flex-basis: 100%;
   }
 
   .dashboard-toolbar .person-switch.is-compact .person-switch-box,

@@ -8,10 +8,10 @@
 // The return button is optional. The dashboard uses it to leave this page for
 // that person's My week. It stays hidden until a Google account is linked to
 // a roster name, because there is no "your week" to return to.
-// My week asks for the compact switcher instead. That one sits beside the
-// page title and reads "Viewing: You" when the list is the signed-in person.
-// The previous, next, and My week buttons are the wide picker the page used
-// to lead with. They stay on the dashboard.
+// My week asks for the compact switcher. It sits beside the page title and
+// reads "Viewing: You" when the list is the signed-in person. The previous
+// and next buttons stay on that compact control. The wide picker adds the
+// My week return button beside them.
 // The menu is ours, not a native <select>. Chrome on Windows paints that
 // popup as a blank blue bar over the page once the site is in dark mode, and
 // remounting the select did not stop it.
@@ -110,17 +110,15 @@ export function PersonPicker({
   return (
     <div className={compact ? "person-switch is-compact" : "person-switch"}>
       <div className="person-switch-box" ref={boxRef}>
-        {compact ? null : (
-          <button
-            type="button"
-            className="person-step"
-            aria-label="Previous person"
-            disabled={people.length < 2}
-            onClick={() => step(-1)}
-          >
-            ‹
-          </button>
-        )}
+        <button
+          type="button"
+          className="person-step"
+          aria-label="Previous person"
+          disabled={people.length < 2}
+          onClick={() => step(-1)}
+        >
+          ‹
+        </button>
         <div className="person-menu">
           <button
             type="button"
@@ -154,17 +152,15 @@ export function PersonPicker({
             </ul>
           ) : null}
         </div>
-        {compact ? null : (
-          <button
-            type="button"
-            className="person-step"
-            aria-label="Next person"
-            disabled={people.length < 2}
-            onClick={() => step(1)}
-          >
-            ›
-          </button>
-        )}
+        <button
+          type="button"
+          className="person-step"
+          aria-label="Next person"
+          disabled={people.length < 2}
+          onClick={() => step(1)}
+        >
+          ›
+        </button>
       </div>
       {!compact && onReturn ? (
         <button type="button" className="my-week-jump" disabled={returnDisabled} onClick={onReturn}>

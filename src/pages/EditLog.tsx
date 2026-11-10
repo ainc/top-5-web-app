@@ -84,8 +84,6 @@ export function EditLog({ people }: { people: NameOption[] }) {
   const [seasonId, setSeasonId] = useState("");
   const [savedFrom, setSavedFrom] = useState("");
   const [savedTo, setSavedTo] = useState("");
-  const [dayFrom, setDayFrom] = useState("");
-  const [dayTo, setDayTo] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -114,8 +112,6 @@ export function EditLog({ people }: { people: NameOption[] }) {
         if (seasonId) request = request.eq("season_id", seasonId);
         if (savedFrom) request = request.gte("changed_at", startOfDay(savedFrom));
         if (savedTo) request = request.lt("changed_at", startOfNextDay(savedTo));
-        if (dayFrom) request = request.gte("entry_date", dayFrom);
-        if (dayTo) request = request.lte("entry_date", dayTo);
         const needle = query.trim().replace(/[%_,]/g, "");
         if (needle) {
           request = request.or(
@@ -149,7 +145,7 @@ export function EditLog({ people }: { people: NameOption[] }) {
     setHasMore(page.length > PAGE);
     setRows(page.slice(0, PAGE));
     setLoading(false);
-  }, [dayFrom, dayTo, personId, query, savedFrom, savedTo, seasonId, tableName]);
+  }, [personId, query, savedFrom, savedTo, seasonId, tableName]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -230,14 +226,6 @@ export function EditLog({ people }: { people: NameOption[] }) {
         <label className="admin-field">
           Saved through
           <input type="date" value={savedTo} aria-label="Edits saved through" onChange={(event) => setSavedTo(event.target.value)} />
-        </label>
-        <label className="admin-field">
-          Scorecard day from
-          <input type="date" value={dayFrom} aria-label="Scorecard day from" onChange={(event) => setDayFrom(event.target.value)} />
-        </label>
-        <label className="admin-field">
-          Scorecard day through
-          <input type="date" value={dayTo} aria-label="Scorecard day through" onChange={(event) => setDayTo(event.target.value)} />
         </label>
       </div>
       {error ? <p className="banner error">{error}</p> : null}
