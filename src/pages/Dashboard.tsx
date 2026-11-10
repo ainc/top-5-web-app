@@ -31,7 +31,7 @@
 // so the names blended together.
 
 import { ChartColumn, ClipboardList, LayoutDashboard, SquareCheck } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -458,13 +458,37 @@ function PersonNames({ people }: { people: Array<{ key: string; person: string }
   ));
 }
 
-// Same closed shape as the compact person switcher. A native select paints
-// a blank bar in dark mode, so the list is ours. Everyone means no filter.
+// Same closed shape as the compact person switcher, including the previous
+// and next buttons. Everyone is the first stop, then each team name. The
+// buttons wrap. A native select paints a blank bar in dark mode, so the
+// list is ours. Everyone means no filter.
 function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; onChange: (team: string) => void }) {
+  const choices = ["", ...teams];
+  const index = choices.indexOf(value);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const listId = useId();
   const label = value ? `Team: ${value}` : "Team: Everyone";
+
+  function step(direction: -1 | 1) {
+    if (choices.length < 2 || index < 0) return;
+    const next = (index + direction + choices.length) % choices.length;
+    onChange(choices[next]);
+  }
+
+  function onMenuKey(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      if (open) step(1);
+      else setOpen(true);
+    } else if (event.key === "ArrowUp" && open) {
+      event.preventDefault();
+      step(-1);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setOpen((shown) => !shown);
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -485,6 +509,9 @@ function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; 
   return (
     <div className="person-switch is-compact">
       <div className="person-switch-box" ref={boxRef}>
+        <button type="button" className="person-step" aria-label="Previous team" disabled={choices.length < 2} onClick={() => step(-1)}>
+          ‹
+        </button>
         <div className="person-menu">
           <button
             type="button"
@@ -494,6 +521,7 @@ function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; 
             aria-expanded={open}
             aria-controls={listId}
             onClick={() => setOpen((shown) => !shown)}
+            onKeyDown={onMenuKey}
           >
             {label}
           </button>
@@ -530,6 +558,9 @@ function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; 
             </ul>
           ) : null}
         </div>
+        <button type="button" className="person-step" aria-label="Next team" disabled={choices.length < 2} onClick={() => step(1)}>
+          ›
+        </button>
       </div>
     </div>
   );
