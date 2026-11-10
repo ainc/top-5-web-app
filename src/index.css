@@ -2915,12 +2915,14 @@ a.kpi-card:focus-visible {
 }
 
 .season-table,
+.streak-table,
 .scorecard.skim {
   border-collapse: separate;
   border-spacing: 0;
 }
 
 .season-table tbody td,
+.streak-table tbody td,
 .scorecard.skim tbody th,
 .scorecard.skim tbody td {
   position: relative;
@@ -2928,11 +2930,13 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody tr,
+.streak-table tbody tr,
 .scorecard.skim tbody tr {
   transition: transform 0.25s ease;
 }
 
 .season-table tbody tr:hover,
+.streak-table tbody tr:hover,
 .scorecard.skim tbody tr:hover {
   position: relative;
   z-index: 2;
@@ -2940,28 +2944,34 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody tr:hover td,
+.streak-table tbody tr:hover td,
 .scorecard.skim tbody tr:hover th,
 .scorecard.skim tbody tr:hover td {
   z-index: 1;
 }
 
-.season-table tbody tr:hover td {
+.season-table tbody tr:hover td,
+.streak-table tbody tr:hover td {
   background: #c12029;
   color: #ffffff;
   box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
 }
 
-.season-table tbody tr:hover .name-link {
+.season-table tbody tr:hover .name-link,
+.streak-table tbody tr:hover .name-link {
   color: #ffffff;
 }
 
-.season-table tbody tr:hover .streak-badge {
+.season-table tbody tr:hover .streak-badge,
+.streak-table tbody tr:hover .streak-badge {
   background: #ffffff;
   color: #c12029;
 }
 
 .season-table tbody td:first-child::after,
 .season-table tbody td:last-child::after,
+.streak-table tbody td:first-child::after,
+.streak-table tbody td:last-child::after,
 .scorecard.skim tbody th::after,
 .scorecard.skim tbody td:last-child::after {
   content: "";
@@ -2976,6 +2986,7 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody td:first-child::after,
+.streak-table tbody td:first-child::after,
 .scorecard.skim tbody th::after {
   left: 0;
   bottom: -10px;
@@ -2984,6 +2995,7 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody td:last-child::after,
+.streak-table tbody td:last-child::after,
 .scorecard.skim tbody td:last-child::after {
   right: 0;
   bottom: -10px;
@@ -2993,6 +3005,8 @@ a.kpi-card:focus-visible {
 
 .season-table tbody tr:hover td:first-child::after,
 .season-table tbody tr:hover td:last-child::after,
+.streak-table tbody tr:hover td:first-child::after,
+.streak-table tbody tr:hover td:last-child::after,
 .scorecard.skim tbody tr:hover th::after,
 .scorecard.skim tbody tr:hover td:last-child::after {
   opacity: 1;
@@ -3013,11 +3027,13 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody tr:has(.scorecard-empty),
+.streak-table tbody tr:has(.scorecard-empty),
 .scorecard.skim tbody tr:has(.scorecard-empty) {
   transform: none;
 }
 
 .season-table tbody tr:has(.scorecard-empty):hover td,
+.streak-table tbody tr:has(.scorecard-empty):hover td,
 .scorecard.skim tbody tr:has(.scorecard-empty):hover th,
 .scorecard.skim tbody tr:has(.scorecard-empty):hover td {
   background: transparent;
@@ -3025,12 +3041,14 @@ a.kpi-card:focus-visible {
 }
 
 .season-table tbody tr:has(.scorecard-empty) td::after,
+.streak-table tbody tr:has(.scorecard-empty) td::after,
 .scorecard.skim tbody tr:has(.scorecard-empty) th::after,
 .scorecard.skim tbody tr:has(.scorecard-empty) td::after {
   content: none;
 }
 
-.board-panel .season-table tbody tr:hover td:first-child {
+.board-panel .season-table tbody tr:hover td:first-child,
+.board-panel .streak-table tbody tr:hover td:first-child {
   box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
 }
 
@@ -3041,6 +3059,9 @@ a.kpi-card:focus-visible {
   .season-table tbody tr,
   .season-table tbody td,
   .season-table tbody td::after,
+  .streak-table tbody tr,
+  .streak-table tbody td,
+  .streak-table tbody td::after,
   .scorecard.skim tbody tr,
   .scorecard.skim tbody th,
   .scorecard.skim tbody td,
@@ -3051,6 +3072,7 @@ a.kpi-card:focus-visible {
 
   .bar-row:hover,
   .season-table tbody tr:hover,
+  .streak-table tbody tr:hover,
   .scorecard.skim tbody tr:hover {
     transform: none;
   }
@@ -4436,13 +4458,16 @@ html[data-theme="dark"] .bar-row::before,
 html[data-theme="dark"] .bar-row::after,
 html[data-theme="dark"] .season-table tbody td:first-child::after,
 html[data-theme="dark"] .season-table tbody td:last-child::after,
+html[data-theme="dark"] .streak-table tbody td:first-child::after,
+html[data-theme="dark"] .streak-table tbody td:last-child::after,
 html[data-theme="dark"] .scorecard.skim tbody th::after,
 html[data-theme="dark"] .scorecard.skim tbody td:last-child::after {
   border-top-color: #2a090c;
 }
 
 html[data-theme="dark"] .bar-row:hover .name-link,
-html[data-theme="dark"] .season-table tbody tr:hover .name-link {
+html[data-theme="dark"] .season-table tbody tr:hover .name-link,
+html[data-theme="dark"] .streak-table tbody tr:hover .name-link {
   color: #ffffff;
 }
 
@@ -4450,12 +4475,14 @@ html[data-theme="dark"] .bar-row:hover .bar-fill {
   background: #ffffff;
 }
 
-html[data-theme="dark"] .season-table tbody tr:hover td {
+html[data-theme="dark"] .season-table tbody tr:hover td,
+html[data-theme="dark"] .streak-table tbody tr:hover td {
   background: #ed3742;
   color: #ffffff;
 }
 
-html[data-theme="dark"] .season-table tbody tr:hover .streak-badge {
+html[data-theme="dark"] .season-table tbody tr:hover .streak-badge,
+html[data-theme="dark"] .streak-table tbody tr:hover .streak-badge {
   background: #ffffff;
   color: #ed3742;
 }
@@ -4471,6 +4498,7 @@ html[data-theme="dark"] .scorecard.skim tbody tr:hover td.heat-scale.is-today {
 }
 
 html[data-theme="dark"] .season-table tbody tr:has(.scorecard-empty):hover td,
+html[data-theme="dark"] .streak-table tbody tr:has(.scorecard-empty):hover td,
 html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover th,
 html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover td {
   background: transparent;
