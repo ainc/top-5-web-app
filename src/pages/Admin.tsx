@@ -506,10 +506,12 @@ export function Admin() {
   }
 
   const closed = season.status === "closed";
+  const editingDraft = season.status === "draft";
   const activeSeason = seasonChoices.find((item) => item.status === "active");
 
   return (
-    <section className="page admin">
+    <section className={editingDraft ? "page admin is-editing-draft" : "page admin"}>
+      {editingDraft ? <div className="draft-caution" aria-hidden="true" /> : null}
       <h1>
         <Settings aria-hidden="true" />
         Admin

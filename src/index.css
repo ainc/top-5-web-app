@@ -3081,8 +3081,39 @@ a.kpi-card:focus-visible {
 }
 
 .season-flag.is-draft {
+  display: inline-flex;
+  align-items: center;
+  margin: 8px 0 4px;
+  padding: 14px 28px;
   background: #f3d4d6;
   color: #323232;
+  font-size: 32px;
+  line-height: 1;
+  letter-spacing: 0.14em;
+}
+
+.draft-caution {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: repeating-linear-gradient(-45deg, #1a1a1a 0 12px, #f5c518 12px 24px);
+  -webkit-mask-image:
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: top, bottom, left, right;
+  -webkit-mask-size: 100% 16px, 100% 16px, 16px 100%, 16px 100%;
+  mask-image:
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000),
+    linear-gradient(#000, #000);
+  mask-repeat: no-repeat;
+  mask-position: top, bottom, left, right;
+  mask-size: 100% 16px, 100% 16px, 16px 100%, 16px 100%;
 }
 
 .season-flag.is-closed {
