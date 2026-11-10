@@ -37,6 +37,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
 import { shownName } from "../names";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { PersonPicker } from "./PersonPicker";
 import { DAY_NAMES, dailyPoints, personKey } from "../points";
 import { seasonBoard } from "../streaks";
@@ -215,7 +216,7 @@ export function Dashboard() {
   const todayIso = formatISODate(new Date());
   const todayIndex = DAY_NAMES.findIndex((_, index) => addDays(selectedWeek, index) === todayIso);
 
-  if (!ready) return <p className="status">Loading the scorecard…</p>;
+  if (!ready) return <ScorecardLoading />;
 
   return (
     <section className="page">

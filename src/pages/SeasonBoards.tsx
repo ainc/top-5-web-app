@@ -38,6 +38,7 @@ import { useAuth } from "../auth";
 import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
 import { shownName } from "../names";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
 import { addDays, parseISODate, type WeekRecord } from "../weeks";
 
@@ -396,7 +397,7 @@ export function LeaderboardPage() {
   const { weeks, rates, scoringMode, season, nicknames, ready } = useBoard();
   const { profileName } = useAuth();
   const [searchParams] = useSearchParams();
-  if (!ready) return <p className="status">Loading the scorecard…</p>;
+  if (!ready) return <ScorecardLoading />;
   return (
     <section className="page">
       <SeasonBoards

@@ -38,6 +38,7 @@ import { maxDayPoints, maxWeekPoints, personKey, weekPoints } from "../points";
 import { seasonBoard, streakCue } from "../streaks";
 import { addDays } from "../weeks";
 import { WeekBoard } from "./WeekBoard";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { WeekMatrix } from "./WeekMatrix";
 
 type WeekLayout = "board" | "matrix";
@@ -130,7 +131,7 @@ export function MyWeek() {
     }
   }
 
-  if (!ready) return <p className="status">Loading the scorecard…</p>;
+  if (!ready) return <ScorecardLoading />;
 
   return (
     <section className="page">
