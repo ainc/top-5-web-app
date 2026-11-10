@@ -3069,10 +3069,11 @@ a.kpi-card:focus-visible {
   color: #d0d0d0;
 }
 
-/* Day cards, podium places, and the four dashboard glances share one hover.
-   The card lifts and picks up a red edge. The move is a transform, so the
-   row underneath does not reflow. */
+/* Day cards, the grid-view day tiles, podium places, and the four dashboard
+   glances share one hover. The card lifts and picks up a red edge. The move
+   is a transform, so the row underneath does not reflow. */
 .day-column,
+.matrix-day,
 .podium-card,
 .kpi-card {
   position: relative;
@@ -3080,6 +3081,7 @@ a.kpi-card:focus-visible {
 }
 
 .day-column:hover,
+.matrix-day:hover,
 .podium-card:hover,
 .kpi-card:hover {
   z-index: 1;
@@ -3092,6 +3094,11 @@ a.kpi-card:focus-visible {
   border-color: #c12029;
 }
 
+.matrix-day.is-today:hover {
+  border-color: #c12029;
+  box-shadow: inset 0 3px 0 #c12029, 0 16px 32px rgb(193 32 41 / 24%);
+}
+
 .podium-card.is-you:hover {
   border-color: #111111;
   box-shadow: inset 0 4px 0 #c12029, 0 16px 32px rgb(193 32 41 / 28%);
@@ -3099,12 +3106,14 @@ a.kpi-card:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .day-column,
+  .matrix-day,
   .podium-card,
   .kpi-card {
     transition: none;
   }
 
   .day-column:hover,
+  .matrix-day:hover,
   .podium-card:hover,
   .kpi-card:hover {
     transform: none;
@@ -4621,6 +4630,7 @@ html[data-theme="dark"] .podium-card.is-you {
 }
 
 html[data-theme="dark"] .day-column:hover,
+html[data-theme="dark"] .matrix-day:hover,
 html[data-theme="dark"] .podium-card:hover,
 html[data-theme="dark"] .kpi-card:hover {
   border-color: #ed3742;
@@ -4629,6 +4639,11 @@ html[data-theme="dark"] .kpi-card:hover {
 
 html[data-theme="dark"] .day-column.is-today:hover {
   border-color: #ed3742;
+}
+
+html[data-theme="dark"] .matrix-day.is-today:hover {
+  border-color: #ed3742;
+  box-shadow: 0 16px 32px rgb(237 55 66 / 32%);
 }
 
 html[data-theme="dark"] .podium-card.is-you:hover {
