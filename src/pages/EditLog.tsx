@@ -1,6 +1,8 @@
-// Staff view of edit_log. Search is the filters above the list. Restore puts
-// that one row back to the values it had before the logged change. The
-// database trigger records the restore as a new line, so it can be undone too.
+// Staff view of edit_log. The section starts closed, behind the same
+// disclosure triangle All tasks uses. Search is the filters above the list.
+// Restore puts that one row back to the values it had before the logged
+// change. The database trigger records the restore as a new line, so it
+// can be undone too.
 
 import { History } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -173,10 +175,12 @@ export function EditLog({ people }: { people: NameOption[] }) {
 
   return (
     <section className="admin-card tone-log">
-      <h2>
-        <History aria-hidden="true" />
-        Edit log
-      </h2>
+      <details className="edit-log-fold">
+        <summary>
+          <History aria-hidden="true" />
+          Edit log
+        </summary>
+        <div className="edit-log-body">
       <p className="field-help">
         Every change to a task, a day's notes, or a score box is recorded with the time, the signed-in account, and the values before and after. The log keeps the latest {LOG_LIMIT.toLocaleString()} changes. When a new one is saved, the oldest line is dropped. Dropping a line does not delete the day. Days from before this log started were never copied into it.
       </p>
@@ -268,6 +272,8 @@ export function EditLog({ people }: { people: NameOption[] }) {
           Showing the latest {PAGE} matching edits. Narrow the dates, season, person, or words to see a different set. The log holds at most {LOG_LIMIT.toLocaleString()} changes.
         </p>
       ) : null}
+        </div>
+      </details>
     </section>
   );
 }
