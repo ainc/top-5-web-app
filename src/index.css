@@ -2587,8 +2587,9 @@ a.kpi-card:focus-visible {
 .bars {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 14px 0;
+  gap: 12px;
+  padding: 12px 14px 8px;
+  overflow: visible;
 }
 
 .bar-row {
@@ -2628,6 +2629,69 @@ a.kpi-card:focus-visible {
 
 .bar-value {
   text-align: right;
+}
+
+/* Ranked rows lift into a ribbon. The row grows a little, and two folded
+   corners drop from the ends. The week grid keeps its heat colors. */
+.bar-row {
+  position: relative;
+  z-index: 0;
+  margin: 0 -8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: transform 0.25s ease, background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.bar-row::before,
+.bar-row::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.bar-row::before {
+  left: 2px;
+  bottom: -10px;
+  border-top: 10px solid #4a1016;
+  border-left: 10px solid transparent;
+}
+
+.bar-row::after {
+  right: 2px;
+  bottom: -10px;
+  border-top: 10px solid #4a1016;
+  border-right: 10px solid transparent;
+}
+
+.bar-row:hover {
+  z-index: 2;
+  transform: scale(1.02);
+  background: #c12029;
+  color: #ffffff;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
+}
+
+.bar-row:hover::before,
+.bar-row:hover::after {
+  opacity: 1;
+}
+
+.bar-row:hover .name-link {
+  color: #ffffff;
+}
+
+.bar-row:hover .bar-track {
+  background: rgb(255 255 255 / 28%);
+}
+
+.bar-row:hover .bar-fill {
+  background: #ffffff;
 }
 
 /* The one-line roster under a chart or table: people with no points, or
@@ -2848,6 +2912,148 @@ a.kpi-card:focus-visible {
 
 .board-panel tr.is-you td:first-child {
   box-shadow: inset 3px 0 0 #c12029;
+}
+
+.season-table,
+.scorecard.skim {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.season-table tbody td,
+.scorecard.skim tbody th,
+.scorecard.skim tbody td {
+  position: relative;
+  transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.season-table tbody tr,
+.scorecard.skim tbody tr {
+  transition: transform 0.25s ease;
+}
+
+.season-table tbody tr:hover,
+.scorecard.skim tbody tr:hover {
+  position: relative;
+  z-index: 2;
+  transform: scale(1.015);
+}
+
+.season-table tbody tr:hover td,
+.scorecard.skim tbody tr:hover th,
+.scorecard.skim tbody tr:hover td {
+  z-index: 1;
+}
+
+.season-table tbody tr:hover td {
+  background: #c12029;
+  color: #ffffff;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
+}
+
+.season-table tbody tr:hover .name-link {
+  color: #ffffff;
+}
+
+.season-table tbody tr:hover .streak-badge {
+  background: #ffffff;
+  color: #c12029;
+}
+
+.season-table tbody td:first-child::after,
+.season-table tbody td:last-child::after,
+.scorecard.skim tbody th::after,
+.scorecard.skim tbody td:last-child::after {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.season-table tbody td:first-child::after,
+.scorecard.skim tbody th::after {
+  left: 0;
+  bottom: -10px;
+  border-top: 10px solid #4a1016;
+  border-left: 10px solid transparent;
+}
+
+.season-table tbody td:last-child::after,
+.scorecard.skim tbody td:last-child::after {
+  right: 0;
+  bottom: -10px;
+  border-top: 10px solid #4a1016;
+  border-right: 10px solid transparent;
+}
+
+.season-table tbody tr:hover td:first-child::after,
+.season-table tbody tr:hover td:last-child::after,
+.scorecard.skim tbody tr:hover th::after,
+.scorecard.skim tbody tr:hover td:last-child::after {
+  opacity: 1;
+}
+
+.scorecard.skim tbody tr:hover th,
+.scorecard.skim tbody tr:hover td:not(.heat-scale) {
+  background: #fde8ea;
+  box-shadow: 0 3px 0 rgb(0 0 0 / 8%);
+}
+
+.scorecard.skim tbody tr:hover td.heat-scale {
+  box-shadow: 0 3px 0 rgb(0 0 0 / 8%);
+}
+
+.scorecard.skim tbody tr:hover td.heat-scale.is-today {
+  box-shadow: inset 2px 0 0 #c12029, inset -2px 0 0 #c12029, 0 3px 0 rgb(0 0 0 / 8%);
+}
+
+.season-table tbody tr:has(.scorecard-empty),
+.scorecard.skim tbody tr:has(.scorecard-empty) {
+  transform: none;
+}
+
+.season-table tbody tr:has(.scorecard-empty):hover td,
+.scorecard.skim tbody tr:has(.scorecard-empty):hover th,
+.scorecard.skim tbody tr:has(.scorecard-empty):hover td {
+  background: transparent;
+  box-shadow: none;
+}
+
+.season-table tbody tr:has(.scorecard-empty) td::after,
+.scorecard.skim tbody tr:has(.scorecard-empty) th::after,
+.scorecard.skim tbody tr:has(.scorecard-empty) td::after {
+  content: none;
+}
+
+.board-panel .season-table tbody tr:hover td:first-child {
+  box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar-row,
+  .bar-row::before,
+  .bar-row::after,
+  .season-table tbody tr,
+  .season-table tbody td,
+  .season-table tbody td::after,
+  .scorecard.skim tbody tr,
+  .scorecard.skim tbody th,
+  .scorecard.skim tbody td,
+  .scorecard.skim tbody th::after,
+  .scorecard.skim tbody td::after {
+    transition: none;
+  }
+
+  .bar-row:hover,
+  .season-table tbody tr:hover,
+  .scorecard.skim tbody tr:hover {
+    transform: none;
+  }
 }
 
 .team-bars,
@@ -4219,4 +4425,55 @@ html[data-theme="dark"] .team-bar-track span.is-lead {
 
 html[data-theme="dark"] .bar-fill {
   background: #ed3742;
+}
+
+html[data-theme="dark"] .bar-row:hover {
+  background: #ed3742;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .bar-row::before,
+html[data-theme="dark"] .bar-row::after,
+html[data-theme="dark"] .season-table tbody td:first-child::after,
+html[data-theme="dark"] .season-table tbody td:last-child::after,
+html[data-theme="dark"] .scorecard.skim tbody th::after,
+html[data-theme="dark"] .scorecard.skim tbody td:last-child::after {
+  border-top-color: #2a090c;
+}
+
+html[data-theme="dark"] .bar-row:hover .name-link,
+html[data-theme="dark"] .season-table tbody tr:hover .name-link {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .bar-row:hover .bar-fill {
+  background: #ffffff;
+}
+
+html[data-theme="dark"] .season-table tbody tr:hover td {
+  background: #ed3742;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .season-table tbody tr:hover .streak-badge {
+  background: #ffffff;
+  color: #ed3742;
+}
+
+html[data-theme="dark"] .scorecard.skim tbody tr:hover th,
+html[data-theme="dark"] .scorecard.skim tbody tr:hover td:not(.heat-scale) {
+  background: #4a2430;
+  color: #f1f1f2;
+}
+
+html[data-theme="dark"] .scorecard.skim tbody tr:hover td.heat-scale.is-today {
+  box-shadow: inset 2px 0 0 #ed3742, inset -2px 0 0 #ed3742, 0 3px 0 rgb(0 0 0 / 28%);
+}
+
+html[data-theme="dark"] .season-table tbody tr:has(.scorecard-empty):hover td,
+html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover th,
+html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover td {
+  background: transparent;
+  color: #939597;
+  box-shadow: none;
 }
