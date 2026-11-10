@@ -160,6 +160,18 @@ export function Admin() {
     };
   }, []);
 
+  // The tape is a frame, not a cover. The class insets the header, the
+  // week row, and the phone tab bar by the same thickness as the stripes.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (season?.status !== "draft") {
+      root.classList.remove("is-draft-caution");
+      return;
+    }
+    root.classList.add("is-draft-caution");
+    return () => root.classList.remove("is-draft-caution");
+  }, [season?.status]);
+
   function runSave(button: SaveButton, action: () => Promise<void>, fallback: string) {
     const pending = saveTimers.current[button];
     if (pending != null) window.clearTimeout(pending);

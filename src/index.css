@@ -3081,23 +3081,25 @@ a.kpi-card:focus-visible {
 }
 
 .season-flag.is-draft {
-  display: inline-flex;
-  align-items: center;
-  margin: 8px 0 4px;
-  padding: 14px 28px;
   background: #f3d4d6;
   color: #323232;
-  font-size: 32px;
-  line-height: 1;
-  letter-spacing: 0.14em;
+}
+
+html.is-draft-caution {
+  --caution-tape: 6px;
+}
+
+html.is-draft-caution .app {
+  padding: var(--caution-tape);
 }
 
 .draft-caution {
+  --caution-tape: 6px;
   position: fixed;
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  background: repeating-linear-gradient(-45deg, #1a1a1a 0 12px, #f5c518 12px 24px);
+  background: repeating-linear-gradient(-45deg, #1a1a1a 0 8px, #f5c518 8px 16px);
   -webkit-mask-image:
     linear-gradient(#000, #000),
     linear-gradient(#000, #000),
@@ -3105,7 +3107,11 @@ a.kpi-card:focus-visible {
     linear-gradient(#000, #000);
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: top, bottom, left, right;
-  -webkit-mask-size: 100% 16px, 100% 16px, 16px 100%, 16px 100%;
+  -webkit-mask-size:
+    100% var(--caution-tape),
+    100% var(--caution-tape),
+    var(--caution-tape) 100%,
+    var(--caution-tape) 100%;
   mask-image:
     linear-gradient(#000, #000),
     linear-gradient(#000, #000),
@@ -3113,7 +3119,24 @@ a.kpi-card:focus-visible {
     linear-gradient(#000, #000);
   mask-repeat: no-repeat;
   mask-position: top, bottom, left, right;
-  mask-size: 100% 16px, 100% 16px, 16px 100%, 16px 100%;
+  mask-size:
+    100% var(--caution-tape),
+    100% var(--caution-tape),
+    var(--caution-tape) 100%,
+    var(--caution-tape) 100%;
+}
+
+@media (max-width: 800px) {
+  html.is-draft-caution .app {
+    padding: var(--caution-tape);
+    padding-bottom: calc(64px + env(safe-area-inset-bottom) + var(--caution-tape));
+  }
+
+  html.is-draft-caution nav {
+    left: var(--caution-tape);
+    right: var(--caution-tape);
+    bottom: var(--caution-tape);
+  }
 }
 
 .season-flag.is-closed {
