@@ -15,8 +15,11 @@
 // total of zero is one line under the table. A six-way tie at zero used to
 // fill the rank list with identical rows.
 //
-// Season / This week changes what the podium and the ranks sort by. The
-// columns stay put, so a switch does not reshuffle the table shape.
+// The page title sits above the ranking card, the same way My week and
+// Dashboard title their pages. The mark beside it is the month's main
+// holiday, from Lucide. Season / This week sits above the teams card and
+// changes what the podium and the ranks sort by. The columns stay put, so
+// a switch does not reshuffle the table shape.
 //
 // The streak tracker under this board is the shared scan: name, current,
 // longest, bonus, last active. Next milestone is not here. It is a countdown
@@ -34,6 +37,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import {
+  Clover,
+  Drumstick,
+  Egg,
+  Flag,
+  Flower2,
+  Ghost,
+  HardHat,
+  Heart,
+  PartyPopper,
+  Rainbow,
+  Sun,
+  TreePine,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "../auth";
 import { useBoard } from "../board";
 import { DEFAULT_RATES, type ScoreRates } from "../points";
@@ -43,6 +61,29 @@ import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason
 import { addDays, parseISODate, type WeekRecord } from "../weeks";
 
 type BoardView = "season" | "week";
+
+// One mark per month, the holiday people actually notice. August has no
+// widely kept US holiday, so that month uses the summer sun. June is Pride
+// Month, which runs the whole month. Lucide has no pumpkin or turkey, so
+// Halloween is a ghost and Thanksgiving is a drumstick.
+const MONTH_HOLIDAY: { icon: LucideIcon; name: string }[] = [
+  { icon: PartyPopper, name: "New Year's Day" },
+  { icon: Heart, name: "Valentine's Day" },
+  { icon: Clover, name: "St. Patrick's Day" },
+  { icon: Egg, name: "Easter" },
+  { icon: Flower2, name: "Mother's Day" },
+  { icon: Rainbow, name: "Pride Month" },
+  { icon: Flag, name: "Independence Day" },
+  { icon: Sun, name: "Summer" },
+  { icon: HardHat, name: "Labor Day" },
+  { icon: Ghost, name: "Halloween" },
+  { icon: Drumstick, name: "Thanksgiving" },
+  { icon: TreePine, name: "Christmas" },
+];
+
+function monthHoliday(date = new Date()): { icon: LucideIcon; name: string } {
+  return MONTH_HOLIDAY[date.getMonth()] ?? MONTH_HOLIDAY[0];
+}
 
 function placeLabel(place: number): string {
   const mod100 = place % 100;
@@ -172,23 +213,22 @@ export function SeasonBoards({
   const table = ranked.filter((person) => !podiumKeys.has(person.key));
   const lead = teams[0]?.seasonTotal ?? 0;
   const isYou = (person: string) => you !== "" && person === you;
+  const holiday = monthHoliday();
+  const HolidayIcon = holiday.icon;
 
   return (
     <>
-      <div className="board-toolbar">
-        <div className="board-toggle" role="group" aria-label="Rank the leaderboard by">
-          <button type="button" aria-pressed={view === "season"} onClick={() => setView("season")}>
-            Season
-          </button>
-          <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
-            This week
-          </button>
-        </div>
-      </div>
-
       <div className="season-layout">
-        <div className="board-panel">
-          <h2 className="board-title">{view === "season" ? "Season leaderboard" : "This week"}</h2>
+        <div className="season-main">
+          <div className="page-head">
+            <h1>
+              <span className="holiday-mark" title={holiday.name}>
+                <HolidayIcon aria-hidden="true" />
+              </span>
+              {view === "season" ? "Season leaderboard" : "This week"}
+            </h1>
+          </div>
+          <div className="board-panel">
           {podium.length > 0 ? (
             <div className="podium">
               {podium.map((person) => (
@@ -254,9 +294,20 @@ export function SeasonBoards({
           {quiet.length > 0 ? (
             <p className="bar-zeros">No points yet: {quiet.map((person) => (isYou(person.person) ? `${shownName(person.person, nicknames)} (you)` : shownName(person.person, nicknames))).join(", ")}</p>
           ) : null}
+          </div>
         </div>
 
         <aside className="board-side-col">
+          <div className="board-toolbar">
+            <div className="board-toggle" role="group" aria-label="Rank the leaderboard by">
+              <button type="button" aria-pressed={view === "season"} onClick={() => setView("season")}>
+                Season
+              </button>
+              <button type="button" aria-pressed={view === "week"} onClick={() => setView("week")}>
+                This week
+              </button>
+            </div>
+          </div>
           {teams.length > 0 ? (
             <section className="board-panel board-side">
               <h2>Teams</h2>

@@ -2731,12 +2731,31 @@ a.kpi-card:focus-visible {
   align-items: start;
 }
 
+/* Title over the ranking card, switch over the teams card. Both slots are
+   the same height so the two cards start on one line. */
+.season-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.season-main .page-head,
+.board-side-col > .board-toolbar {
+  min-height: 44px;
+  align-items: center;
+}
+
+.holiday-mark {
+  display: inline-flex;
+}
+
 /* Season and This week share one control. The pressed side is a white chip
    on a grey track, not a brand-red button, so it does not read as the
    action that saves or starts a week. */
 .board-toolbar {
   display: flex;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .board-toggle {
@@ -3704,6 +3723,16 @@ button.save-flash {
   .board-side-col {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+
+  .board-side-col > .board-toolbar {
+    grid-column: 1 / -1;
+  }
+
+  /* The title slot centers on a wide row. On a phone the head stacks, and
+     centering would pull the title into the middle of the screen. */
+  .season-main .page-head {
     align-items: stretch;
   }
 
