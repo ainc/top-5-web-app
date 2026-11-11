@@ -1,14 +1,69 @@
 /* Page chrome, week switcher, and the task-cell layout inside AG Grid.
-   Colors follow Awesome Inc: charcoal #323232, brand red #c12029, the grey
-   steps from variables.scss, and bright red #ed3742 in dark mode.
+   A color is assigned once, on :root. Dark mode overrides that name.
    Open Sans is the body. Exo 2 is the "Awesome Inc" and "Top 5" wordmark.
-   Sections below, in order: header, sign-in cue, week switcher, person
-   picker, My week tiles, board and grid layouts, dashboard cards, admin,
-   the phone layout, then dark mode. */
+   Sections below, in order: color names, header, sign-in cue, week switcher,
+   person picker, My week tiles, board and grid layouts, dashboard cards,
+   admin, then the phone layout. */
 
 :root {
-  color: #323232;
-  background: #f6f6f7;
+  /* One assignment per color. Dark mode overrides the same names below. */
+  --band-charcoal: #323232;
+  --band-grey: #e6e7e8;
+  --band-pink: #fde8ea;
+  --brand: #c12029;
+  --brand-fixed: #c12029;
+  --brand-soft: #fde8ea;
+  --done: #939597;
+  --error-bg: #fff7ed;
+  --faint: #939597;
+  --field: #ffffff;
+  --field-soft: #f7f7f8;
+  --field-focus: #ffffff;
+  --heat-dot: #b5b5b5;
+  --hover: #f1f1f2;
+  --hover-sheet: #ffffff;
+  --ink: #323232;
+  --inverse: #111111;
+  --lift: rgb(193 32 41 / 24%);
+  --lift-strong: rgb(193 32 41 / 28%);
+  --lock-bg: #fdecee;
+  --lock-line: #e7b4b8;
+  --meta: #939597;
+  --muted: #939597;
+  --muted-strong: #5e5e5e;
+  --ok-bg: #f0fdf4;
+  --on-brand: #ffffff;
+  --paper: #f6f6f7;
+  --podium-you: #111111;
+  --quiet: #323232;
+  --raised: #f1f1f2;
+  --sheet: #ffffff;
+  --skim-shadow: rgb(0 0 0 / 8%);
+  --streak-ink: #c12029;
+  --surface: #ffffff;
+  --surface-mist: #f1f1f2;
+  --team-bar: #323232;
+  --canvas: #ffffff;
+  --zero: #5e5e5e;
+  --you-line: #111111;
+  --on-fill: #ffffff;
+  --line: #e4e4e6;
+  --line-strong: #d1d2d4;
+  --line-fixed: #d1d2d4;
+  --sheet-line: #e4e4e6;
+  --bar-ink: #323232;
+  --ok-line: #bbf7d0;
+  --ok-ink: #166534;
+  --error-line: #fed7aa;
+  --error-ink: #9a3412;
+  --ribbon-edge: #2a090c;
+  --score-on: #6ec8bf;
+  --track: #e4e4e6;
+  --track-warm: #f3eae3;
+  --wash: #f6e4e5;
+
+  color: var(--ink);
+  background: var(--paper);
   font-family: "Open Sans", "Segoe UI", sans-serif;
   font-size: 15px;
 }
@@ -47,8 +102,8 @@ input {
   justify-content: space-between;
   gap: 16px;
   padding: 0 22px;
-  background: #ffffff;
-  border-bottom: 1px solid #e4e4e6;
+  background: var(--sheet);
+  border-bottom: 1px solid var(--sheet-line);
 }
 
 .brand,
@@ -95,7 +150,7 @@ html[data-theme="dark"] .logo-for-dark {
 }
 
 .top5-word {
-  color: #c12029;
+  color: var(--brand);
   font-family: "Exo 2", "Open Sans", sans-serif;
   font-style: italic;
   font-weight: 800;
@@ -106,19 +161,15 @@ html[data-theme="dark"] .logo-for-dark {
   white-space: nowrap;
 }
 
-html[data-theme="dark"] .top5-word {
-  color: #ed3742;
-}
-
 .topbar nav a,
 .topbar nav a.active,
 .topbar .account button,
 .topbar .inbox-link {
-  color: #323232;
+  color: var(--bar-ink);
 }
 
 .topbar .inbox-link {
-  border-color: #d1d2d4;
+  border-color: var(--line-strong);
 }
 
 .brand strong {
@@ -173,7 +224,7 @@ html[data-theme="dark"] .top5-word {
   margin-top: calc(var(--ring) * -1);
   margin-left: calc(var(--ring) * -1);
   border-radius: 50%;
-  background: #c12029;
+  background: var(--brand);
   opacity: calc(1 - var(--ripple-fade));
   transform:
     rotate(calc(var(--ripple-index) * 1turn / var(--ripple-count)))
@@ -204,10 +255,6 @@ html[data-theme="dark"] .top5-word {
     ripple-fade var(--duration) ease-in infinite,
     ripple-grow var(--duration) ease-out infinite;
   animation-delay: calc((var(--ripple-index) / var(--ripple-count) - 1) * var(--duration));
-}
-
-html[data-theme="dark"] .loading-ripple {
-  background: #ed3742;
 }
 
 .scorecard-loading-label {
@@ -257,7 +304,7 @@ nav a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #ffffff;
+  color: var(--on-brand);
   text-decoration: none;
   padding: 10px 12px 8px;
   border-bottom: 3px solid transparent;
@@ -266,7 +313,7 @@ nav a {
 
 nav a.active {
   background: transparent;
-  color: #ffffff;
+  color: var(--on-brand);
   border-bottom-color: #c12029;
 }
 
@@ -291,8 +338,8 @@ nav a.active {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: #fde8ea;
-  color: #c12029;
+  background: var(--brand-soft);
+  color: var(--brand-fixed);
 }
 
 .header-badge svg {
@@ -311,7 +358,7 @@ nav a.active {
   border: 1px solid #3a3a3a;
   border-radius: 10px;
   background: transparent;
-  color: #ffffff;
+  color: var(--on-fill);
 }
 
 .inbox-link svg {
@@ -320,8 +367,8 @@ nav a.active {
 }
 
 .inbox-link.active {
-  border-color: #c12029;
-  color: #c12029;
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .inbox-count {
@@ -333,7 +380,7 @@ nav a.active {
   padding: 0 4px;
   border-radius: 999px;
   background: #c12029;
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 10px;
   font-weight: 700;
   line-height: 16px;
@@ -343,7 +390,7 @@ nav a.active {
 .quiet-button {
   border: 0;
   background: transparent;
-  color: #c12029;
+  color: var(--brand);
   font-weight: 650;
   padding: 6px 0;
 }
@@ -352,14 +399,14 @@ nav a.active {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid #e4e4e6;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--surface);
   overflow: hidden;
 }
 
 .notice-feed li + li {
-  border-top: 1px solid #e4e4e6;
+  border-top: 1px solid var(--line);
 }
 
 .notice-feed button {
@@ -377,7 +424,7 @@ nav a.active {
 }
 
 .notice-feed button:hover {
-  background: #f7f7f8;
+  background: var(--field-soft);
 }
 
 .notice-dot {
@@ -401,7 +448,7 @@ nav a.active {
 
 .notice-feed small,
 .notice-feed time {
-  color: #939597;
+  color: var(--meta);
   font-size: 13px;
   font-weight: 400;
 }
@@ -409,7 +456,7 @@ nav a.active {
 .notice-feed .notice-open {
   display: inline-block;
   margin: 0 16px 14px 36px;
-  color: #c12029;
+  color: var(--brand);
   font-size: 13px;
   font-weight: 750;
 }
@@ -449,7 +496,7 @@ nav a.active {
 }
 
 .notice-row.is-on .notice-bell {
-  color: #c12029;
+  color: var(--brand);
   animation: notice-buzz 0.28s ease;
 }
 
@@ -490,7 +537,7 @@ nav a.active {
 }
 
 .notice-state-on {
-  color: #c12029;
+  color: var(--brand);
 }
 
 .notice-copy .field-help,
@@ -499,7 +546,7 @@ nav a.active {
 }
 
 .notice-line {
-  color: #5e5e5e;
+  color: var(--muted-strong);
   font-size: 13px;
 }
 
@@ -533,13 +580,13 @@ nav a.active {
   width: var(--switch-inner);
   height: var(--switch-inner);
   border-radius: 50%;
-  background: #323232;
+  background: var(--ink);
   transition: transform 0.12s ease, background-color 0.12s ease;
 }
 
 .notice-toggle input:checked {
-  background: #c12029;
-  border-color: #c12029;
+  background: var(--brand);
+  border-color: var(--brand);
 }
 
 .notice-toggle input:checked::before {
@@ -592,16 +639,16 @@ nav a.active {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #ffffff;
-  color: #939597;
+  background: var(--surface);
+  color: var(--meta);
 }
 
 .notice-lock.is-locked {
-  color: #c12029;
-  border-color: #e7b4b8;
-  background: #fdecee;
+  color: var(--brand);
+  border-color: var(--lock-line);
+  background: var(--lock-bg);
 }
 
 .notice-lock svg {
@@ -616,14 +663,14 @@ nav a.active {
 }
 
 .signin-cue-label {
-  color: #c12029;
+  color: var(--brand);
   font-size: 13px;
   font-weight: 750;
   white-space: nowrap;
 }
 
 .signin-arrow {
-  color: #c12029;
+  color: var(--brand);
   font-size: 22px;
   font-weight: 750;
   line-height: 1;
@@ -655,7 +702,7 @@ nav a.active {
   border: 1px solid #3a3a3a;
   border-radius: 999px;
   background: #2a2a2a;
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .account-photo {
@@ -670,7 +717,7 @@ nav a.active {
   display: grid;
   place-items: center;
   background: #c12029;
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 13px;
   font-weight: 720;
 }
@@ -686,7 +733,7 @@ nav a.active {
 .account button {
   border: none;
   background: transparent;
-  color: #ffffff;
+  color: var(--on-brand);
   padding: 6px 4px;
 }
 
@@ -714,7 +761,7 @@ nav a.active {
   margin: 0;
   padding: 4px;
   list-style: none;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid #323232;
   border-radius: 10px;
   box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
@@ -727,7 +774,7 @@ nav a.active {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #323232;
+  color: var(--ink);
   padding: 8px 10px;
   font-weight: 650;
   text-align: left;
@@ -736,13 +783,13 @@ nav a.active {
 
 .account-menu-list button:hover,
 .account-menu-list a:hover {
-  background: #f1f1f2;
+  background: var(--hover);
 }
 
 .account-menu-list .account-menu-signout {
   margin-top: 4px;
-  color: #939597;
-  border-top: 1px solid #d1d2d4;
+  color: var(--muted);
+  border-top: 1px solid var(--line-strong);
   border-radius: 0;
 }
 
@@ -751,9 +798,9 @@ button,
 select,
 .person-picker input,
 .filter {
-  border: 1px solid #d1d2d4;
-  background: #ffffff;
-  color: #323232;
+  border: 1px solid var(--line-strong);
+  background: var(--field);
+  color: var(--ink);
   border-radius: 8px;
   padding: 7px 12px;
   cursor: pointer;
@@ -777,7 +824,7 @@ select,
 }
 
 .name-link.is-open {
-  color: #c12029;
+  color: var(--brand);
 }
 
 .button input {
@@ -791,13 +838,13 @@ select,
 }
 
 .banner.ok {
-  background: #f0fdf4;
+  background: var(--ok-bg);
   border: 1px solid #bbf7d0;
 }
 
 .banner.info {
   background: #ffffff;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
 }
 
 /* Shown when Next week or New week is stopped at four weeks out.
@@ -837,7 +884,7 @@ select,
   0%,
   49% {
     background: #c12029;
-    color: #ffffff;
+    color: var(--on-brand);
   }
   50%,
   100% {
@@ -850,12 +897,12 @@ select,
   .banner.plan-limit {
     animation: none;
     background: #c12029;
-    color: #ffffff;
+    color: var(--on-brand);
   }
 }
 
 .banner.error {
-  background: #fff7ed;
+  background: var(--error-bg);
   border: 1px solid #fed7aa;
 }
 
@@ -865,9 +912,9 @@ select,
   width: min(280px, 100%);
   margin: 0 0 16px;
   padding: 14px 16px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .page .scoring-panel h2 {
@@ -891,7 +938,7 @@ select,
 }
 
 .scoring-panel dt {
-  color: #323232;
+  color: var(--ink);
 }
 
 .scoring-panel dd {
@@ -937,9 +984,9 @@ select,
 .week-side-card,
 .profile-card {
   padding: 14px 16px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .profile-card {
@@ -959,12 +1006,12 @@ select,
 }
 
 .profile-card input {
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 8px 10px;
   font: inherit;
-  color: #323232;
-  background: #ffffff;
+  color: var(--ink);
+  background: var(--field);
 }
 
 .week-side-kicker {
@@ -1022,8 +1069,8 @@ select,
   margin: 12px 0 0;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #fde8ea;
-  color: #c12029;
+  background: var(--band-pink);
+  color: var(--streak-ink);
   font-size: 13px;
   font-weight: 650;
 }
@@ -1038,8 +1085,8 @@ select,
   gap: 16px;
   margin: 0;
   padding: 10px 20px;
-  background: #ffffff;
-  border-bottom: 1px solid #d1d2d4;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .week-nav {
@@ -1074,23 +1121,23 @@ select,
 
 .week-span {
   font-weight: 750;
-  color: #323232;
+  color: var(--ink);
   white-space: nowrap;
 }
 
 .week-today {
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   background: #ffffff;
   border-radius: 8px;
   padding: 6px 12px;
-  color: #323232;
+  color: var(--ink);
   font-weight: 650;
   text-decoration: none;
 }
 
 .week-today:disabled {
   opacity: 1;
-  color: #323232;
+  color: var(--quiet);
   background: #f4f4f5;
   text-decoration: none;
   cursor: default;
@@ -1121,7 +1168,7 @@ select,
   height: 4px;
   margin: 0;
   border-radius: 999px;
-  background: #e4e4e6;
+  background: var(--track);
   overflow: hidden;
   flex: none;
 }
@@ -1130,7 +1177,7 @@ select,
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #c12029;
+  background: var(--brand);
 }
 
 .season-strip small {
@@ -1189,8 +1236,8 @@ button:disabled {
   margin-top: 4px;
   padding: 8px 14px;
   border-radius: 8px;
-  background: #111111;
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--sheet);
   font-weight: 650;
   text-decoration: none;
 }
@@ -1223,7 +1270,7 @@ button:disabled {
 }
 
 .forbidden-lead {
-  color: #c12029;
+  color: var(--brand);
   font-size: 18px;
   font-weight: 750;
 }
@@ -1299,7 +1346,7 @@ nav a svg,
   font-weight: 720;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #c12029;
+  color: var(--brand);
 }
 
 .week-score strong {
@@ -1343,7 +1390,7 @@ nav a svg,
   gap: 4px;
   font-size: 13px;
   font-weight: 700;
-  color: #c12029;
+  color: var(--brand);
   flex: 1 1 240px;
 }
 
@@ -1351,10 +1398,10 @@ nav a svg,
   min-height: 44px;
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: #f1f1f2;
-  color: #323232;
+  color: var(--ink);
   font-size: 16px;
   font-weight: 650;
 }
@@ -1396,7 +1443,7 @@ nav a svg,
   border: 1px solid #323232;
   border-radius: 999px;
   background: #ffffff;
-  color: #323232;
+  color: var(--ink);
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -1425,7 +1472,7 @@ nav a svg,
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #323232;
+  color: var(--ink);
   padding: 6px 28px 6px 8px;
   font-weight: 650;
   text-align: left;
@@ -1456,9 +1503,9 @@ nav a svg,
 .step-switch.is-compact .step-menu-button {
   width: auto;
   height: 36px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--surface);
   padding: 6px 28px 6px 10px;
   font-weight: 650;
 }
@@ -1490,7 +1537,7 @@ nav a svg,
   list-style: none;
   max-height: 280px;
   overflow: auto;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid #323232;
   border-radius: 8px;
   box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
@@ -1502,7 +1549,7 @@ nav a svg,
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: #323232;
+  color: var(--ink);
   padding: 8px 10px;
   font-weight: 650;
   text-align: left;
@@ -1510,7 +1557,7 @@ nav a svg,
 
 .step-menu-list button[aria-selected="true"],
 .step-menu-list button:hover {
-  background: #f1f1f2;
+  background: var(--hover);
 }
 
 .my-week-jump {
@@ -1518,8 +1565,8 @@ nav a svg,
   padding: 8px 14px;
   border: 1px solid #c12029;
   border-radius: 12px;
-  background: #c12029;
-  color: #ffffff;
+  background: var(--brand);
+  color: var(--on-brand);
   font-weight: 750;
   cursor: pointer;
 }
@@ -1538,7 +1585,7 @@ nav a svg,
 
 .shared-list {
   background: #ffffff;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -1556,7 +1603,7 @@ nav a svg,
 
 .shared-days h3 {
   margin: 0 0 8px;
-  color: #c12029;
+  color: var(--brand);
   font-size: 16px;
   font-weight: 750;
 }
@@ -1619,7 +1666,7 @@ nav a svg,
   gap: 10px;
   min-height: 128px;
   padding: 14px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 16px;
   background: #ffffff;
   color: #939597;
@@ -1638,10 +1685,10 @@ nav a svg,
   display: flex;
   align-items: center;
   padding: 7px 12px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: #f1f1f2;
-  color: #323232;
+  color: var(--ink);
   font-weight: 650;
 }
 
@@ -1649,7 +1696,7 @@ nav a svg,
   display: flex;
   width: 100%;
   min-height: 40px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
@@ -1666,8 +1713,8 @@ nav a svg,
 }
 
 .layout-toggle button[aria-pressed="true"] {
-  background: #111111;
-  color: #ffffff;
+  background: var(--inverse);
+  color: var(--sheet);
 }
 
 /* Small day/night switch. Checked is the sun on a light sky. Unchecked is
@@ -1755,7 +1802,7 @@ nav a svg,
   gap: 10px;
   min-height: 420px;
   padding: 14px;
-  border: 1px solid #e4e4e6;
+  border: 1px solid var(--line);
   border-radius: 16px;
   background: #ffffff;
 }
@@ -1836,7 +1883,7 @@ nav a svg,
 }
 
 .day-task.rank-top .day-task-name {
-  color: #c12029;
+  color: var(--brand);
 }
 
 .day-task.rank-high .day-task-name {
@@ -1860,7 +1907,7 @@ nav a svg,
   background: #f1f1f2;
   border-radius: 8px;
   padding: 6px 8px;
-  color: #323232;
+  color: var(--ink);
   font: inherit;
   line-height: 20px;
 }
@@ -1878,7 +1925,7 @@ nav a svg,
 .task-html a,
 .task-readout a,
 .ql-editor a {
-  color: #c12029;
+  color: var(--brand);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -1932,13 +1979,13 @@ nav a svg,
 .day-task.is-done .task-readout,
 .day-task.is-done .task-html,
 .day-task.is-done .task-html a {
-  color: #939597;
+  color: var(--done);
   text-decoration: line-through;
 }
 
 .day-task.is-done .task-field:focus-within input[type="text"],
 .day-task.is-done .task-field:focus-within .ql-editor {
-  color: #323232;
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -1997,8 +2044,8 @@ nav a svg,
 
 .score-badge {
   padding: 6px 10px;
-  background: #fde8ea;
-  color: #c12029;
+  background: var(--brand-soft);
+  color: var(--brand-fixed);
 }
 
 .score-progress {
@@ -2014,17 +2061,17 @@ nav a svg,
 }
 
 .score-chip {
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   background: #ffffff;
-  color: #323232;
+  color: var(--ink);
   padding: 6px 10px;
   cursor: pointer;
 }
 
 .score-chip.is-on {
-  border-color: #323232;
-  background: #323232;
-  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
 }
 
 .score-chip:disabled {
@@ -2035,7 +2082,7 @@ nav a svg,
   align-self: flex-start;
   border: 0;
   background: transparent;
-  color: #939597;
+  color: var(--faint);
   padding: 4px 0;
   font-weight: 650;
   cursor: pointer;
@@ -2067,7 +2114,7 @@ nav a svg,
 .matrix-day {
   min-width: 0;
   padding: 10px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 14px;
   background: #ffffff;
 }
@@ -2090,7 +2137,7 @@ nav a svg,
    in a card without these rules. */
 .matrix-cell.is-task,
 .matrix-labels .matrix-slot.is-task {
-  border-bottom: 1px solid #e4e4e6;
+  border-bottom: 1px solid var(--line);
   padding-bottom: 8px;
 }
 
@@ -2114,7 +2161,7 @@ nav a svg,
 .matrix-slot span {
   display: block;
   font-size: 16px;
-  color: #323232;
+  color: var(--ink);
 }
 
 .matrix-slot small {
@@ -2208,7 +2255,7 @@ nav a svg,
 
 .task-done {
   text-decoration: line-through;
-  color: #939597;
+  color: var(--done);
 }
 
 /* Header and value share the right edge. The cell value is a flex child, so it needs the auto margin AG Grid uses for a right-aligned column. */
@@ -2227,7 +2274,7 @@ nav a svg,
 }
 
 .week-cell {
-  color: #c12029;
+  color: var(--brand);
 }
 
 /* Glance numbers, plus the season leader. They sit on the first scan of the page, before the chart and the tables. */
@@ -2244,7 +2291,7 @@ nav a svg,
   gap: 8px;
   min-height: 128px;
   padding: 14px 16px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   background: #ffffff;
 }
@@ -2273,7 +2320,7 @@ nav a svg,
 }
 
 .kpi-card strong {
-  color: #323232;
+  color: var(--ink);
   font-size: 32px;
   font-weight: 750;
   letter-spacing: -0.04em;
@@ -2310,7 +2357,7 @@ a.kpi-card:focus-visible {
 
 .kpi-card p {
   margin: 0;
-  color: #323232;
+  color: var(--ink);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -2338,7 +2385,7 @@ a.kpi-card:focus-visible {
 .standings-card,
 .chart-card {
   background: #ffffff;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -2357,8 +2404,8 @@ a.kpi-card:focus-visible {
 }
 
 .scorecard thead th {
-  background: #323232;
-  color: #ffffff;
+  background: var(--band-charcoal);
+  color: var(--on-fill);
   font-size: 16px;
   font-weight: 750;
   letter-spacing: 0.01em;
@@ -2372,7 +2419,7 @@ a.kpi-card:focus-visible {
 .scorecard tbody th {
   text-align: left;
   font-weight: 650;
-  background: #ffffff;
+  background: var(--field);
 }
 
 .scorecard .person-start th,
@@ -2385,13 +2432,13 @@ a.kpi-card:focus-visible {
    white; dark theme mixes the bright red into the card, so a barely-started
    day stays a faint tint instead of a pastel pink or green block. */
 .skim td.heat-scale {
-  background: color-mix(in srgb, #c12029 var(--heat, 16%), #ffffff);
-  color: #323232;
+  background: color-mix(in srgb, var(--brand) var(--heat, 16%), var(--surface));
+  color: var(--ink);
   font-weight: 700;
 }
 
 .skim td.heat-scale.is-solid {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .skim td.heat-empty {
@@ -2404,7 +2451,7 @@ a.kpi-card:focus-visible {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #b5b5b5;
+  background: var(--heat-dot);
   vertical-align: middle;
 }
 
@@ -2413,7 +2460,7 @@ a.kpi-card:focus-visible {
   width: 88px;
   height: 12px;
   border-radius: 999px;
-  background: linear-gradient(90deg, color-mix(in srgb, #c12029 16%, #ffffff), #c12029);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 16%, var(--surface)), var(--brand));
 }
 
 /* Today's column. The header gets a bright red underline and each cell in
@@ -2432,14 +2479,14 @@ a.kpi-card:focus-visible {
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .section-head h2,
 .standings-card .section-head h2,
 .chart-card .section-head h2 {
   margin: 0;
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 22px;
   font-weight: 750;
   letter-spacing: -0.03em;
@@ -2493,7 +2540,7 @@ a.kpi-card:focus-visible {
 .skim-legend span {
   padding: 2px 8px;
   border-radius: 6px;
-  color: #323232;
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -2505,7 +2552,7 @@ a.kpi-card:focus-visible {
 .tone-week > .section-head,
 .tone-chart > .section-head {
   background: #ffffff;
-  color: #323232;
+  color: var(--ink);
 }
 
 .tone-season > .section-head {
@@ -2522,11 +2569,11 @@ a.kpi-card:focus-visible {
 }
 
 .tone-winners > .section-head {
-  background: #e6e7e8;
+  background: var(--band-grey);
 }
 
 .tone-teams > .section-head {
-  background: #f1f1f2;
+  background: var(--raised);
   box-shadow: inset 0 -3px 0 #c12029;
 }
 
@@ -2534,7 +2581,7 @@ a.kpi-card:focus-visible {
 .tone-chart > .section-head h2,
 .tone-week > .section-head,
 .tone-week > .section-head h2 {
-  color: #323232;
+  color: var(--ink);
 }
 
 .tone-chart > .section-head p,
@@ -2548,7 +2595,7 @@ a.kpi-card:focus-visible {
 .tone-teams > .section-head,
 .tone-teams > .section-head h2,
 .tone-teams > .section-head p {
-  color: #323232;
+  color: var(--ink);
 }
 
 .tone-season .scorecard thead th,
@@ -2579,7 +2626,7 @@ a.kpi-card:focus-visible {
 
 .task-details {
   background: #ffffff;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   padding: 0 0 14px;
   overflow: hidden;
@@ -2593,11 +2640,11 @@ a.kpi-card:focus-visible {
   cursor: pointer;
   padding: 16px 18px;
   background: #ffffff;
-  color: #323232;
+  color: var(--ink);
   font-size: 22px;
   font-weight: 750;
   letter-spacing: -0.03em;
-  border: 1px solid #e4e4e6;
+  border: 1px solid var(--line);
   border-radius: 16px;
 }
 
@@ -2620,7 +2667,7 @@ a.kpi-card:focus-visible {
 }
 
 .person-tasks {
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   overflow: hidden;
   background: #ffffff;
@@ -2632,7 +2679,7 @@ a.kpi-card:focus-visible {
   align-items: baseline;
   gap: 12px;
   padding: 10px 14px;
-  color: #323232;
+  color: var(--ink);
 }
 
 /* Person bars sit inside All tasks. They stay smaller than that summary so a
@@ -2649,12 +2696,12 @@ a.kpi-card:focus-visible {
 
 .person-tasks:nth-child(5n + 1) header {
   background: #c12029;
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .person-tasks:nth-child(5n + 2) header {
-  background: #323232;
-  color: #ffffff;
+  background: var(--band-charcoal);
+  color: var(--on-fill);
 }
 
 .person-tasks:nth-child(5n + 3) header {
@@ -2662,12 +2709,12 @@ a.kpi-card:focus-visible {
 }
 
 .person-tasks:nth-child(5n + 4) header {
-  background: #e6e7e8;
+  background: var(--band-grey);
 }
 
 .person-tasks:nth-child(5n + 5) header {
-  background: #f1f1f2;
-  box-shadow: inset 0 -3px 0 #c12029;
+  background: var(--surface-mist);
+  box-shadow: inset 0 -3px 0 var(--brand);
 }
 
 .scorecard-empty {
@@ -2698,7 +2745,7 @@ a.kpi-card:focus-visible {
 }
 
 .place {
-  color: #c12029;
+  color: var(--brand);
   font-weight: 720;
   font-size: 13px;
 }
@@ -2751,14 +2798,14 @@ a.kpi-card:focus-visible {
 
 .bar-track {
   height: 16px;
-  background: #f3eae3;
+  background: var(--track-warm);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .bar-fill {
   height: 100%;
-  background: #c12029;
+  background: var(--brand);
   border-radius: 999px;
   min-width: 0;
 }
@@ -2808,8 +2855,8 @@ a.kpi-card:focus-visible {
 .bar-row:hover {
   z-index: 2;
   transform: scale(1.02);
-  background: #c12029;
-  color: #ffffff;
+  background: var(--brand);
+  color: var(--on-brand);
   box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
 }
 
@@ -2819,7 +2866,7 @@ a.kpi-card:focus-visible {
 }
 
 .bar-row:hover .name-link {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .bar-row:hover .bar-track {
@@ -2827,7 +2874,7 @@ a.kpi-card:focus-visible {
 }
 
 .bar-row:hover .bar-fill {
-  background: #ffffff;
+  background: var(--on-brand);
 }
 
 /* The one-line roster under a chart or table: people with no points, or
@@ -2835,7 +2882,7 @@ a.kpi-card:focus-visible {
 .bar-zeros {
   margin: 0;
   padding: 12px 14px 14px;
-  color: #5e5e5e;
+  color: var(--zero);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -2879,28 +2926,28 @@ a.kpi-card:focus-visible {
   gap: 4px;
   padding: 4px;
   border-radius: 10px;
-  background: #f1f1f2;
+  background: var(--surface-mist);
 }
 
 .board-toggle button {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: #5e5e5e;
+  color: var(--muted-strong);
   padding: 6px 12px;
   font-weight: 700;
 }
 
 .board-toggle button[aria-pressed="true"] {
-  background: #ffffff;
-  color: #323232;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+  background: var(--hover-sheet);
+  color: var(--ink);
+  box-shadow: 0 1px 2px var(--skim-shadow);
 }
 
 .board-panel {
   position: relative;
-  background: #ffffff;
-  border: 1px solid #d1d2d4;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   padding: 16px;
 }
@@ -2917,7 +2964,7 @@ a.kpi-card:focus-visible {
 .page .board-title,
 .board-side h2 {
   margin: 0 0 14px;
-  color: #323232;
+  color: var(--ink);
   font-weight: 750;
   letter-spacing: -0.03em;
 }
@@ -2997,9 +3044,9 @@ a.kpi-card:focus-visible {
   gap: 4px;
   min-width: 0;
   padding: 14px 16px 16px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
-  background: #ffffff;
+  background: var(--field);
 }
 
 .podium-card p,
@@ -3012,14 +3059,14 @@ a.kpi-card:focus-visible {
 
 .podium-card h3 {
   margin: 0;
-  color: #323232;
+  color: var(--ink);
   font-size: 20px;
   font-weight: 750;
   letter-spacing: -0.03em;
 }
 
 .podium-card strong {
-  color: #323232;
+  color: var(--ink);
   font-size: 40px;
   font-weight: 750;
   letter-spacing: -0.04em;
@@ -3028,8 +3075,8 @@ a.kpi-card:focus-visible {
 }
 
 .podium-card.is-you {
-  background: #111111;
-  border-color: #111111;
+  background: var(--podium-you);
+  border-color: var(--you-line);
   box-shadow: inset 0 4px 0 #c12029;
 }
 
@@ -3037,7 +3084,7 @@ a.kpi-card:focus-visible {
 .podium-card.is-you h3,
 .podium-card.is-you strong,
 .podium-card.is-you span {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .podium-card.is-you span,
@@ -3062,22 +3109,22 @@ a.kpi-card:focus-visible {
 .kpi-card:hover {
   z-index: 1;
   transform: translateY(-6px);
-  border-color: #c12029;
-  box-shadow: 0 16px 32px rgb(193 32 41 / 24%);
+  border-color: var(--brand);
+  box-shadow: 0 16px 32px var(--lift);
 }
 
 .day-column.is-today:hover {
-  border-color: #c12029;
+  border-color: var(--brand);
 }
 
 .matrix-day.is-today:hover {
-  border-color: #c12029;
-  box-shadow: inset 0 3px 0 #c12029, 0 16px 32px rgb(193 32 41 / 24%);
+  border-color: var(--brand);
+  box-shadow: inset 0 3px 0 #c12029, 0 16px 32px var(--lift);
 }
 
 .podium-card.is-you:hover {
-  border-color: #111111;
-  box-shadow: inset 0 4px 0 #c12029, 0 16px 32px rgb(193 32 41 / 28%);
+  border-color: var(--you-line);
+  box-shadow: inset 0 4px 0 var(--brand), 0 16px 32px var(--lift-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3101,7 +3148,7 @@ a.kpi-card:focus-visible {
    down the column. These cells are ordinary cells, so the row is one color. */
 .board-panel .scorecard thead th {
   background: transparent;
-  color: #939597;
+  color: var(--faint);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -3168,20 +3215,20 @@ a.kpi-card:focus-visible {
 
 .season-table tbody tr:hover td,
 .streak-table tbody tr:hover td {
-  background: #c12029;
-  color: #ffffff;
+  background: var(--brand);
+  color: var(--on-brand);
   box-shadow: 0 3px 0 rgb(0 0 0 / 12%);
 }
 
 .season-table tbody tr:hover .name-link,
 .streak-table tbody tr:hover .name-link {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 .season-table tbody tr:hover .streak-badge,
 .streak-table tbody tr:hover .streak-badge {
-  background: #ffffff;
-  color: #c12029;
+  background: var(--on-brand);
+  color: var(--brand);
 }
 
 .season-table tbody td:first-child::after,
@@ -3230,16 +3277,16 @@ a.kpi-card:focus-visible {
 
 .scorecard.skim tbody tr:hover th,
 .scorecard.skim tbody tr:hover td:not(.heat-scale) {
-  background: #fde8ea;
-  box-shadow: 0 3px 0 rgb(0 0 0 / 8%);
+  background: var(--band-pink);
+  box-shadow: 0 3px 0 var(--skim-shadow);
 }
 
 .scorecard.skim tbody tr:hover td.heat-scale {
-  box-shadow: 0 3px 0 rgb(0 0 0 / 8%);
+  box-shadow: 0 3px 0 var(--skim-shadow);
 }
 
 .scorecard.skim tbody tr:hover td.heat-scale.is-today {
-  box-shadow: inset 2px 0 0 #c12029, inset -2px 0 0 #c12029, 0 3px 0 rgb(0 0 0 / 8%);
+  box-shadow: inset 2px 0 0 var(--brand), inset -2px 0 0 var(--brand), 0 3px 0 var(--skim-shadow);
 }
 
 .season-table tbody tr:has(.scorecard-empty),
@@ -3329,7 +3376,7 @@ a.kpi-card:focus-visible {
   display: block;
   height: 6px;
   border-radius: 999px;
-  background: #f1f1f2;
+  background: var(--hover);
   overflow: hidden;
 }
 
@@ -3337,11 +3384,11 @@ a.kpi-card:focus-visible {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #323232;
+  background: var(--team-bar);
 }
 
 .team-bar-track span.is-lead {
-  background: #c12029;
+  background: var(--brand);
 }
 
 .winner-list li p {
@@ -3367,13 +3414,13 @@ a.kpi-card:focus-visible {
   gap: 12px;
   margin: 0;
   padding: 10px 14px;
-  background: #f6e4e5;
-  color: #323232;
+  background: var(--wash);
+  color: var(--ink);
 }
 
 .winner-current td {
   background: #323232;
-  color: #ffffff;
+  color: var(--on-brand);
   font-weight: 650;
 }
 
@@ -3404,7 +3451,7 @@ a.kpi-card:focus-visible {
   padding: 0 4px;
   border-radius: 999px;
   background: #c12029;
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
@@ -3462,7 +3509,7 @@ a.kpi-card:focus-visible {
   gap: 12px;
   padding: 0 14px 14px;
   background: #ffffff;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -3470,7 +3517,7 @@ a.kpi-card:focus-visible {
 .admin-card h2 {
   margin: 0 -14px 0;
   padding: 10px 14px;
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: 18px;
   letter-spacing: -0.02em;
 }
@@ -3481,7 +3528,7 @@ a.kpi-card:focus-visible {
 
 .admin-card.tone-bonus h2 {
   background: #f3d4d6;
-  color: #323232;
+  color: var(--ink);
 }
 
 .admin-card.tone-roster h2 {
@@ -3489,20 +3536,20 @@ a.kpi-card:focus-visible {
 }
 
 .admin-card.tone-teams h2 {
-  background: #e6e7e8;
-  color: #323232;
+  background: var(--band-grey);
+  color: var(--ink);
 }
 
 .admin-card.tone-roles h2 {
-  background: #f1f1f2;
-  color: #323232;
+  background: var(--raised);
+  color: var(--ink);
   box-shadow: inset 0 -3px 0 #c12029;
 }
 
 .admin-card.tone-log h2,
 .edit-log-fold > summary {
   background: #323232;
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 /* Same disclosure triangle as All tasks. The summary stays a list item so
@@ -3551,13 +3598,13 @@ a.kpi-card:focus-visible {
 }
 
 .season-flag.is-active {
-  background: #6ec8bf;
-  color: #323232;
+  background: var(--score-on);
+  color: var(--ink);
 }
 
 .season-flag.is-draft {
   background: #f3d4d6;
-  color: #323232;
+  color: var(--ink);
 }
 
 html.is-draft-caution {
@@ -3616,7 +3663,7 @@ html.is-draft-caution .app {
 
 .season-flag.is-closed {
   background: #e6e7e8;
-  color: #323232;
+  color: var(--ink);
 }
 
 .edit-log {
@@ -3631,9 +3678,9 @@ html.is-draft-caution .app {
   align-items: flex-start;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid #d1d2d4;
+  border: 1px solid var(--line-strong);
   border-radius: 10px;
-  background: #f1f1f2;
+  background: var(--raised);
 }
 
 .edit-log article p,
@@ -3654,7 +3701,7 @@ button.save-flash {
   animation: save-flash 0.7s ease-out;
   background: #166534;
   border-color: #166534;
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 @keyframes save-flash {
@@ -3666,11 +3713,11 @@ button.save-flash {
   40% {
     transform: scale(1);
     background: #166534;
-    color: #ffffff;
+    color: var(--on-brand);
   }
   100% {
     background: #166534;
-    color: #ffffff;
+    color: var(--on-brand);
   }
 }
 
@@ -3690,8 +3737,8 @@ button.save-flash {
 
 .admin-card input,
 .admin-card select {
-  border: 1px solid #d1d2d4;
-  background: #ffffff;
+  border: 1px solid var(--line-strong);
+  background: var(--field);
   border-radius: 8px;
   padding: 7px 12px;
 }
@@ -3754,8 +3801,8 @@ button.save-flash {
     justify-content: space-between;
     gap: 12px;
     padding: 8px 12px;
-    color: #323232;
-    border-bottom: 1px solid #e4e4e6;
+    color: var(--ink);
+    border-bottom: 1px solid var(--line);
   }
 
   nav {
@@ -3791,11 +3838,11 @@ button.save-flash {
 
   nav a.active {
     border-bottom-color: transparent;
-    color: #ffffff;
+    color: var(--on-brand);
   }
 
   nav a.active svg {
-    color: #c12029;
+    color: var(--brand);
   }
 
   .app {
@@ -3834,22 +3881,15 @@ button.save-flash {
   /* The page links leave the white bar and sit on the black bottom bar. */
   .topbar nav a,
   .topbar nav a.active {
-    color: #ffffff;
+    color: var(--on-brand);
   }
 
   html[data-theme="dark"] nav a.active {
-    background: transparent;
-    border-bottom-color: transparent;
-    color: #ffffff;
-  }
-
-  html[data-theme="dark"] nav a.active svg {
-    color: #ed3742;
+    color: var(--on-brand);
   }
 
   html[data-theme="dark"] .account-theme {
-    color: #f1f1f2;
-    border-bottom-color: #4a4a4a;
+    border-bottom-color: var(--line);
   }
 
   .page {
@@ -4039,16 +4079,62 @@ button.save-flash {
 
 /* Dark mode swaps the page surfaces. Colored headers, heat cells, and streak chips keep their own fills. */
 html[data-theme="dark"] {
-  color: #f1f1f2;
-  background: #1e1e1e;
   color-scheme: dark;
+  --band-charcoal: #1e1e1e;
+  --band-grey: #4a4a4a;
+  --band-pink: #4a2430;
+  --brand: #ed3742;
+  --done: #a89890;
+  --error-bg: #431407;
+  --field: #323232;
+  --field-soft: #323232;
+  --field-focus: #2a2024;
+  --heat-dot: #8a8a8a;
+  --hover: #3a3a3a;
+  --hover-sheet: #3a3a3a;
+  --ink: #f1f1f2;
+  --inverse: #f1f1f2;
+  --lift: rgb(237 55 66 / 32%);
+  --lift-strong: rgb(237 55 66 / 32%);
+  --lock-bg: #3a2226;
+  --lock-line: #6e3036;
+  --meta: #b9b3ae;
+  --muted: #d0c4bc;
+  --muted-strong: #d0c4bc;
+  --ok-bg: #052e16;
+  --paper: #1e1e1e;
+  --podium-you: #1a1a1a;
+  --quiet: #939597;
+  --raised: #323232;
+  --sheet: #111111;
+  --skim-shadow: rgb(0 0 0 / 28%);
+  --streak-ink: #ffb4bc;
+  --surface: #2a2a2a;
+  --surface-mist: #2a2a2a;
+  --team-bar: #8a8a8a;
+  --canvas: #1e1e1e;
+  --zero: #c8c8c8;
+  --you-line: #ed3742;
+  --on-fill: #f1f1f2;
+  --line: #4a4a4a;
+  --line-strong: #4a4a4a;
+  --sheet-line: #111111;
+  --bar-ink: #ffffff;
+  --ok-line: #166534;
+  --ok-ink: #dcfce7;
+  --error-line: #9a3412;
+  --error-ink: #ffedd5;
+  --ribbon-edge: #2a090c;
+  --track: #4a2430;
+  --track-warm: #3a2e32;
+  --wash: #3a2426;
 }
 
 html[data-theme="dark"] .section-head,
 html[data-theme="dark"] .section-head h2,
 html[data-theme="dark"] .section-head p,
 html[data-theme="dark"] .task-details summary {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 html[data-theme="dark"] .tone-week > .section-head,
@@ -4057,58 +4143,34 @@ html[data-theme="dark"] .tone-week > .section-head h2,
 html[data-theme="dark"] .tone-chart > .section-head h2,
 html[data-theme="dark"] .tone-week > .section-head p,
 html[data-theme="dark"] .tone-chart > .section-head p {
-  background: #2a2a2a;
-  color: #f1f1f2;
+  background: var(--surface);
 }
 html[data-theme="dark"] .task-details summary,
 html[data-theme="dark"] .admin-card.tone-bonus h2,
 html[data-theme="dark"] .person-tasks:nth-child(5n + 3) header {
-  background: #3a2426;
-  color: #f1f1f2;
+  background: var(--wash);
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .tone-winners > .section-head,
 html[data-theme="dark"] .admin-card.tone-teams h2,
 html[data-theme="dark"] .person-tasks:nth-child(5n + 4) header {
-  background: #4a4a4a;
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .tone-teams > .section-head,
 html[data-theme="dark"] .admin-card.tone-roles h2,
 html[data-theme="dark"] .edit-log article {
-  background: #323232;
-  color: #f1f1f2;
+  color: var(--ink);
 }
 html[data-theme="dark"] .person-tasks:nth-child(5n + 5) header {
-  background: #2a2a2a;
-  color: #f1f1f2;
-  box-shadow: inset 0 -3px 0 #ed3742;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .person-tasks:nth-child(5n + 2) header,
 html[data-theme="dark"] .scorecard thead th {
-  background: #1e1e1e;
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .signin-cue-label,
-html[data-theme="dark"] .signin-arrow {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .kpi-card strong,
-html[data-theme="dark"] .kpi-card p {
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .shared-days h3 {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .current-week-banner {
-  background: #3a2426;
-  color: #f1f1f2;
+  background: var(--band-charcoal);
+  color: var(--on-fill);
 }
 html[data-theme="dark"] .page-head p,
 html[data-theme="dark"] .status,
@@ -4129,142 +4191,63 @@ html[data-theme="dark"] .rank-name small,
 html[data-theme="dark"] .scorecard-empty,
 html[data-theme="dark"] .account button,
 html[data-theme="dark"] .layout-toggle button {
-  color: #d0c4bc;
+  color: var(--muted);
 }
 
 html[data-theme="dark"] .account-menu-list {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .account-menu-list button,
-html[data-theme="dark"] .account-menu-list a {
-  background: transparent;
-  color: #f1f1f2;
-  border: 0;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .account-menu-list button:hover,
 html[data-theme="dark"] .account-menu-list a:hover {
-  background: #3a3a3a;
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .account-menu-list .account-menu-signout {
-  color: #d0c4bc;
-  border-top-color: #4a4a4a;
+  border-top-color: var(--line);
 }
 
 html[data-theme="dark"] .topbar {
-  background: #111111;
-  border-bottom-color: #111111;
-}
-
-html[data-theme="dark"] .forbidden-lead {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .not-found-home {
-  background: #f1f1f2;
-  color: #111111;
-}
-
-html[data-theme="dark"] .header-badge {
-  background: #fde8ea;
-  color: #c12029;
+  border-bottom-color: var(--sheet);
 }
 
 html[data-theme="dark"] .inbox-link {
-  background: #2a2a2a;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .inbox-link.active {
-  color: #ed3742;
-  border-color: #ed3742;
-}
-
-html[data-theme="dark"] .quiet-button {
-  background: transparent;
-  color: #ed3742;
-  border: 0;
+  background: var(--surface);
+  color: var(--on-fill);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .notice-feed {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .notice-feed li + li {
-  border-top-color: #4a4a4a;
+  border-top-color: var(--line);
 }
 
 html[data-theme="dark"] .notice-feed button {
-  background: transparent;
-  color: #f1f1f2;
-  border: 0;
-}
-
-html[data-theme="dark"] .notice-feed button:hover {
-  background: #323232;
-}
-
-html[data-theme="dark"] .notice-feed small,
-html[data-theme="dark"] .notice-feed time {
-  color: #b9b3ae;
-}
-
-html[data-theme="dark"] .notice-feed .notice-open {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .notice-row.is-on .notice-bell,
-html[data-theme="dark"] .notice-state-on {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .notice-line {
-  color: #d0c4bc;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .notice-toggle input {
-  border-color: #d0c4bc;
-}
-
-html[data-theme="dark"] .notice-toggle input::before {
-  background: #f1f1f2;
-}
-
-html[data-theme="dark"] .notice-toggle input:checked {
-  background: #ed3742;
-  border-color: #ed3742;
+  border-color: var(--muted);
 }
 
 html[data-theme="dark"] .notice-toggle input:focus-visible {
-  outline-color: #ed3742;
+  outline-color: var(--brand);
 }
 
 html[data-theme="dark"] .notice-lock {
-  background: #2a2a2a;
-  color: #b9b3ae;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .notice-lock.is-locked {
-  color: #ed3742;
-  border-color: #6e3036;
-  background: #3a2226;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] nav a {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 
 html[data-theme="dark"] nav a.active {
-  background: transparent;
-  color: #ffffff;
-  border-bottom-color: #ed3742;
+  color: var(--on-brand);
+  border-bottom-color: var(--brand);
 }
 
 html[data-theme="dark"] button,
@@ -4285,29 +4268,21 @@ html[data-theme="dark"] .task-details,
 html[data-theme="dark"] .person-tasks,
 html[data-theme="dark"] .admin-card,
 html[data-theme="dark"] .banner.info {
-  background: #2a2a2a;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .name-link {
-  background: transparent;
-  border: 0;
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .name-link.is-open,
-html[data-theme="dark"] .whose-week label,
-html[data-theme="dark"] .whose-week-field {
-  color: #ed3742;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .whose-week,
 html[data-theme="dark"] .shared-list,
 html[data-theme="dark"] .shared-days li {
-  background: #2a2a2a;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .whose-week select,
@@ -4315,100 +4290,63 @@ html[data-theme="dark"] .step-switch-box,
 html[data-theme="dark"] .step-button,
 html[data-theme="dark"] .step-menu-button,
 html[data-theme="dark"] .shared-days li {
-  background: #323232;
-  color: #f1f1f2;
-  border-color: #d1d2d4;
+  background: var(--field);
+  color: var(--ink);
+  border-color: var(--line-fixed);
 }
 
 html[data-theme="dark"] .step-menu-list {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .step-menu-list button {
-  background: transparent;
-  color: #f1f1f2;
-  border: 0;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .step-menu-list button[aria-selected="true"],
 html[data-theme="dark"] .step-menu-list button:hover {
-  background: #3a3a3a;
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .my-week-jump {
-  background: #ed3742;
-  border-color: #ed3742;
-  color: #ffffff;
+  border-color: var(--brand);
 }
 
 html[data-theme="dark"] .person-picker input,
 html[data-theme="dark"] .admin-card input,
 html[data-theme="dark"] .admin-card select {
-  background: #323232;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
-  background: #f1f1f2;
-  color: #111111;
-  border-color: #f1f1f2;
+  border-color: var(--ink);
 }
 
 html[data-theme="dark"] .week-switcher {
-  background: #1e1e1e;
-  border-bottom-color: #4a4a4a;
+  border-bottom-color: var(--line);
 }
 
 html[data-theme="dark"] .week-step,
 html[data-theme="dark"] .week-today {
   background: transparent;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .week-today {
   border: 0;
 }
 
-html[data-theme="dark"] .week-today:disabled {
-  color: #939597;
-}
-
 html[data-theme="dark"] .week-span,
 html[data-theme="dark"] .season-strip strong {
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .season-track {
-  background: #4a2430;
-}
-
-html[data-theme="dark"] .season-track span {
-  background: #ed3742;
-}
-
-html[data-theme="dark"] .week-score-label,
-html[data-theme="dark"] .place,
-html[data-theme="dark"] .week-cell,
-html[data-theme="dark"] .day-task.rank-top .day-task-name {
-  color: #ed3742;
-}
-
-html[data-theme="dark"] .matrix-slot span {
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .matrix-cell.is-task,
 html[data-theme="dark"] .matrix-labels .matrix-slot.is-task {
-  border-bottom-color: #4a4a4a;
+  border-bottom-color: var(--line);
 }
 
 html[data-theme="dark"] .day-column.is-today,
 html[data-theme="dark"] .matrix-day.is-today {
-  border: 2px solid #ed3742;
+  border: 2px solid var(--brand);
   box-shadow: none;
 }
 
@@ -4418,104 +4356,62 @@ html[data-theme="dark"] .day-score,
 html[data-theme="dark"] .task-readout,
 html[data-theme="dark"] .task-editor,
 html[data-theme="dark"] .task-editor .ql-editor {
-  background: #323232;
-  color: #f1f1f2;
+  background: var(--field);
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .task-html a,
 html[data-theme="dark"] .task-readout a,
 html[data-theme="dark"] .ql-editor a {
-  color: #ed3742;
+  color: var(--brand);
 }
 
 html[data-theme="dark"] .day-task input[type="text"]:focus,
 html[data-theme="dark"] .day-notes textarea:focus,
 html[data-theme="dark"] .task-editor:focus-within,
 html[data-theme="dark"] .task-editor:focus-within .ql-editor {
-  background: #2a2024;
-  outline-color: #ed3742;
-}
-
-html[data-theme="dark"] .day-task.is-done input[type="text"],
-html[data-theme="dark"] .day-task.is-done .task-done,
-html[data-theme="dark"] .day-task.is-done .task-readout,
-html[data-theme="dark"] .day-task.is-done .task-html,
-html[data-theme="dark"] .day-task.is-done .task-html a,
-html[data-theme="dark"] .task-done {
-  color: #a89890;
-}
-
-html[data-theme="dark"] .day-task.is-done .task-field:focus-within input[type="text"],
-html[data-theme="dark"] .day-task.is-done .task-field:focus-within .ql-editor {
-  color: #f1f1f2;
-  text-decoration: none;
+  background: var(--field-focus);
+  outline-color: var(--brand);
 }
 
 html[data-theme="dark"] .day-score.is-on {
-  background: #6ec8bf;
+  background: var(--score-on);
 }
 
 html[data-theme="dark"] .day-score.is-on b {
-  color: #323232;
+  color: var(--field);
 }
 
 html[data-theme="dark"] .week-side-card,
 html[data-theme="dark"] .profile-card,
 html[data-theme="dark"] .step-switch.is-compact .step-menu-button {
-  background: #2a2a2a;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  color: var(--ink);
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .profile-card input {
-  background: #323232;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .week-side-total,
 html[data-theme="dark"] .week-side-stat,
 html[data-theme="dark"] .scoring-panel dt {
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .score-chip {
   background: transparent;
-  color: #f1f1f2;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .score-chip.is-on {
-  background: #f1f1f2;
-  color: #1e1e1e;
-  border-color: #f1f1f2;
-}
-
-html[data-theme="dark"] .score-badge {
-  background: #fde8ea;
-  color: #c12029;
-}
-
-html[data-theme="dark"] .day-note-add {
-  background: transparent;
-  color: #939597;
-}
-
-html[data-theme="dark"] .streak-cue {
-  background: #4a2430;
-  color: #ffb4bc;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .banner.ok {
-  background: #052e16;
-  border-color: #166534;
-  color: #dcfce7;
+  border-color: var(--ok-line);
+  color: var(--ok-ink);
 }
 
 html[data-theme="dark"] .banner.error {
-  background: #431407;
-  border-color: #9a3412;
-  color: #ffedd5;
+  border-color: var(--error-line);
+  color: var(--error-ink);
 }
 
 html[data-theme="dark"] .scorecard th,
@@ -4523,68 +4419,26 @@ html[data-theme="dark"] .scorecard td {
   border-bottom-color: #3a2e32;
 }
 
-html[data-theme="dark"] .scorecard tbody th {
-  background: #323232;
-}
-
 html[data-theme="dark"] .scorecard .person-start th,
 html[data-theme="dark"] .scorecard .person-start td {
-  border-top-color: #d0c4bc;
-}
-
-html[data-theme="dark"] .skim td.heat-scale {
-  background: color-mix(in srgb, #ed3742 var(--heat, 16%), #2a2a2a);
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .skim td.heat-scale.is-solid {
-  color: #ffffff;
-}
-
-html[data-theme="dark"] .heat-dot {
-  background: #8a8a8a;
-}
-
-html[data-theme="dark"] .heat-ramp {
-  background: linear-gradient(90deg, color-mix(in srgb, #ed3742 16%, #2a2a2a), #ed3742);
+  border-top-color: var(--muted);
 }
 
 html[data-theme="dark"] .bar-track {
-  background: #3a2e32;
-}
-
-html[data-theme="dark"] .bar-zeros {
-  color: #c8c8c8;
-}
-
-html[data-theme="dark"] .board-toggle {
-  background: #2a2a2a;
-}
-
-html[data-theme="dark"] .board-toggle button {
-  background: transparent;
-  color: #d0c4bc;
-  border: 0;
-}
-
-html[data-theme="dark"] .board-toggle button[aria-pressed="true"] {
-  background: #3a3a3a;
-  color: #f1f1f2;
+  background: var(--track-warm);
 }
 
 html[data-theme="dark"] .board-panel {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .scoring-panel {
-  background: #2a2a2a;
-  border-color: #4a4a4a;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .scoring-panel dt,
 html[data-theme="dark"] .scoring-panel dd {
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .page .board-title,
@@ -4592,61 +4446,28 @@ html[data-theme="dark"] .podium-card h3,
 html[data-theme="dark"] .podium-card strong,
 html[data-theme="dark"] .team-bars strong,
 html[data-theme="dark"] .winner-list strong {
-  color: #f1f1f2;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .board-panel .scorecard thead th,
 html[data-theme="dark"] .board-panel .scorecard td {
   background: transparent;
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .board-panel .scorecard thead th {
-  color: #939597;
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .podium-card {
-  background: #323232;
-  border-color: #4a4a4a;
-}
-
-html[data-theme="dark"] .podium-card.is-you {
-  background: #1a1a1a;
-  border-color: #ed3742;
+  border-color: var(--line);
 }
 
 html[data-theme="dark"] .day-column:hover,
 html[data-theme="dark"] .matrix-day:hover,
 html[data-theme="dark"] .podium-card:hover,
 html[data-theme="dark"] .kpi-card:hover {
-  border-color: #ed3742;
-  box-shadow: 0 16px 32px rgb(237 55 66 / 32%);
-}
-
-html[data-theme="dark"] .day-column.is-today:hover {
-  border-color: #ed3742;
+  border-color: var(--brand);
 }
 
 html[data-theme="dark"] .matrix-day.is-today:hover {
-  border-color: #ed3742;
-  box-shadow: 0 16px 32px rgb(237 55 66 / 32%);
-}
-
-html[data-theme="dark"] .podium-card.is-you:hover {
-  border-color: #ed3742;
-  box-shadow: inset 0 4px 0 #ed3742, 0 16px 32px rgb(237 55 66 / 32%);
-}
-
-html[data-theme="dark"] .team-bar-track {
-  background: #3a3a3a;
-}
-
-html[data-theme="dark"] .team-bar-track span {
-  background: #8a8a8a;
-}
-
-html[data-theme="dark"] .team-bar-track span.is-lead {
-  background: #ed3742;
+  box-shadow: 0 16px 32px var(--lift);
 }
 
 @media (max-width: 800px) {
@@ -4776,12 +4597,7 @@ html[data-theme="dark"] .team-bar-track span.is-lead {
 }
 
 html[data-theme="dark"] .bar-fill {
-  background: #ed3742;
-}
-
-html[data-theme="dark"] .bar-row:hover {
-  background: #ed3742;
-  color: #ffffff;
+  background: var(--brand);
 }
 
 html[data-theme="dark"] .bar-row::before,
@@ -4792,46 +4608,17 @@ html[data-theme="dark"] .streak-table tbody td:first-child::after,
 html[data-theme="dark"] .streak-table tbody td:last-child::after,
 html[data-theme="dark"] .scorecard.skim tbody th::after,
 html[data-theme="dark"] .scorecard.skim tbody td:last-child::after {
-  border-top-color: #2a090c;
-}
-
-html[data-theme="dark"] .bar-row:hover .name-link,
-html[data-theme="dark"] .season-table tbody tr:hover .name-link,
-html[data-theme="dark"] .streak-table tbody tr:hover .name-link {
-  color: #ffffff;
-}
-
-html[data-theme="dark"] .bar-row:hover .bar-fill {
-  background: #ffffff;
-}
-
-html[data-theme="dark"] .season-table tbody tr:hover td,
-html[data-theme="dark"] .streak-table tbody tr:hover td {
-  background: #ed3742;
-  color: #ffffff;
-}
-
-html[data-theme="dark"] .season-table tbody tr:hover .streak-badge,
-html[data-theme="dark"] .streak-table tbody tr:hover .streak-badge {
-  background: #ffffff;
-  color: #ed3742;
+  border-top-color: var(--ribbon-edge);
 }
 
 html[data-theme="dark"] .scorecard.skim tbody tr:hover th,
 html[data-theme="dark"] .scorecard.skim tbody tr:hover td:not(.heat-scale) {
-  background: #4a2430;
-  color: #f1f1f2;
-}
-
-html[data-theme="dark"] .scorecard.skim tbody tr:hover td.heat-scale.is-today {
-  box-shadow: inset 2px 0 0 #ed3742, inset -2px 0 0 #ed3742, 0 3px 0 rgb(0 0 0 / 28%);
+  color: var(--ink);
 }
 
 html[data-theme="dark"] .season-table tbody tr:has(.scorecard-empty):hover td,
 html[data-theme="dark"] .streak-table tbody tr:has(.scorecard-empty):hover td,
 html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover th,
 html[data-theme="dark"] .scorecard.skim tbody tr:has(.scorecard-empty):hover td {
-  background: transparent;
-  color: #939597;
-  box-shadow: none;
+  color: var(--faint);
 }
