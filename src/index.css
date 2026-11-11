@@ -1352,18 +1352,19 @@ nav a svg,
 }
 
 /* The switch box is the judges-app pitch control: one outline, a round
-   previous button, the menu, and a round next button. PersonPicker and
-   TeamMenu both render StepMenu, so these classes are the one style for
-   both. My week sits outside that outline so it reads as a separate action,
+   previous button, the menu, and a round next button. step-* is the shared
+   look. person-switch is only the person picker, and team-switch is only
+   the team menu, so a person-only rule cannot restyle the team control.
+   My week sits outside that outline so it reads as a separate action,
    not another person. */
-.person-switch {
+.step-switch {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
 }
 
-.person-switch-box {
+.step-switch-box {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1375,12 +1376,12 @@ nav a svg,
   background: #ffffff;
 }
 
-.person-step,
+.step-button,
 .my-week-jump {
   flex: none;
 }
 
-.person-step {
+.step-button {
   width: 36px;
   height: 36px;
   padding: 0;
@@ -1393,7 +1394,7 @@ nav a svg,
   cursor: pointer;
 }
 
-.person-step:disabled {
+.step-button:disabled {
   opacity: 0.35;
   cursor: default;
 }
@@ -1401,13 +1402,13 @@ nav a svg,
 /* The closed control looks like the old select. The open list is a page
    element, so dark mode can color the names instead of leaving Chrome's
    popup as a blank blue bar. */
-.person-menu {
+.step-menu {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.person-menu-button {
+.step-menu-button {
   position: relative;
   display: flex;
   align-items: center;
@@ -1422,29 +1423,29 @@ nav a svg,
   text-align: left;
 }
 
-.person-switch.is-compact {
+.step-switch.is-compact {
   width: auto;
   flex: none;
 }
 
-.person-switch.is-compact .person-switch-box {
+.step-switch.is-compact .step-switch-box {
   width: auto;
   padding: 0;
   border: 0;
   background: transparent;
 }
 
-.person-switch.is-compact .person-step {
+.step-switch.is-compact .step-button {
   width: 32px;
   height: 32px;
   font-size: 20px;
 }
 
-.person-switch.is-compact .person-menu {
+.step-switch.is-compact .step-menu {
   flex: none;
 }
 
-.person-switch.is-compact .person-menu-button {
+.step-switch.is-compact .step-menu-button {
   width: auto;
   height: 36px;
   border: 1px solid #d1d2d4;
@@ -1454,11 +1455,11 @@ nav a svg,
   font-weight: 650;
 }
 
-.person-switch.is-compact .person-menu-list {
+.step-switch.is-compact .step-menu-list {
   min-width: 220px;
 }
 
-.person-menu-button::after {
+.step-menu-button::after {
   content: "";
   position: absolute;
   right: 12px;
@@ -1470,7 +1471,7 @@ nav a svg,
   transform: translateY(-70%) rotate(45deg);
 }
 
-.person-menu-list {
+.step-menu-list {
   position: absolute;
   z-index: 30;
   top: calc(100% + 6px);
@@ -1487,7 +1488,7 @@ nav a svg,
   box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
 }
 
-.person-menu-list button {
+.step-menu-list button {
   display: block;
   width: 100%;
   border: 0;
@@ -1499,8 +1500,8 @@ nav a svg,
   text-align: left;
 }
 
-.person-menu-list button[aria-selected="true"],
-.person-menu-list button:hover {
+.step-menu-list button[aria-selected="true"],
+.step-menu-list button:hover {
   background: #f1f1f2;
 }
 
@@ -3798,7 +3799,7 @@ button.save-flash {
     justify-content: flex-end;
   }
 
-  .person-switch {
+  .step-switch {
     flex-wrap: wrap;
   }
 
@@ -3861,32 +3862,32 @@ button.save-flash {
     min-width: 0;
   }
 
-  .dashboard-toolbar .person-switch.is-compact {
+  .dashboard-toolbar .step-switch.is-compact {
     flex: 1 1 140px;
     min-width: 0;
     max-width: 100%;
   }
 
-  /* The viewing control carries a previous and next button. It takes the
-     whole row so those buttons are not covered by the team menu. */
-  .dashboard-toolbar .person-switch.is-compact:not(:last-child) {
+  /* The person picker takes the whole row so its next button is not covered
+     by the team menu. This rule is person-switch only. */
+  .dashboard-toolbar .person-switch.is-compact {
     flex-basis: 100%;
   }
 
-  .dashboard-toolbar .person-switch.is-compact .person-switch-box,
-  .dashboard-toolbar .person-switch.is-compact .person-menu {
+  .dashboard-toolbar .step-switch.is-compact .step-switch-box,
+  .dashboard-toolbar .step-switch.is-compact .step-menu {
     min-width: 0;
     max-width: 100%;
   }
 
-  .person-switch.is-compact .person-menu-button {
+  .step-switch.is-compact .step-menu-button {
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .person-switch.is-compact .person-menu-list {
+  .step-switch.is-compact .step-menu-list {
     left: 0;
     right: auto;
     width: auto;
@@ -3894,7 +3895,7 @@ button.save-flash {
     max-width: calc(100vw - 24px);
   }
 
-  .dashboard-toolbar .person-switch.is-compact:last-child .person-menu-list {
+  .dashboard-toolbar .team-switch .step-menu-list {
     left: auto;
     right: 0;
   }
@@ -4290,28 +4291,28 @@ html[data-theme="dark"] .shared-days li {
 }
 
 html[data-theme="dark"] .whose-week select,
-html[data-theme="dark"] .person-switch-box,
-html[data-theme="dark"] .person-step,
-html[data-theme="dark"] .person-menu-button,
+html[data-theme="dark"] .step-switch-box,
+html[data-theme="dark"] .step-button,
+html[data-theme="dark"] .step-menu-button,
 html[data-theme="dark"] .shared-days li {
   background: #323232;
   color: #f1f1f2;
   border-color: #d1d2d4;
 }
 
-html[data-theme="dark"] .person-menu-list {
+html[data-theme="dark"] .step-menu-list {
   background: #2a2a2a;
   border-color: #4a4a4a;
 }
 
-html[data-theme="dark"] .person-menu-list button {
+html[data-theme="dark"] .step-menu-list button {
   background: transparent;
   color: #f1f1f2;
   border: 0;
 }
 
-html[data-theme="dark"] .person-menu-list button[aria-selected="true"],
-html[data-theme="dark"] .person-menu-list button:hover {
+html[data-theme="dark"] .step-menu-list button[aria-selected="true"],
+html[data-theme="dark"] .step-menu-list button:hover {
   background: #3a3a3a;
   color: #f1f1f2;
 }
@@ -4440,7 +4441,7 @@ html[data-theme="dark"] .day-score.is-on b {
 
 html[data-theme="dark"] .week-side-card,
 html[data-theme="dark"] .profile-card,
-html[data-theme="dark"] .person-switch.is-compact .person-menu-button {
+html[data-theme="dark"] .step-switch.is-compact .step-menu-button {
   background: #2a2a2a;
   color: #f1f1f2;
   border-color: #4a4a4a;

@@ -465,6 +465,7 @@ function PersonNames({ people }: { people: Array<{ key: string; person: string }
 function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; onChange: (team: string) => void }) {
   return (
     <StepMenu
+      scope="team"
       compact
       options={[{ value: "", label: "Everyone" }, ...teams.map((team) => ({ value: team, label: team }))]}
       value={value}

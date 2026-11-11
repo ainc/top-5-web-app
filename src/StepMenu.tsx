@@ -11,6 +11,9 @@ export type StepOption = {
 };
 
 type StepMenuProps = {
+  // person-switch is only the person picker. The team menu uses team-switch,
+  // so a person-only rule cannot restyle the team control.
+  scope: "person" | "team";
   options: StepOption[];
   value: string;
   onChange: (value: string) => void;
@@ -24,6 +27,7 @@ type StepMenuProps = {
 };
 
 export function StepMenu({
+  scope,
   options,
   value,
   onChange,
@@ -83,16 +87,17 @@ export function StepMenu({
     }
   }
 
+  const scopeClass = scope === "person" ? "person-switch" : "team-switch";
   return (
-    <div className={compact ? "person-switch is-compact" : "person-switch"}>
-      <div className="person-switch-box" ref={boxRef}>
-        <button type="button" className="person-step" aria-label={previousLabel} disabled={options.length < 2} onClick={() => step(-1)}>
+    <div className={compact ? `step-switch ${scopeClass} is-compact` : `step-switch ${scopeClass}`}>
+      <div className="step-switch-box" ref={boxRef}>
+        <button type="button" className="step-button" aria-label={previousLabel} disabled={options.length < 2} onClick={() => step(-1)}>
           ‹
         </button>
-        <div className="person-menu">
+        <div className="step-menu">
           <button
             type="button"
-            className="person-menu-button"
+            className="step-menu-button"
             aria-label={menuLabel}
             aria-haspopup="listbox"
             aria-expanded={open}
@@ -103,7 +108,7 @@ export function StepMenu({
             {closedLabel}
           </button>
           {open ? (
-            <ul id={listId} className="person-menu-list" role="listbox" aria-label={listLabel}>
+            <ul id={listId} className="step-menu-list" role="listbox" aria-label={listLabel}>
               {options.map((option) => (
                 <li key={`option:${option.value}`} role="presentation">
                   <button
@@ -122,7 +127,7 @@ export function StepMenu({
             </ul>
           ) : null}
         </div>
-        <button type="button" className="person-step" aria-label={nextLabel} disabled={options.length < 2} onClick={() => step(1)}>
+        <button type="button" className="step-button" aria-label={nextLabel} disabled={options.length < 2} onClick={() => step(1)}>
           ›
         </button>
       </div>

@@ -61,6 +61,7 @@ export function PersonPicker({
 
   return (
     <StepMenu
+      scope="person"
       compact={compact}
       options={people.map((person) => ({ value: person.key, label: labelFor(person) }))}
       value={value}
