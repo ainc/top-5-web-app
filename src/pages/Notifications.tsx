@@ -9,7 +9,7 @@
 
 import { Inbox } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "../auth";
 import { ForbiddenPage } from "./Forbidden";
 import { loadNotices, markNoticesRead, refreshSeasonReminder, subscribeToNotices, unreadCount, type StaffNotice } from "../notifications";
@@ -135,6 +135,11 @@ export function NotificationsPage() {
                   <time dateTime={notice.createdAt}>{when(notice.createdAt)}</time>
                 </span>
               </button>
+              {notice.href?.includes("roster-links") ? (
+                <Link className="notice-open" to={notice.href}>
+                  Open the roster
+                </Link>
+              ) : null}
             </li>
           ))}
         </ul>

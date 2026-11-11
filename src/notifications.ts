@@ -20,6 +20,7 @@ export type StaffNotice = {
   kind: NoticeKind;
   title: string;
   body: string;
+  href: string | null;
   read: boolean;
 };
 
@@ -54,7 +55,7 @@ export async function refreshSeasonReminder(): Promise<void> {
 export async function loadNotices(profileId: string): Promise<StaffNotice[]> {
   const supabase = getSupabase();
   const [{ data: rows, error }, { data: reads, error: readError }] = await Promise.all([
-    supabase.from("notifications").select("id, created_at, kind, title, body").order("created_at", { ascending: false }).limit(FEED_LIMIT),
+    supabase.from("notifications").select("id, created_at, kind, title, body, href").order("created_at", { ascending: false }).limit(FEED_LIMIT),
     supabase.from("notification_reads").select("notification_id").eq("profile_id", profileId),
   ]);
   if (error) throw new Error(error.message);
@@ -66,6 +67,7 @@ export async function loadNotices(profileId: string): Promise<StaffNotice[]> {
     kind: asKind(String(row.kind)),
     title: String(row.title),
     body: String(row.body),
+    href: row.href ? String(row.href) : null,
     read: seen.has(Number(row.id)),
   }));
 }

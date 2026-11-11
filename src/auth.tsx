@@ -233,7 +233,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const { enrollSignedInUser } = await import("./remoteBoard");
           await enrollSignedInUser(signedIn);
         } catch (error: unknown) {
-          if (!cancel) setError(error instanceof Error ? error.message : "Could not join the roster.");
+          const message = error instanceof Error ? error.message : "Could not join the roster.";
+          if (!cancel) setError(message);
+          // The notice is already in the staff inbox. Leave the banner up, then
+          // end the session so this account cannot open the board unsigned.
+          if (message.includes("attach this Google account")) await getSupabase().auth.signOut();
         }
       }
       if (cancel) return;

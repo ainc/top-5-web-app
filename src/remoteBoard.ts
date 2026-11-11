@@ -823,9 +823,8 @@ async function claimRosterEmail(email: string): Promise<{ id: string; display_na
   return null;
 }
 
-// The sheet often stores a first name. Google sends "First Last". Use the full
-// name when it matches, otherwise the first name when exactly one unsigned
-// roster row has that name. Two people named Logan stay unmatched.
+// Exact display name only. A first name such as Logan is not a claim: that
+// path used to attach the wrong person, or create a second one, with no message.
 async function claimRosterName(googleName: string): Promise<{ id: string; display_name: string } | null> {
   const supabase = getSupabase();
   const exact = await supabase
@@ -836,13 +835,16 @@ async function claimRosterName(googleName: string): Promise<{ id: string; displa
     .limit(2);
   fail(exact.error, "match roster name");
   if ((exact.data ?? []).length === 1) return exact.data?.[0] ?? null;
-
-  const first = googleName.split(/\s+/)[0]?.trim() ?? "";
-  if (first.length < 2 || first.toLowerCase() === googleName.trim().toLowerCase()) return null;
-  const byFirst = await supabase.from("profiles").select("id, display_name").is("auth_user_id", null).ilike("display_name", first);
-  fail(byFirst.error, "match roster name");
-  if ((byFirst.data ?? []).length === 1) return byFirst.data?.[0] ?? null;
   return null;
+}
+
+// Records the collision and writes the staff inbox line. Returns the roster
+// names that share this Google account's first name, or null when nothing clashes.
+async function holdRosterLink(googleName: string): Promise<string | null> {
+  const { data, error } = await getSupabase().rpc("hold_roster_link", { google_name: googleName });
+  fail(error, "check roster name");
+  const names = String(data ?? "").trim();
+  return names || null;
 }
 
 // Google tells us who they are. The scorecard still needs a profile, a roster
@@ -876,6 +878,11 @@ export async function enrollSignedInUser(user: User): Promise<void> {
       profileId = claim.id;
       rosterName = claim.display_name;
     } else {
+      const held = await holdRosterLink(googleName);
+      if (held) {
+        const label = held.includes(",") ? "names" : "name";
+        throw new Error(`${googleName} matches the roster ${label} ${held}. An admin needs to attach this Google account before the board will open.`);
+      }
       const { data: inserted, error } = await supabase
         .from("profiles")
         .insert({ display_name: googleName, auth_user_id: user.id })

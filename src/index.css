@@ -406,6 +406,14 @@ nav a.active {
   font-weight: 400;
 }
 
+.notice-feed .notice-open {
+  display: inline-block;
+  margin: 0 16px 14px 36px;
+  color: #c12029;
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .notice-settings {
   list-style: none;
   margin: 12px 0 0;
@@ -3704,6 +3712,14 @@ button.save-flash {
   align-items: center;
 }
 
+.admin-list li.roster-link {
+  flex-wrap: wrap;
+}
+
+.admin-list li.roster-link span {
+  flex: 1 1 180px;
+}
+
 @media (max-width: 800px) {
   .topbar,
   .page-head,
@@ -4197,6 +4213,10 @@ html[data-theme="dark"] .notice-feed button:hover {
 html[data-theme="dark"] .notice-feed small,
 html[data-theme="dark"] .notice-feed time {
   color: #b9b3ae;
+}
+
+html[data-theme="dark"] .notice-feed .notice-open {
+  color: #ed3742;
 }
 
 html[data-theme="dark"] .notice-row.is-on .notice-bell,
