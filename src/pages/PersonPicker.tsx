@@ -12,12 +12,11 @@
 // reads "Viewing: You" when the list is the signed-in person. The previous
 // and next buttons stay on that compact control. The wide picker adds the
 // My week return button beside them.
-// The menu is ours, not a native <select>. Chrome on Windows paints that
-// popup as a blank blue bar over the page once the site is in dark mode, and
-// remounting the select did not stop it.
+// The menu itself is StepMenu. The labels below are the only person-specific
+// part: nicknames, and "You" for the signed-in roster name.
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { pickerName } from "../names";
+import { StepMenu } from "../StepMenu";
 
 type PersonChoice = {
   key: string;
@@ -45,19 +44,7 @@ export function PersonPicker({
   returnDisabled = false,
   compact = false,
 }: PersonPickerProps) {
-  const index = people.findIndex((person) => person.key === value);
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const listId = useId();
-  const current = index >= 0 ? people[index] : undefined;
-
-  // Step by one roster row. An empty list, or a value that is not in the list,
-  // does nothing so a stale key cannot wrap onto the wrong person.
-  function step(direction: -1 | 1) {
-    if (people.length < 2 || index < 0) return;
-    const next = (index + direction + people.length) % people.length;
-    onChange(people[next].key);
-  }
+  const current = people.find((person) => person.key === value);
 
   function labelFor(person: PersonChoice) {
     return pickerName(person.person, nicknames, person.person === signedInName);
@@ -66,107 +53,30 @@ export function PersonPicker({
   // The closed compact control names the viewer, not the roster nickname.
   // "You" is the signed-in person. Everyone else is their display name.
   function closedLabel() {
-    if (!current) return "Viewing";
+    if (!current) return "Choose a person";
     if (!compact) return labelFor(current);
     if (current.person === signedInName) return "Viewing: You";
     return `Viewing: ${pickerName(current.person, nicknames, false)}`;
   }
 
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    boxRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
-  }, [open, value]);
-
-  function onMenuKey(event: ReactKeyboardEvent<HTMLButtonElement>) {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (open) step(1);
-      else setOpen(true);
-    } else if (event.key === "ArrowUp" && open) {
-      event.preventDefault();
-      step(-1);
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      setOpen((shown) => !shown);
-    }
-  }
-
   return (
-    <div className={compact ? "person-switch is-compact" : "person-switch"}>
-      <div className="person-switch-box" ref={boxRef}>
-        <button
-          type="button"
-          className="person-step"
-          aria-label="Previous person"
-          disabled={people.length < 2}
-          onClick={() => step(-1)}
-        >
-          ‹
-        </button>
-        <div className="person-menu">
-          <button
-            type="button"
-            className="person-menu-button"
-            aria-label={compact ? "Whose week" : "Look at someone's tasks"}
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((shown) => !shown)}
-            onKeyDown={onMenuKey}
-          >
-            {current ? closedLabel() : "Choose a person"}
+    <StepMenu
+      compact={compact}
+      options={people.map((person) => ({ value: person.key, label: labelFor(person) }))}
+      value={value}
+      onChange={onChange}
+      closedLabel={closedLabel()}
+      previousLabel="Previous person"
+      nextLabel="Next person"
+      menuLabel={compact ? "Whose week" : "Look at someone's tasks"}
+      listLabel="Look at someone's tasks"
+      trailing={
+        !compact && onReturn ? (
+          <button type="button" className="my-week-jump" disabled={returnDisabled} onClick={onReturn}>
+            My week
           </button>
-          {open ? (
-            <ul id={listId} className="person-menu-list" role="listbox" aria-label="Look at someone's tasks">
-              {people.map((person) => (
-                <li key={person.key} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={person.key === value}
-                    onClick={() => {
-                      onChange(person.key);
-                      setOpen(false);
-                    }}
-                  >
-                    {labelFor(person)}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          className="person-step"
-          aria-label="Next person"
-          disabled={people.length < 2}
-          onClick={() => step(1)}
-        >
-          ›
-        </button>
-      </div>
-      {!compact && onReturn ? (
-        <button type="button" className="my-week-jump" disabled={returnDisabled} onClick={onReturn}>
-          My week
-        </button>
-      ) : null}
-    </div>
+        ) : null
+      }
+    />
   );
 }

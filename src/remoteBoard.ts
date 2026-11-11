@@ -8,11 +8,9 @@
 //   bonus_checks               Top 5, Exercise, Reading, and any added bonus,
 //                              with the points copied at check time so a later
 //                              bonus edit does not rewrite past days
-// A load joins those tables back into DayRows.
-//
-// This season's scoring_mode is "individual", so team names on a row are
-// ignored. The teams tables stay empty until a commissioner turns team
-// scoring on.
+// A load joins those tables back into DayRows. When the open season scores
+// teams, each row also carries the name from team_members. An individual
+// season leaves that name blank, so an old sheet banner cannot become a team.
 
 import type { RealtimeChannel, User } from "@supabase/supabase-js";
 import { googleDisplayName } from "./auth";

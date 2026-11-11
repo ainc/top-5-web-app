@@ -1352,8 +1352,10 @@ nav a svg,
 }
 
 /* The switch box is the judges-app pitch control: one outline, a round
-   previous button, the menu, and a round next button. My week sits outside
-   that outline so it reads as a separate action, not another person. */
+   previous button, the menu, and a round next button. PersonPicker and
+   TeamMenu both render StepMenu, so these classes are the one style for
+   both. My week sits outside that outline so it reads as a separate action,
+   not another person. */
 .person-switch {
   display: flex;
   align-items: center;
@@ -2136,41 +2138,6 @@ nav a svg,
 .matrix-scores .day-score {
   padding: 4px 6px;
   font-size: 12px;
-}
-
-/* One card per weekday. The spreadsheet columns stay in a single horizontal row. */
-.week-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.day-strip {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 12px 8px;
-  border: 1px solid #d1d2d4;
-  border-radius: 14px;
-  background: #ffffff;
-}
-
-.day-strip.is-today {
-  border-color: #c12029;
-  box-shadow: inset 0 3px 0 #c12029;
-}
-
-.day-strip .grid-wrap {
-  height: auto;
-  min-height: 0;
-}
-
-/* AG Grid reserves 150px under an auto-height grid so an empty table still has a body.
-   Each day card has one row, so that floor is just blank space under the tasks.
-   44px matches the rowHeight passed to ScoreGrid. */
-.day-strip .ag-layout-auto-height.ag-grid-scrolling-rows {
-  min-height: 0;
-  height: 44px;
 }
 
 /* AG Grid needs an explicit height. Standings size themselves to the number of people. */
@@ -4288,7 +4255,6 @@ html[data-theme="dark"] .team-readout,
 html[data-theme="dark"] .layout-toggle,
 html[data-theme="dark"] .week-tile,
 html[data-theme="dark"] .day-column,
-html[data-theme="dark"] .day-strip,
 html[data-theme="dark"] .matrix-day,
 html[data-theme="dark"] .scorecard-wrap,
 html[data-theme="dark"] .standings-card,
@@ -4420,8 +4386,7 @@ html[data-theme="dark"] .matrix-labels .matrix-slot.is-task {
 }
 
 html[data-theme="dark"] .day-column.is-today,
-html[data-theme="dark"] .matrix-day.is-today,
-html[data-theme="dark"] .day-strip.is-today {
+html[data-theme="dark"] .matrix-day.is-today {
   border: 2px solid #ed3742;
   box-shadow: none;
 }

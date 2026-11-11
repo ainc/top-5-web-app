@@ -31,13 +31,14 @@
 // so the names blended together.
 
 import { ChartColumn, ClipboardList, LayoutDashboard, SquareCheck } from "lucide-react";
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth";
 import { ScoreGrid, useBoard } from "../board";
 import { shownName } from "../names";
 import { ScorecardLoading } from "../ScorecardLoading";
+import { StepMenu } from "../StepMenu";
 import { PersonPicker } from "./PersonPicker";
 import { DAY_NAMES, dailyPoints, personKey } from "../points";
 import { seasonBoard } from "../streaks";
@@ -458,110 +459,21 @@ function PersonNames({ people }: { people: Array<{ key: string; person: string }
   ));
 }
 
-// Same closed shape as the compact person switcher, including the previous
-// and next buttons. Everyone is the first stop, then each team name. The
-// buttons wrap. A native select paints a blank bar in dark mode, so the
-// list is ours. Everyone means no filter.
+// Everyone is the first stop, then each team name. The arrows, the open list,
+// and the wrap come from StepMenu, the same control as the person picker.
+// Everyone means no filter.
 function TeamMenu({ teams, value, onChange }: { teams: string[]; value: string; onChange: (team: string) => void }) {
-  const choices = ["", ...teams];
-  const index = choices.indexOf(value);
-  const [open, setOpen] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
-  const listId = useId();
-  const label = value ? `Team: ${value}` : "Team: Everyone";
-
-  function step(direction: -1 | 1) {
-    if (choices.length < 2 || index < 0) return;
-    const next = (index + direction + choices.length) % choices.length;
-    onChange(choices[next]);
-  }
-
-  function onMenuKey(event: ReactKeyboardEvent<HTMLButtonElement>) {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (open) step(1);
-      else setOpen(true);
-    } else if (event.key === "ArrowUp" && open) {
-      event.preventDefault();
-      step(-1);
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      setOpen((shown) => !shown);
-    }
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
   return (
-    <div className="person-switch is-compact">
-      <div className="person-switch-box" ref={boxRef}>
-        <button type="button" className="person-step" aria-label="Previous team" disabled={choices.length < 2} onClick={() => step(-1)}>
-          ‹
-        </button>
-        <div className="person-menu">
-          <button
-            type="button"
-            className="person-menu-button"
-            aria-label="Team"
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            aria-controls={listId}
-            onClick={() => setOpen((shown) => !shown)}
-            onKeyDown={onMenuKey}
-          >
-            {label}
-          </button>
-          {open ? (
-            <ul id={listId} className="person-menu-list" role="listbox" aria-label="Team">
-              <li role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={!value}
-                  onClick={() => {
-                    onChange("");
-                    setOpen(false);
-                  }}
-                >
-                  Everyone
-                </button>
-              </li>
-              {teams.map((team) => (
-                <li key={team} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={value === team}
-                    onClick={() => {
-                      onChange(team);
-                      setOpen(false);
-                    }}
-                  >
-                    {team}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <button type="button" className="person-step" aria-label="Next team" disabled={choices.length < 2} onClick={() => step(1)}>
-          ›
-        </button>
-      </div>
-    </div>
+    <StepMenu
+      compact
+      options={[{ value: "", label: "Everyone" }, ...teams.map((team) => ({ value: team, label: team }))]}
+      value={value}
+      onChange={onChange}
+      closedLabel={value ? `Team: ${value}` : "Team: Everyone"}
+      previousLabel="Previous team"
+      nextLabel="Next team"
+      menuLabel="Team"
+      listLabel="Team"
+    />
   );
 }
