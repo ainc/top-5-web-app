@@ -9,6 +9,8 @@
 
 import { Settings } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useBoard } from "../board";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { getSupabase } from "../supabaseClient";
 import { EditLog } from "./EditLog";
 import { NotificationSettings } from "./NotificationSettings";
@@ -28,14 +30,15 @@ export function Admin() {
   const [signingInAs, setSigningInAs] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const { reload } = useBoard();
 
   const onSeason = useCallback((next: Season) => setSeason(next), []);
   const onPeople = useCallback((next: RosterName[]) => setPeople(next), []);
   const saved = useCallback((text: string) => {
     setError("");
     setMessage(text);
-    window.dispatchEvent(new Event("top5-reload"));
-  }, []);
+    reload();
+  }, [reload]);
   const failed = useCallback((reason: unknown, fallback: string) => {
     setError(reason instanceof Error ? reason.message : fallback);
   }, []);
@@ -97,8 +100,10 @@ export function Admin() {
       </h1>
       {season ? (
         <p>Scoring, teams, the roster, notifications, and the next season. A commissioner or an admin can change these. Only an admin can assign roles, and only an admin can lock a notification. One season is live. The next one can be drafted and edited before it is activated.</p>
+      ) : error ? (
+        <p className="status">{error}</p>
       ) : (
-        <p className="status">{error || "Loading admin…"}</p>
+        <ScorecardLoading label="Loading admin…" />
       )}
       {season && message ? <p className="banner ok">{message}</p> : null}
       {season && error ? <p className="banner error">{error}</p> : null}

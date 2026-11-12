@@ -10,6 +10,7 @@ import { dailyPoints, DEFAULT_RATES, peopleOnWeek, personKey, weekPoints, withAu
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
 import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
+import { onReload, reload } from "./reloadBoard";
 import type { SeasonSpan } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import { sameTasks } from "./taskSlots";
@@ -57,6 +58,10 @@ type BoardValue = {
   createNewWeek: () => void;
   loadSample: () => Promise<void>;
   dismissNotice: () => void;
+  // Refetch the open weeks after a save that did not go through onPatch.
+  // Admin, Profile, and the edit log call this. A live task edit does not:
+  // the scorecard channel already schedules the same refetch.
+  reload: () => void;
 };
 
 const BoardContext = createContext<BoardValue | null>(null);
@@ -204,61 +209,64 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     };
   }, [applyLoaded, ready]);
 
-  // Admin saves seasons and bonuses in the same database. Reload so a new
-  // point value shows up without a full browser refresh.
+  // One refetch for an explicit reload() and for a live change from another
+  // browser. Both used to be separate, and the explicit one applied whatever
+  // came back. A check on a second day could land while that fetch was in
+  // flight, and the older snapshot then turned the box back off.
+  //
+  // generation throws away a snapshot that a newer request has replaced.
+  // editEpoch throws away one that left before the latest local edit.
+  // writesInFlight waits until saveDays has finished, because the load and
+  // the save share one queue and a load queued first would read the old row.
   useEffect(() => {
     if (!ready) return;
-    const reload = () => {
+    let timer = 0;
+    let generation = 0;
+    let cancelled = false;
+
+    const attempt = () => {
+      if (cancelled) return;
+      if (writesInFlight() || isTextEditing()) {
+        timer = window.setTimeout(attempt, 400);
+        return;
+      }
+      const ticket = generation;
+      const epoch = editEpoch.current;
       loadBoardState()
         .then((state) => {
+          if (cancelled || ticket !== generation) return;
+          if (epoch !== editEpoch.current || writesInFlight() || isTextEditing()) {
+            timer = window.setTimeout(attempt, 400);
+            return;
+          }
           applyLoaded(state, true);
           setScoringMode(state.scoringMode);
           setSeason(state.season);
           setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
         })
         .catch((error: unknown) => {
+          if (cancelled || ticket !== generation) return;
           setNotice({ tone: "error", text: errorText(error, "Could not reload the scorecard.") });
         });
     };
-    window.addEventListener("top5-reload", reload);
-    return () => window.removeEventListener("top5-reload", reload);
-  }, [applyLoaded, ready]);
 
-  // A remote change reloads the week, but not while our own save is still
-  // in flight and not while a task title is focused. Otherwise the reload
-  // would wipe the letters still being typed.
-  useEffect(() => {
-    if (!ready) return;
-    let timer = 0;
-    const unsubscribe = subscribeToBoard(() => {
+    const schedule = (delay: number) => {
+      generation += 1;
       window.clearTimeout(timer);
-      const reload = () => {
-        // Wait out our own save and a title that is still focused. The
-        // fetch itself also has to be thrown away if an edit lands while
-        // it is in flight. Otherwise the response, which left before the
-        // blur, arrives a moment later and overwrites the field they left.
-        if (writesInFlight() || isTextEditing()) {
-          timer = window.setTimeout(reload, 400);
-          return;
-        }
-        const epoch = editEpoch.current;
-        loadBoardState()
-          .then((state) => {
-            if (epoch !== editEpoch.current || writesInFlight() || isTextEditing()) {
-              timer = window.setTimeout(reload, 400);
-              return;
-            }
-            applyLoaded(state, true);
-          })
-          .catch((error: unknown) => {
-            setNotice({ tone: "error", text: errorText(error, "Could not refresh the scorecard.") });
-          });
-      };
-      timer = window.setTimeout(reload, 400);
-    });
+      timer = window.setTimeout(attempt, delay);
+    };
+
+    // A task save writes several rows, and each row notifies the channel.
+    // Waiting folds that burst into one refetch. reload() from a season,
+    // roster, role, nickname, or restore runs on the next turn.
+    const unsubscribeLive = subscribeToBoard(() => schedule(400));
+    const unsubscribeReload = onReload(() => schedule(0));
     return () => {
+      cancelled = true;
+      generation += 1;
       window.clearTimeout(timer);
-      unsubscribe();
+      unsubscribeLive();
+      unsubscribeReload();
     };
   }, [applyLoaded, ready]);
 
@@ -294,7 +302,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   // React state updates first, so the box looks checked before the network
   // returns. saveDays is the only call that writes that day to Supabase.
   // Admin season, bonus, roster, team, and role saves do not come through here.
-  // Each admin card calls supabase.from() itself, then asks the board to reload.
+  // Each admin card calls supabase.from() itself, then calls reload().
   const onPatch = useCallback(
     (id: string, patch: Partial<GridRow>) => {
       const week = weeksRef.current[selectedWeek];
@@ -516,6 +524,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       createNewWeek,
       loadSample,
       dismissNotice,
+      reload,
     }),
     [
       rows,
@@ -542,11 +551,14 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       createNewWeek,
       loadSample,
       dismissNotice,
+      reload,
     ],
   );
 
   return <BoardContext.Provider value={value}>{children}</BoardContext.Provider>;
 }
+
+export { reload };
 
 export function useBoard(): BoardValue {
   const value = useContext(BoardContext);

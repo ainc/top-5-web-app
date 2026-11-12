@@ -6,6 +6,8 @@
 
 import { History } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useBoard } from "../board";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { slotName } from "../taskSlots";
 import { getSupabase } from "../supabaseClient";
 
@@ -77,6 +79,7 @@ function diffs(entry: LogRow): string[] {
 }
 
 export function EditLog({ people }: { people: NameOption[] }) {
+  const { reload } = useBoard();
   const [rows, setRows] = useState<LogRow[]>([]);
   const [actors, setActors] = useState<Record<string, string>>({});
   const [roster, setRoster] = useState<NameOption[]>(people);
@@ -169,7 +172,7 @@ export function EditLog({ people }: { people: NameOption[] }) {
       setError(restoreError.message);
       return;
     }
-    window.dispatchEvent(new Event("top5-reload"));
+    reload();
     setNotice("Restored. That restore is now a line in the log too.");
     await load();
   }
@@ -235,7 +238,7 @@ export function EditLog({ people }: { people: NameOption[] }) {
       </div>
       {error ? <p className="banner error">{error}</p> : null}
       {notice ? <p className="banner ok">{notice}</p> : null}
-      {loading && rows.length === 0 ? <p className="status">Loading the edit log…</p> : null}
+      {loading && rows.length === 0 ? <ScorecardLoading compact label="Loading the edit log…" /> : null}
       {!loading && rows.length === 0 ? <p className="field-help">No matching edits yet.</p> : null}
       <div className="edit-log">
         {rows.map((entry) => {

@@ -11,6 +11,7 @@ import { Inbox } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { canOpenAdmin, useAuth } from "../auth";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { ForbiddenPage } from "./Forbidden";
 import { loadNotices, markNoticesRead, refreshSeasonReminder, subscribeToNotices, unreadCount, type StaffNotice } from "../notifications";
 
@@ -120,7 +121,7 @@ export function NotificationsPage() {
       </div>
       {error ? <p className="banner error">{error}</p> : null}
       {notices === null ? (
-        <p className="status">Loading notifications…</p>
+        <ScorecardLoading label="Loading notifications…" />
       ) : notices.length === 0 ? (
         <p className="field-help">No notifications yet. New signups, team changes, and the end of the season show up here.</p>
       ) : (

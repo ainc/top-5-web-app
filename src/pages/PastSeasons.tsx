@@ -5,6 +5,7 @@
 
 import { Library } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { getSupabase } from "../supabaseClient";
 import { slotName } from "../taskSlots";
 import { addDays, formatWeekLabel, mondayOf, parseISODate } from "../weeks";
@@ -179,7 +180,7 @@ export function PastSeasons() {
               </select>
             </label>
           </div>
-          {loading ? <p className="status">Loading that week…</p> : null}
+          {loading ? <ScorecardLoading compact label="Loading that week…" /> : null}
           {!loading && weekId && days.length === 0 ? <p className="field-help">That week has no saved days.</p> : null}
           <div className="edit-log">
             {days.map((day) => (

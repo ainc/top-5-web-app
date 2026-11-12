@@ -2,16 +2,17 @@
 // Team is a roster fact. The signed-in person can read it here and cannot
 // change it. An admin edits teams on the Admin page.
 // Nickname is the only field this person writes. Saving it updates their
-// profile row and asks the board to reload, so the picker and leaderboard
-// pick up the new label.
+// profile row and calls reload(), so the picker and leaderboard pick up
+// the new label.
 
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth";
 import { useBoard } from "../board";
+import { ScorecardLoading } from "../ScorecardLoading";
 import { getSupabase } from "../supabaseClient";
 
 export function ProfilePage() {
-  const { people, ready } = useBoard();
+  const { people, ready, reload } = useBoard();
   const { nickname, profileId, profileName, user } = useAuth();
   const [nicknameDraft, setNicknameDraft] = useState(nickname);
   const [nicknameError, setNicknameError] = useState("");
@@ -33,10 +34,10 @@ export function ProfilePage() {
       return;
     }
     setSaved(true);
-    window.dispatchEvent(new Event("top5-reload"));
+    reload();
   }
 
-  if (!ready) return <p className="status">Loading profile…</p>;
+  if (!ready) return <ScorecardLoading label="Loading profile…" />;
 
   return (
     <section className="page">

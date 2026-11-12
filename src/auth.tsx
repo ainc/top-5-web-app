@@ -12,6 +12,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
+import { onReload } from "./reloadBoard";
 import { getSupabase } from "./supabaseClient";
 
 type AuthValue = {
@@ -257,10 +258,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .then((next) => apply(next, false))
         .catch(() => undefined);
     };
-    window.addEventListener("top5-reload", refresh);
+    // Same reload() the board uses. A nickname or a role saved on Admin
+    // has to reread this profile, or the account chip keeps the old label.
+    const stop = onReload(refresh);
     return () => {
       cancel = true;
-      window.removeEventListener("top5-reload", refresh);
+      stop();
     };
   }, [ready, userId]);
 

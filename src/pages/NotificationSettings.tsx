@@ -11,6 +11,7 @@ import { Bell, BellOff, Inbox, Lock, LockOpen } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { canAssignRoles, useAuth } from "../auth";
 import { NOTICE_KINDS, loadNoticeSettings, saveNoticeSetting, type NoticeKind, type NoticeSetting } from "../notifications";
+import { ScorecardLoading } from "../ScorecardLoading";
 
 export function NotificationSettings() {
   const { role } = useAuth();
@@ -47,7 +48,7 @@ export function NotificationSettings() {
       </p>
       {error ? <p className="banner error">{error}</p> : null}
       {settings === null ? (
-        <p className="status">Loading notification settings…</p>
+        <ScorecardLoading compact label="Loading notification settings…" />
       ) : (
         <ul className="notice-settings">
           {NOTICE_KINDS.map((kind) => {

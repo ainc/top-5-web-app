@@ -190,6 +190,15 @@ html[data-theme="dark"] .logo-for-dark {
   padding: 24px 0;
 }
 
+.scorecard-loading.is-compact {
+  min-height: 96px;
+  padding: 8px 0;
+}
+
+.scorecard-loading.is-compact .loading-ripples {
+  font-size: 4px;
+}
+
 .loading-ripples {
   --ring: 2.5em;
   --thick: 0.28em;
