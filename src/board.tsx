@@ -293,8 +293,8 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   // Checkbox, title, and note edits all arrive here from the grid or the board.
   // React state updates first, so the box looks checked before the network
   // returns. saveDays is the only call that writes that day to Supabase.
-  // Admin season/bonus/role saves do not come through here. They call
-  // supabase.from() directly in Admin.tsx.
+  // Admin season, bonus, roster, team, and role saves do not come through here.
+  // Each admin card calls supabase.from() itself, then asks the board to reload.
   const onPatch = useCallback(
     (id: string, patch: Partial<GridRow>) => {
       const week = weeksRef.current[selectedWeek];
