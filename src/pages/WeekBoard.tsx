@@ -11,20 +11,13 @@ import { BadgeCheck, BookOpenCheck, Dumbbell, type LucideIcon } from "lucide-rea
 import { useEffect, useState } from "react";
 import { useBoard } from "../board";
 import { useDraftText } from "../cells";
-import { DAY_NAMES, dailyPoints, taskHasText, withAutomaticTop5 } from "../points";
+import { DAY_NAMES, completedTaskCount, dailyPoints, taskHasText, withAutomaticTop5 } from "../points";
+import { TASK_SLOTS } from "../taskSlots";
 import { TaskEditor, TaskHtml } from "../taskRich";
 import type { DayRow } from "../types";
 import { addDays, formatISODate, parseISODate } from "../weeks";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const TASKS = [
-  { doneField: "topDone", labelField: "topLabel", name: "1", slot: 1 },
-  { doneField: "highDone", labelField: "highLabel", name: "2", slot: 2 },
-  { doneField: "med1Done", labelField: "med1Label", name: "3", slot: 3 },
-  { doneField: "med2Done", labelField: "med2Label", name: "4", slot: 4 },
-  { doneField: "lowDone", labelField: "lowLabel", name: "5", slot: 5 },
-] as const;
 
 type WeekBoardProps = {
   rows: DayRow[];
@@ -33,7 +26,7 @@ type WeekBoardProps = {
 };
 
 function tasksFinished(row: DayRow): number {
-  return TASKS.filter((task) => row[task.doneField] && taskHasText(row[task.labelField])).length;
+  return completedTaskCount(row);
 }
 
 export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
@@ -64,17 +57,17 @@ export function WeekBoard({ rows, weekId, canEdit }: WeekBoardProps) {
             {scored ? (
               <>
                 <ul className="day-tasks">
-                  {TASKS.map((task) => (
-                    <li key={task.labelField}>
+                  {TASK_SLOTS.map((task) => (
+                    <li key={task.label}>
                       <TaskLine
                         row={scored}
-                        name={task.name}
+                        name={String(task.slot)}
                         slot={task.slot}
-                        done={scored[task.doneField]}
-                        label={scored[task.labelField]}
+                        done={scored[task.done]}
+                        label={scored[task.label]}
                         canEdit={canEdit}
-                        onDone={(checked) => onPatch(scored.id, { [task.doneField]: checked })}
-                        onLabel={(next) => onPatch(scored.id, { [task.labelField]: next })}
+                        onDone={(checked) => onPatch(scored.id, { [task.done]: checked })}
+                        onLabel={(next) => onPatch(scored.id, { [task.label]: next })}
                       />
                     </li>
                   ))}

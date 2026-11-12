@@ -5,19 +5,12 @@
 // The priority words used to sit beside those numbers.
 import { useBoard } from "../board";
 import { DAY_NAMES, dailyPoints, withAutomaticTop5 } from "../points";
+import { TASK_SLOTS } from "../taskSlots";
 import type { DayRow } from "../types";
 import { addDays, formatISODate, parseISODate } from "../weeks";
 import { DayNote, DayScores, TaskLine } from "./WeekBoard";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const TASKS = [
-  { doneField: "topDone", labelField: "topLabel", name: "1", slot: "1" },
-  { doneField: "highDone", labelField: "highLabel", name: "2", slot: "2" },
-  { doneField: "med1Done", labelField: "med1Label", name: "3", slot: "3" },
-  { doneField: "med2Done", labelField: "med2Label", name: "4", slot: "4" },
-  { doneField: "lowDone", labelField: "lowLabel", name: "5", slot: "5" },
-] as const;
 
 type WeekMatrixProps = {
   rows: DayRow[];
@@ -50,8 +43,8 @@ export function WeekMatrix({ rows, weekId, canEdit }: WeekMatrixProps) {
           A phone hides this column and repeats the name inside each day tile. */}
       <div className="matrix-labels" aria-hidden="true">
         <div className="matrix-corner" />
-        {TASKS.map((task) => (
-          <div className="matrix-slot is-task" key={task.labelField}>
+        {TASK_SLOTS.map((task) => (
+          <div className="matrix-slot is-task" key={task.label}>
             <span>{task.slot}</span>
           </div>
         ))}
@@ -74,20 +67,20 @@ export function WeekMatrix({ rows, weekId, canEdit }: WeekMatrixProps) {
               <span> pts</span>
             </b>
           </header>
-          {TASKS.map((task) => (
-            <div className="matrix-cell is-task" key={task.labelField}>
+          {TASK_SLOTS.map((task) => (
+            <div className="matrix-cell is-task" key={task.label}>
               <div className="matrix-slot matrix-slot-inline">
                 <span>{task.slot}</span>
               </div>
               {day.row ? (
                 <TaskLine
                   row={day.row}
-                  name={task.name}
-                  done={day.row[task.doneField]}
-                  label={day.row[task.labelField]}
+                  name={String(task.slot)}
+                  done={day.row[task.done]}
+                  label={day.row[task.label]}
                   canEdit={canEdit}
-                  onDone={(checked) => onPatch(day.row!.id, { [task.doneField]: checked })}
-                  onLabel={(next) => onPatch(day.row!.id, { [task.labelField]: next })}
+                  onDone={(checked) => onPatch(day.row!.id, { [task.done]: checked })}
+                  onLabel={(next) => onPatch(day.row!.id, { [task.label]: next })}
                 />
               ) : (
                 <p className="day-empty">No day saved.</p>

@@ -4,6 +4,7 @@
 // pointsPerTask stays 0 until a commissioner sets it, so the priority boxes
 // do not add their own points. They only decide the Top 5 bonus.
 
+import { SLOT_COUNT, TASK_SLOTS, type TaskDoneField, type TaskLabelField } from "./taskSlots";
 import type { DayRow } from "./types";
 
 export const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri"] as const;
@@ -45,47 +46,19 @@ export const DEFAULT_RATES: ScoreRates = {
 
 export function maxDayPoints(rates: ScoreRates = DEFAULT_RATES): number {
   const extras = rates.extras.reduce((sum, bonus) => sum + bonus.points, 0);
-  return rates.pointsPerTask * 5 + rates.top5 + rates.exercise + rates.reading + extras;
+  return rates.pointsPerTask * SLOT_COUNT + rates.top5 + rates.exercise + rates.reading + extras;
 }
 
 export function maxWeekPoints(rates: ScoreRates = DEFAULT_RATES): number {
   return maxDayPoints(rates) * DAY_NAMES.length;
 }
 
-type ScoredDay = Pick<
-  DayRow,
-  | "topLabel"
-  | "highLabel"
-  | "med1Label"
-  | "med2Label"
-  | "lowLabel"
-  | "topDone"
-  | "highDone"
-  | "med1Done"
-  | "med2Done"
-  | "lowDone"
-  | "top5"
-  | "exercise"
-  | "reading"
-> & {
+type ScoredDay = Pick<DayRow, TaskLabelField | TaskDoneField | "top5" | "exercise" | "reading"> & {
   top5Awarded?: number;
   exerciseAwarded?: number;
   readingAwarded?: number;
   extraChecks?: DayRow["extraChecks"];
 };
-
-type TaskSlot = {
-  label: "topLabel" | "highLabel" | "med1Label" | "med2Label" | "lowLabel";
-  done: "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone";
-};
-
-const TASK_SLOTS: TaskSlot[] = [
-  { label: "topLabel", done: "topDone" },
-  { label: "highLabel", done: "highDone" },
-  { label: "med1Label", done: "med1Done" },
-  { label: "med2Label", done: "med2Done" },
-  { label: "lowLabel", done: "lowDone" },
-];
 
 // A box with no words is not a finished task. Imported sheets sometimes have
 // a checked box and an empty title. Those do not count toward points or Top 5.
@@ -96,9 +69,9 @@ export function taskHasText(label: string): boolean {
   return trimmed.replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").trim().length > 0;
 }
 
-type TaskDay = Pick<DayRow, TaskSlot["label"] | TaskSlot["done"]>;
+type TaskDay = Pick<DayRow, TaskLabelField | TaskDoneField>;
 
-function slotCounts(row: TaskDay, slot: TaskSlot): boolean {
+function slotCounts(row: TaskDay, slot: (typeof TASK_SLOTS)[number]): boolean {
   return Boolean(row[slot.done]) && taskHasText(String(row[slot.label] ?? ""));
 }
 

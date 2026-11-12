@@ -12,6 +12,7 @@ import { useTheme } from "./theme";
 import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import type { SeasonSpan } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
+import { sameTasks } from "./taskSlots";
 import type { DayRow, GridRow } from "./types";
 import {
   addDays,
@@ -315,16 +316,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       // agree with it, there is nothing to save.
       if (
         merged.top5 === current.top5 &&
-        merged.topDone === current.topDone &&
-        merged.highDone === current.highDone &&
-        merged.med1Done === current.med1Done &&
-        merged.med2Done === current.med2Done &&
-        merged.lowDone === current.lowDone &&
-        merged.topLabel === current.topLabel &&
-        merged.highLabel === current.highLabel &&
-        merged.med1Label === current.med1Label &&
-        merged.med2Label === current.med2Label &&
-        merged.lowLabel === current.lowLabel &&
+        sameTasks(merged, current) &&
         merged.notes === current.notes &&
         merged.exercise === current.exercise &&
         merged.reading === current.reading &&

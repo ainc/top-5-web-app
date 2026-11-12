@@ -3,13 +3,14 @@
 
 import type { CustomCellRendererProps } from "ag-grid-react";
 import { useEffect, useRef, useState } from "react";
+import type { TaskDoneField, TaskLabelField } from "./taskSlots";
 import type { GridRow } from "./types";
 import { taskPlainText } from "./taskMarkup";
 import { TaskEditor, TaskHtml } from "./taskRich";
 
 type TaskFields = {
-  doneField: "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone";
-  labelField: "topLabel" | "highLabel" | "med1Label" | "med2Label" | "lowLabel";
+  doneField: TaskDoneField;
+  labelField: TaskLabelField;
 };
 
 export type GridContext = {

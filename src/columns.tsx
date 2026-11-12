@@ -5,6 +5,7 @@ import { themeQuartz, type ColDef } from "ag-grid-community";
 import { BoolCell, ExtraBonusCell, TaskCell } from "./cells";
 import { shownName } from "./names";
 import { DEFAULT_RATES, type ScoreRates } from "./points";
+import { TASK_SLOTS, type TaskDoneField, type TaskLabelField } from "./taskSlots";
 import type { GridRow } from "./types";
 
 const gridBase = {
@@ -40,11 +41,7 @@ export const darkGridTheme = themeQuartz.withParams({
 });
 
 // The value joins done + label so AG Grid refreshes the cell when either one changes.
-function taskColumn(
-  headerName: string,
-  doneField: "topDone" | "highDone" | "med1Done" | "med2Done" | "lowDone",
-  labelField: "topLabel" | "highLabel" | "med1Label" | "med2Label" | "lowLabel",
-): ColDef<GridRow> {
+function taskColumn(headerName: string, doneField: TaskDoneField, labelField: TaskLabelField): ColDef<GridRow> {
   return {
     colId: labelField,
     headerName,
@@ -114,11 +111,7 @@ export function buildColumns(
     columns.push({ field: "day", headerName: "Day", width: 84, pinned: "left" });
   }
   columns.push(
-    taskColumn("Top priority", "topDone", "topLabel"),
-    taskColumn("High priority", "highDone", "highLabel"),
-    taskColumn("Medium", "med1Done", "med1Label"),
-    taskColumn("Medium 2", "med2Done", "med2Label"),
-    taskColumn("Low priority", "lowDone", "lowLabel"),
+    ...TASK_SLOTS.map((slot) => taskColumn(slot.header, slot.done, slot.label)),
     { field: "notes", headerName: "Notes", minWidth: 140, flex: 0.6, editable: (params) => params.context.canEdit },
     scoreColumn("top5", `${rates.top5Name} (${rates.top5})`),
     scoreColumn("exercise", `${rates.exerciseName} (${rates.exercise})`),

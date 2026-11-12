@@ -5,6 +5,7 @@
 // Daily and weekly totals in the file are ignored and recalculated.
 
 import { DAY_NAMES, personKey } from "./points";
+import { blankTaskFields, TASK_SLOTS } from "./taskSlots";
 import type { DayRow } from "./types";
 
 type Pair = { check: number; label: number };
@@ -181,37 +182,18 @@ export function parseSheetCsv(text: string): DayRow[] {
       person,
       team: null,
       day: DAY_NAMES[dayNumber - 1] ?? `Day ${dayNumber}`,
-      topLabel: "",
-      topDone: false,
-      highLabel: "",
-      highDone: false,
-      med1Label: "",
-      med1Done: false,
-      med2Label: "",
-      med2Done: false,
-      lowLabel: "",
-      lowDone: false,
+      ...blankTaskFields(),
       notes,
       top5,
       exercise,
       reading,
       extraChecks: {},
     };
-
-    const [top, high, med1, med2, low] = [0, 1, 2, 3, 4].map((index) => ({
-      label: labels[index] ?? "",
-      done: dones[index] ?? false,
-    }));
-    row.topLabel = top.label;
-    row.topDone = top.done;
-    row.highLabel = high.label;
-    row.highDone = high.done;
-    row.med1Label = med1.label;
-    row.med1Done = med1.done;
-    row.med2Label = med2.label;
-    row.med2Done = med2.done;
-    row.lowLabel = low.label;
-    row.lowDone = low.done;
+    for (const slot of TASK_SLOTS) {
+      const index = slot.slot - 1;
+      row[slot.label] = labels[index] ?? "";
+      row[slot.done] = dones[index] ?? false;
+    }
 
     rows.push(row);
   }

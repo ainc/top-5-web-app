@@ -1,6 +1,7 @@
 // Weeks are identified by Monday as YYYY-MM-DD. That string sorts in calendar order.
 
 import { DAY_NAMES, peopleInOrder } from "./points";
+import { blankTaskFields, TASK_SLOTS } from "./taskSlots";
 import type { DayRow } from "./types";
 
 // One saved scorecard. source is the label under the title, such as a CSV file name.
@@ -144,16 +145,7 @@ export function blankWeek(people: Array<{ person: string; team: string | null }>
       person: person.person,
       team: person.team,
       day,
-      topLabel: "",
-      topDone: false,
-      highLabel: "",
-      highDone: false,
-      med1Label: "",
-      med1Done: false,
-      med2Label: "",
-      med2Done: false,
-      lowLabel: "",
-      lowDone: false,
+      ...blankTaskFields(),
       notes: "",
       top5: false,
       exercise: false,
@@ -169,17 +161,8 @@ export function weekIsEmpty(rows: DayRow[]): boolean {
     rows.length > 0 &&
     rows.every(
       (row) =>
-        !row.topLabel &&
-        !row.highLabel &&
-        !row.med1Label &&
-        !row.med2Label &&
-        !row.lowLabel &&
+        TASK_SLOTS.every((slot) => !row[slot.label] && !row[slot.done]) &&
         !row.notes &&
-        !row.topDone &&
-        !row.highDone &&
-        !row.med1Done &&
-        !row.med2Done &&
-        !row.lowDone &&
         !row.top5 &&
         !row.exercise &&
         !row.reading &&

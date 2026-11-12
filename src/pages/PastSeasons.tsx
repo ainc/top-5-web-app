@@ -6,6 +6,7 @@
 import { Library } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSupabase } from "../supabaseClient";
+import { slotName } from "../taskSlots";
 import { addDays, formatWeekLabel, mondayOf, parseISODate } from "../weeks";
 
 type ClosedSeason = { id: string; name: string; starts_on: string };
@@ -17,8 +18,6 @@ type ArchiveDay = {
   points: number;
   tasks: string[];
 };
-
-const SLOT_NAMES = ["", "Top", "High", "Medium", "Medium 2", "Low"];
 
 function fail(error: { message: string } | null, action: string): void {
   if (error) throw new Error(`${action}: ${error.message}`);
@@ -116,7 +115,7 @@ export function PastSeasons() {
         for (const task of taskResult.data ?? []) {
           const key = `${task.profile_id}|${task.entry_date}`;
           const lines = tasks.get(key) ?? [];
-          const slot = SLOT_NAMES[Number(task.slot)] ?? "Task";
+          const slot = slotName(Number(task.slot)) || "Task";
           const title = String(task.title ?? "").trim();
           if (title) lines.push(`${slot}: ${title}${task.done ? " (done)" : ""}`);
           tasks.set(key, lines);

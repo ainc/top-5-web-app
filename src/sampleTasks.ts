@@ -5,21 +5,24 @@
 // Score boxes stay as they are. Top 5, Exercise, and Reading are the only
 // boxes that add points, so sample text must not check them.
 
+import { DAY_NAMES } from "./points";
+import { SLOT_COUNT, TASK_SLOTS } from "./taskSlots";
 import type { DayRow } from "./types";
 import { blankWeek } from "./weeks";
-import { DAY_NAMES } from "./points";
 
-const SAMPLE_BY_DAY: Record<(typeof DAY_NAMES)[number], readonly [string, string, string, string, string]> = {
-  Mon: ["Plan the week", "Clear the inbox", "Team check-in", "Send a follow-up", "Tidy notes"],
-  Tue: ["Deep work block", "Review priorities", "Reply to messages", "Prep tomorrow", "File a receipt"],
-  Wed: ["Finish the top task", "Status update", "Read one chapter", "Schedule a meeting", "Desk reset"],
-  Thu: ["Ship a small win", "Unblock someone", "Review the board", "Write a note", "Stretch break"],
-  Fri: ["Close the week", "Share progress", "Plan Monday", "Inbox pass", "Note a win"],
+function sampleDay<T extends readonly string[]>(samples: T & { length: typeof SLOT_COUNT }): T {
+  return samples;
+}
+
+const SAMPLE_BY_DAY: Record<(typeof DAY_NAMES)[number], ReturnType<typeof sampleDay>> = {
+  Mon: sampleDay(["Plan the week", "Clear the inbox", "Team check-in", "Send a follow-up", "Tidy notes"]),
+  Tue: sampleDay(["Deep work block", "Review priorities", "Reply to messages", "Prep tomorrow", "File a receipt"]),
+  Wed: sampleDay(["Finish the top task", "Status update", "Read one chapter", "Schedule a meeting", "Desk reset"]),
+  Thu: sampleDay(["Ship a small win", "Unblock someone", "Review the board", "Write a note", "Stretch break"]),
+  Fri: sampleDay(["Close the week", "Share progress", "Plan Monday", "Inbox pass", "Note a win"]),
 };
 
-const LABEL_FIELDS = ["topLabel", "highLabel", "med1Label", "med2Label", "lowLabel"] as const;
-
-function hasWrittenTask(row: DayRow, field: (typeof LABEL_FIELDS)[number]): boolean {
+function hasWrittenTask(row: DayRow, field: (typeof TASK_SLOTS)[number]["label"]): boolean {
   return row[field].trim().length > 0;
 }
 
@@ -42,9 +45,9 @@ export function fillBlankSampleTasks(
     const samples = SAMPLE_BY_DAY[blank.day as (typeof DAY_NAMES)[number]];
     if (!samples) return next;
     let dayChanged = false;
-    LABEL_FIELDS.forEach((field, index) => {
-      if (hasWrittenTask(next, field)) return;
-      next[field] = samples[index];
+    TASK_SLOTS.forEach((slot, index) => {
+      if (hasWrittenTask(next, slot.label)) return;
+      next[slot.label] = samples[index];
       filled += 1;
       dayChanged = true;
     });

@@ -6,6 +6,7 @@
 
 import { History } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { slotName } from "../taskSlots";
 import { getSupabase } from "../supabaseClient";
 
 type LogRow = {
@@ -26,7 +27,6 @@ type SeasonOption = { id: string; name: string; status: string };
 
 type NameOption = { id: string; name: string };
 
-const SLOT_NAMES = ["", "Top", "High", "Medium", "Medium 2", "Low"];
 const PAGE = 40;
 const LOG_LIMIT = 1000;
 
@@ -46,10 +46,11 @@ function textOf(row: Record<string, unknown> | null, key: string): string {
 function describe(entry: LogRow, seasonName: string): string {
   const source = entry.new_row ?? entry.old_row;
   const slot = Number(source?.slot ?? 0);
-  const slotName = SLOT_NAMES[slot] ? `${SLOT_NAMES[slot]} ` : "";
+  const named = slotName(slot);
+  const slotLabel = named ? `${named} ` : "";
   const day = entry.entry_date ?? "an unknown day";
   const season = seasonName ? ` · ${seasonName}` : "";
-  return `${TABLE_LABEL[entry.table_name]} ${slotName}on ${day}${season}`;
+  return `${TABLE_LABEL[entry.table_name]} ${slotLabel}on ${day}${season}`;
 }
 
 function startOfDay(day: string): string {

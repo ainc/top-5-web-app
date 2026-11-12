@@ -42,16 +42,9 @@ import { StepMenu } from "../StepMenu";
 import { PersonPicker } from "./PersonPicker";
 import { DAY_NAMES, dailyPoints, personKey } from "../points";
 import { seasonBoard } from "../streaks";
+import { TASK_SLOTS } from "../taskSlots";
 import type { DayRow } from "../types";
 import { addDays, formatISODate } from "../weeks";
-
-const TASKS: Array<[label: keyof DayRow, done: keyof DayRow]> = [
-  ["topLabel", "topDone"],
-  ["highLabel", "highDone"],
-  ["med1Label", "med1Done"],
-  ["med2Label", "med2Done"],
-  ["lowLabel", "lowDone"],
-];
 
 type DayScore = { completed: number; total: number };
 type PersonScore = {
@@ -68,11 +61,11 @@ function dayScore(row: DayRow | undefined): DayScore {
   if (!row) return { completed: 0, total: 0 };
   let completed = 0;
   let total = 0;
-  for (const [label, done] of TASKS) {
-    const written = String(row[label] ?? "").trim().length > 0;
+  for (const slot of TASK_SLOTS) {
+    const written = String(row[slot.label] ?? "").trim().length > 0;
     if (!written) continue;
     total += 1;
-    if (Boolean(row[done])) completed += 1;
+    if (Boolean(row[slot.done])) completed += 1;
   }
   return { completed, total };
 }

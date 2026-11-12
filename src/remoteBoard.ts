@@ -4,7 +4,7 @@
 // store that shape. A save splits one row into:
 //   profiles + season_members  who is on the roster
 //   day_entries                the notes for that date
-//   tasks                      five slots (1 Top through 5 Low)
+//   tasks                      one row per slot (see SLOT_COUNT in taskSlots.ts)
 //   bonus_checks               Top 5, Exercise, Reading, and any added bonus,
 //                              with the points copied at check time so a later
 //                              bonus edit does not rewrite past days
@@ -16,6 +16,7 @@ import type { RealtimeChannel, User } from "@supabase/supabase-js";
 import { googleDisplayName } from "./auth";
 import { DAY_NAMES, isBuiltinBonus, type BuiltinBonusKey } from "./points";
 import { getSupabase } from "./supabaseClient";
+import { applyStoredTask, blankTaskFields, storedTasksFromRow } from "./taskSlots";
 import type { DayRow } from "./types";
 import {
   addDays,
@@ -29,14 +30,6 @@ import {
 
 const STORAGE_KEY = "top5-board-v2";
 const LEGACY_KEY = "top5-board-v1";
-
-const TASK_SLOTS = [
-  { slot: 1, label: "topLabel", done: "topDone" },
-  { slot: 2, label: "highLabel", done: "highDone" },
-  { slot: 3, label: "med1Label", done: "med1Done" },
-  { slot: 4, label: "med2Label", done: "med2Done" },
-  { slot: 5, label: "lowLabel", done: "lowDone" },
-] as const;
 
 const BONUS_FIELDS = [
   { key: "top5", field: "top5" },
@@ -154,16 +147,7 @@ function emptyRow(person: PersonRecord, monday: string, offset: number): DayRow 
     person: person.person,
     team: person.team,
     day: DAY_NAMES[offset],
-    topLabel: "",
-    topDone: false,
-    highLabel: "",
-    highDone: false,
-    med1Label: "",
-    med1Done: false,
-    med2Label: "",
-    med2Done: false,
-    lowLabel: "",
-    lowDone: false,
+    ...blankTaskFields(),
     notes: "",
     top5: false,
     exercise: false,
@@ -459,10 +443,8 @@ async function fetchWeeks(cat: Catalog): Promise<{ weeks: Record<string, WeekRec
   }
   for (const task of tasks) {
     const row = draftFor(String(task.profile_id), String(task.entry_date));
-    const slot = TASK_SLOTS.find((item) => item.slot === Number(task.slot));
-    if (!row || !slot) continue;
-    row[slot.label] = typeof task.title === "string" ? task.title : "";
-    row[slot.done] = Boolean(task.done);
+    if (!row) continue;
+    applyStoredTask(row, Number(task.slot), typeof task.title === "string" ? task.title : "", Boolean(task.done));
   }
   for (const check of checks) {
     const row = draftFor(String(check.profile_id), String(check.entry_date));
@@ -621,14 +603,14 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
       entry_date: entryDate,
       notes: row.notes,
     });
-    for (const slot of TASK_SLOTS) {
+    for (const task of storedTasksFromRow(row)) {
       taskRows.push({
         season_id: cat.seasonId,
         profile_id: person.id,
         entry_date: entryDate,
-        slot: slot.slot,
-        title: row[slot.label],
-        done: row[slot.done],
+        slot: task.slot,
+        title: task.title,
+        done: task.done,
       });
     }
     for (const bonus of BONUS_FIELDS) {
@@ -663,7 +645,7 @@ async function writeJob(weekId: string, job: WeekWrite): Promise<void> {
   // updates that row instead of inserting a duplicate. A database trigger
   // copies the previous values into edit_log before that overwrite.
   //   day_entries   one row: notes, keyed by profile + date
-  //   tasks         five rows: slot 1..5, title + done
+  //   tasks         one row per slot, title + done
   //   bonus_checks  Top 5, Exercise, Reading, plus any bonus added in Admin
   // week_meta is only the label under the title ("Imported file.csv").
   const { error: entryError } = await supabase.from("day_entries").upsert(dayEntries, { onConflict: "profile_id,entry_date" });
