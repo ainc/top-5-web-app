@@ -829,6 +829,46 @@ async function holdRosterLink(googleName: string): Promise<string | null> {
   return names || null;
 }
 
+// Attaches this Google account to one roster profile.
+// Order is the email map, then an exact display name, then a first-name hold,
+// then a new profile. A first name that matches an unsigned roster name stops
+// here and does not insert anyone. The OAuth redirect itself is not this
+// function. src/claimRules.test.ts says what a future Google login test covers.
+export async function linkRosterAccount(user: User): Promise<{ profileId: string; rosterName: string }> {
+  const supabase = getSupabase();
+  const email = (user.email ?? "").toLowerCase();
+  const googleName = googleDisplayName(user);
+  const { data: linked, error: linkedError } = await supabase
+    .from("profiles")
+    .select("id, display_name")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  fail(linkedError, "find signed-in profile");
+  if (linked?.id) return { profileId: String(linked.id), rosterName: String(linked.display_name) };
+
+  const claim = (await claimRosterEmail(email)) ?? (await claimRosterName(googleName));
+  if (claim) {
+    const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
+    fail(error, "link roster name");
+    return { profileId: claim.id, rosterName: claim.display_name };
+  }
+
+  const held = await holdRosterLink(googleName);
+  if (held) {
+    const label = held.includes(",") ? "names" : "name";
+    throw new Error(`${googleName} matches the roster ${label} ${held}. An admin needs to attach this Google account before the board will open.`);
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("profiles")
+    .insert({ display_name: googleName, auth_user_id: user.id })
+    .select("id")
+    .single();
+  fail(error, "add signed-in profile");
+  if (!inserted) throw new Error("add signed-in profile: no profile returned");
+  return { profileId: String(inserted.id), rosterName: googleName };
+}
+
 // Google tells us who they are. The scorecard still needs a profile, a roster
 // row, and five blank days on the current Monday. An unsigned roster row is
 // reused when the Google name matches it, so sign-in does not create a second person.
@@ -841,40 +881,8 @@ export async function enrollSignedInUser(user: User): Promise<void> {
     throw new Error(`Use a @${domain} Google Workspace account to join the roster.`);
   }
 
+  const { profileId, rosterName } = await linkRosterAccount(user);
   const supabase = getSupabase();
-  const googleName = googleDisplayName(user);
-  const { data: linked, error: linkedError } = await supabase
-    .from("profiles")
-    .select("id, display_name")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  fail(linkedError, "find signed-in profile");
-
-  let profileId = linked?.id as string | undefined;
-  let rosterName = linked?.display_name ?? googleName;
-  if (!linked) {
-    const claim = (await claimRosterEmail(email)) ?? (await claimRosterName(googleName));
-    if (claim) {
-      const { error } = await supabase.from("profiles").update({ auth_user_id: user.id }).eq("id", claim.id);
-      fail(error, "link roster name");
-      profileId = claim.id;
-      rosterName = claim.display_name;
-    } else {
-      const held = await holdRosterLink(googleName);
-      if (held) {
-        const label = held.includes(",") ? "names" : "name";
-        throw new Error(`${googleName} matches the roster ${label} ${held}. An admin needs to attach this Google account before the board will open.`);
-      }
-      const { data: inserted, error } = await supabase
-        .from("profiles")
-        .insert({ display_name: googleName, auth_user_id: user.id })
-        .select("id")
-        .single();
-      fail(error, "add signed-in profile");
-      if (!inserted) throw new Error("add signed-in profile: no profile returned");
-      profileId = inserted.id;
-    }
-  }
 
   const cat = await refreshCatalog();
   const onRoster = [...cat.people.values()].some((person) => person.id === profileId);
