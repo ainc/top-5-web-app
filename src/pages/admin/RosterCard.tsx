@@ -80,6 +80,9 @@ export function RosterCard({ season, onPeople, saved, failed }: AdminNotice & { 
     await load();
   }
 
+  // Removing only deletes membership and team assignment for the selected
+  // season (and future drafts if checked). day_entries, tasks, bonus_checks,
+  // edit_log, and the profile itself stay intact so task history is preserved.
   async function removePerson(person: Person) {
     if (season.status === "closed") return;
     const supabase = getSupabase();

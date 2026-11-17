@@ -171,6 +171,8 @@ export function SeasonBoards({
   you?: string;
   // Set from /leaderboard?person=. Empty means the shared table only.
   detailKey?: string;
+  // Current season_members roster. Filtering seasonBoard and weekWinners by
+  // this list drops removed members without deleting their saved task history.
   roster?: Array<{ person: string; team: string | null }>;
 }) {
   const [view, setView] = useState<BoardView>("season");

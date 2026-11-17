@@ -494,8 +494,9 @@ async function fetchWeeks(cat: Catalog): Promise<{ weeks: Record<string, WeekRec
   return { weeks, nicknames: nicknameMap(peopleById.values()) };
 }
 
-// A past scorecard can name someone who is not on this season's roster.
-// Their profile still has to be loaded or that week would render with no rows.
+// A pre-season week (or someone later removed from season_members) can name
+// a profile that is not on this season's roster. Their profile is still loaded
+// here so archived rows stay readable; active-season views filter to roster.
 async function profilesForWeeks(cat: Catalog, ids: string[]): Promise<Map<string, PersonRecord>> {
   const peopleById = new Map<string, PersonRecord>();
   for (const person of cat.people.values()) peopleById.set(person.id, person);

@@ -2033,8 +2033,10 @@ nav a svg,
 
 /* Top 5 complete is a status, not a checkbox. It appears when all five
    tasks are done. Until then the card counts how many are finished.
-   Exercise and Reading are chips. On is a filled chip, off is an outline.
-   The old teal row fill is gone. */
+   Exercise, Reading, and any custom bonuses are pill toggle buttons: off is an
+   outline with hover tint and press ripple, on is a filled high-contrast pill.
+   Keep dark-mode button defaults lower specificity via :where(:not(.score-chip))
+   so they never clobber .score-chip.is-on. */
 .score-badge,
 .score-progress,
 .score-chip {
@@ -4349,6 +4351,9 @@ html[data-theme="dark"] nav a.active {
   border-bottom-color: var(--brand);
 }
 
+/* :where(...) keeps zero specificity so this base dark rule matches bare
+   button (0,1,2) and does not override .layout-toggle[aria-pressed="true"]
+   or .score-chip states. */
 html[data-theme="dark"] button:where(:not(.score-chip)),
 html[data-theme="dark"] .button,
 html[data-theme="dark"] select,
