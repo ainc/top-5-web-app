@@ -77,7 +77,7 @@ Roles live on the roster profile in `public.user_roles` (`member`, `commissioner
 
 ## Screens & Navigation
 
-- **My week (`/`)** — One person's Monday–Friday. Supports **Board** (5 day columns, default) and **Grid** (weekday columns across, slots 1–5 down), saved per browser in `top5-week-layout`. Signing in opens your own week; viewing another person locks inputs unless you are staff.
+- **My week (`/`)** — One person's Monday–Friday. Supports **Board** (5 day columns, default) and **Grid** (weekday columns across, slots 1–5 down), saved per browser in `top5-week-layout` (`"board"` or `"grid"` via `src/weekLayout.ts`; an older saved `"matrix"` value also opens Grid). Signing in opens your own week; viewing another person locks inputs unless you are staff.
 - **Dashboard (`/dashboard`)** — Read-only week summary for the active roster: Tasks done %, Active this week, Week leader, Season leader, Points this week bars, Selected week heatmap, and an expandable **All tasks** AG Grid.
 - **Leaderboard (`/leaderboard`, `/streaks` redirects here)** — Month holiday badge, podium (`2nd`, `1st`, `3rd` with confetti burst on `1st`), Season vs. This week toggle, team standings, week winners, streak tracker, and per-person milestone detail (`/leaderboard?person=...`).
 - **Profile (`/profile`)** — Shows the signed-in user's team and lets them edit their nickname (displayed on the picker, leaderboard, and header chip; scores and sign-in still key off `profiles.display_name`).
@@ -173,6 +173,7 @@ Vitest (`vitest.config.ts`, `node` environment) covers core logic without touchi
 - `src/claimRules.test.ts` — All 4 outcomes of `linkRosterAccount` using a mock Supabase client, plus comments documenting the future Google OAuth handshake tests for when Google Cloud Console access is available.
 - `src/reloadBoard.test.ts` — `reload()` / `onReload()` fan-out and unsubscribe cleanup.
 - `src/rosterFilter.test.ts` — Active-roster filtering across `peopleFromRoster`, `seasonBoard`, and `weekWinners` while preserving saved rows.
+- `src/weekLayout.test.ts` — `top5-week-layout` preference mapping (`"grid"` and legacy `"matrix"` → `"grid"`).
 
 ---
 
@@ -201,6 +202,7 @@ src/
   points.ts                   withAutomaticTop5, dailyPoints, weekPoints, peopleInOrder, peopleFromRoster
   streaks.ts                  seasonBoard, weekWinners, teamStandings, streak milestones & season bounds
   weeks.ts                    Monday date math, blankWeek, missingRosterRows, 4-week planning cap
+  weekLayout.ts               My week Board/Grid preference helper (reads/writes "grid", accepts "matrix")
   names.ts                    Nickname display helpers (shownName, pickerName)
   theme.tsx                   Light/dark ThemeProvider + ThemeToggle
   notifications.ts            Staff inbox queries, read marks, realtime notices, season-end refresh

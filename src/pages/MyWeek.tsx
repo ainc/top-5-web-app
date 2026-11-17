@@ -14,9 +14,9 @@
 //
 // Board is the default: a card per day, tasks stacked inside it.
 // Grid turns that card sideways: weekdays across the top, tasks down the side.
-// Grid (Legacy) was the original spreadsheet. That option is gone. An older
-// browser save of "grid" or "legacy" opens Board, so a refresh does not bring
-// the spreadsheet back.
+// src/weekLayout.ts owns the stored preference: clicking Grid reads and writes
+// "grid", and browsers with an older "matrix" value still open Grid. Any
+// older "legacy" value falls back to Board.
 //
 // The right sidebar holds the week's total, the change from last week, the
 // current streak, the season place, and How scoring works. The streak
@@ -40,18 +40,7 @@ import { addDays } from "../weeks";
 import { WeekBoard } from "./WeekBoard";
 import { ScorecardLoading } from "../ScorecardLoading";
 import { WeekMatrix } from "./WeekMatrix";
-
-type WeekLayout = "board" | "matrix";
-
-const LAYOUT_KEY = "top5-week-layout";
-
-function readWeekLayout(): WeekLayout {
-  try {
-    return localStorage.getItem(LAYOUT_KEY) === "matrix" ? "matrix" : "board";
-  } catch {
-    return "board";
-  }
-}
+import { readWeekLayout, writeWeekLayout, type WeekLayout } from "../weekLayout";
 
 function placeLabel(place: number): string {
   const mod100 = place % 100;
@@ -124,11 +113,7 @@ export function MyWeek() {
 
   function chooseLayout(next: WeekLayout) {
     setLayout(next);
-    try {
-      localStorage.setItem(LAYOUT_KEY, next);
-    } catch {
-      // Private browsing can block storage. The choice still lasts for this visit.
-    }
+    writeWeekLayout(next);
   }
 
   if (!ready) return <ScorecardLoading />;
@@ -231,7 +216,7 @@ export function MyWeek() {
               <button type="button" aria-pressed={layout === "board"} onClick={() => chooseLayout("board")}>
                 Board
               </button>
-              <button type="button" aria-pressed={layout === "matrix"} onClick={() => chooseLayout("matrix")}>
+              <button type="button" aria-pressed={layout === "grid"} onClick={() => chooseLayout("grid")}>
                 Grid
               </button>
             </div>
