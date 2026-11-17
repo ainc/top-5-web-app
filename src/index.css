@@ -61,6 +61,12 @@
   --track: #e4e4e6;
   --track-warm: #f3eae3;
   --wash: #f6e4e5;
+  --chip-line: #d1d2d4;
+  --chip-hover: rgb(50 50 50 / 6%);
+  --chip-active: rgb(50 50 50 / 14%);
+  --chip-ripple: rgb(50 50 50 / 20%);
+  --chip-on-hover: #474747;
+  --chip-on-ripple: rgb(255 255 255 / 28%);
 
   color: var(--ink);
   background: var(--paper);
@@ -2070,11 +2076,53 @@ nav a svg,
 }
 
 .score-chip {
-  border: 1px solid var(--line-strong);
-  background: #ffffff;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--chip-line);
+  background: transparent;
   color: var(--ink);
   padding: 6px 10px;
   cursor: pointer;
+  transition:
+    background-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-chip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--chip-ripple) 10%, transparent 70%);
+  transform: scale(2.4);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 420ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.score-chip:hover:not(:disabled) {
+  background: var(--chip-hover);
+  border-color: var(--ink);
+}
+
+.score-chip:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.score-chip:active:not(:disabled) {
+  background: var(--chip-active);
+  transform: scale(0.97);
+}
+
+.score-chip:active:not(:disabled)::after {
+  transform: scale(0);
+  opacity: 1;
+  transition: none;
 }
 
 .score-chip.is-on {
@@ -2083,8 +2131,32 @@ nav a svg,
   color: var(--canvas);
 }
 
+.score-chip.is-on::after {
+  background: radial-gradient(circle, var(--chip-on-ripple) 10%, transparent 70%);
+}
+
+.score-chip.is-on:hover:not(:disabled) {
+  border-color: var(--chip-on-hover);
+  background: var(--chip-on-hover);
+}
+
 .score-chip:disabled {
   cursor: default;
+}
+
+.score-chip.is-on:disabled {
+  opacity: 0.72;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-chip,
+  .score-chip::after {
+    transition: none;
+  }
+
+  .score-chip:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 .day-note-add {
@@ -4137,6 +4209,12 @@ html[data-theme="dark"] {
   --track: #4a2430;
   --track-warm: #3a2e32;
   --wash: #3a2426;
+  --chip-line: rgb(241 241 242 / 32%);
+  --chip-hover: rgb(241 241 242 / 10%);
+  --chip-active: rgb(241 241 242 / 18%);
+  --chip-ripple: rgb(241 241 242 / 28%);
+  --chip-on-hover: #d8d8db;
+  --chip-on-ripple: rgb(30 30 30 / 24%);
 }
 
 html[data-theme="dark"] .section-head,
@@ -4259,7 +4337,7 @@ html[data-theme="dark"] nav a.active {
   border-bottom-color: var(--brand);
 }
 
-html[data-theme="dark"] button,
+html[data-theme="dark"] button:where(:not(.score-chip)),
 html[data-theme="dark"] .button,
 html[data-theme="dark"] select,
 html[data-theme="dark"] .filter,
@@ -4326,6 +4404,7 @@ html[data-theme="dark"] .admin-card select {
 
 html[data-theme="dark"] .layout-toggle button[aria-pressed="true"] {
   border-color: var(--ink);
+  color: var(--sheet);
 }
 
 html[data-theme="dark"] .week-switcher {
@@ -4406,11 +4485,6 @@ html[data-theme="dark"] .week-side-total,
 html[data-theme="dark"] .week-side-stat,
 html[data-theme="dark"] .scoring-panel dt {
   color: var(--ink);
-}
-
-html[data-theme="dark"] .score-chip {
-  background: transparent;
-  border-color: var(--line);
 }
 
 html[data-theme="dark"] .banner.ok {
