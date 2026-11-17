@@ -51,7 +51,7 @@ Default bonus definitions created for a new season:
 
 - A streak counts consecutive **weekdays** (Monday–Friday) with `points > 0` inside the active season window.
 - Weekends do not break a streak. Today stays open until it has points so a morning before check-off does not reset yesterday's streak.
-- Milestone awards are earned again on each new run:
+- Milestone awards live per season in `streak_milestones` (defaulting to the classic ladder below, editable in **Admin → Bonuses**, and earned again on each new streak run):
   - **Day 3:** +5
   - **Day 5:** +5
   - **Day 8:** +5
@@ -83,15 +83,15 @@ Roles live on the roster profile in `public.user_roles` (`member`, `commissioner
 - **Profile (`/profile`)** — Shows the signed-in user's team and lets them edit their nickname (displayed on the picker, leaderboard, and header chip; scores and sign-in still key off `profiles.display_name`).
 - **Notifications (`/notifications`)** — Staff-only inbox for new signups, live-season team changes, waiting first-name holds, and the season-ending reminder. Each staff member tracks read state in `notification_reads`.
 - **Admin (`/admin`)** — Staff-only page composed of independent cards (`src/pages/admin/`):
-  - **Season (`SeasonCard`)** — Switch between active, draft, and closed seasons; edit name, start Monday, length, scoring mode (`individual` / `teams`), and `points_per_task`; **Plan next season** (`create_season_draft`), **Activate** (`activate_season`), or **Delete draft**. Editing a draft adds `is-draft-caution` (yellow/black caution-tape border frame).
-  - **Bonuses (`BonusCard`)** — Edit point values and labels, add custom bonuses, or retire non-builtin bonuses.
+  - **Season (`SeasonCard`)** — Switch between active, draft, and closed seasons; edit name, start Monday, length, scoring mode (`individual` / `teams`), and `points_per_task`; **Plan next season** (`create_season_draft`), **Activate** (`activate_season`), **Delete draft**, or **Export standings / days CSV**. Editing a draft adds `is-draft-caution` (yellow/black caution-tape border frame).
+  - **Bonuses (`BonusCard`)** — Edit point values and labels, add custom bonuses, retire non-builtin bonuses, and edit per-season **Streak milestones** (`streak_milestones`).
   - **Waiting Google accounts (`RosterLinksCard`)** — Appears at `/admin#roster-links` when a sign-in hits a first-name collision (`roster_link_requests`). Admins can attach it to an unsigned roster row or open a brand-new profile.
-  - **Roster (`RosterCard`)** — Add/remove members on the selected season, edit nicknames, and (when removing from the active season while drafts exist) optionally remove from future drafts too. Removing a member clears `season_members` and `team_members` so they leave the Dashboard, Leaderboard, Week winners, My week, and new weeks—while **preserving all saved `day_entries`, `tasks`, `bonus_checks`, and `edit_log` history**.
-  - **Teams (`TeamsCard`)** — Visible when `scoring_mode === 'teams'`. Add teams and assign roster members.
+  - **Roster (`RosterCard`)** — Add/remove members on the selected season (with an option on the active season to add/remove on future drafts too), see `Google linked` / `Not linked` status, rename profile `display_name` values, and edit nicknames. Keeping `TeamsCard` and `RolesCard` in sync automatically when the roster changes. Removing a member clears `season_members` and `team_members` so they leave the Dashboard, Leaderboard, Week winners, My week, and new weeks—while **preserving all saved `day_entries`, `tasks`, `bonus_checks`, and `edit_log` history**.
+  - **Teams (`TeamsCard`)** — Visible when `scoring_mode === 'teams'`. Add, rename, or remove teams (with confirmation when moving assigned members to No team) and assign roster members.
   - **Local sign-in (dev only)** — Rendered only when `import.meta.env.DEV` is true; uses `POST /dev/sign-in-as` in `vite.config.ts` to test as any linked user locally. Never included in production builds.
   - **Roles (`RolesCard`)** — Assign `member`, `commissioner`, or `admin` per profile.
   - **Notifications (`NotificationSettings`)** — Toggle `signup`, `team`, and `season_end` feeds and (admins only) lock/unlock each switch.
-  - **Past seasons (`PastSeasons`)** — Browse weeks and daily scores for closed seasons.
+  - **Past seasons (`PastSeasons`)** — View final standings (and team totals), export standings or daily CSVs, and browse weeks and daily scores for closed seasons.
   - **Edit log (`EditLog`)** — Collapsible audit trail of `tasks`, `day_entries`, and `bonus_checks` mutations (capped at the newest 1,000 rows by database trigger), with search/date/table filters and **Restore** (`restore_edit`).
 
 ---
@@ -131,7 +131,7 @@ All SQL lives in `supabase/migrations/` and is tracked in `public.schema_migrati
 
 | Table / View / RPC | Purpose |
 |---|---|
-| `seasons`, `scoring_rules`, `teams`, `bonus_definitions` | Season config (`status`: `draft` / `active` / `closed`, single `is_open = true` row), per-task rate, teams, and bonus definitions |
+| `seasons`, `scoring_rules`, `teams`, `bonus_definitions`, `streak_milestones` | Season config (`status`: `draft` / `active` / `closed`, single `is_open = true` row), per-task rate, teams, bonus definitions, and streak milestone awards |
 | `profiles`, `user_roles`, `season_members`, `team_members` | People, staff roles, active/draft roster membership, and team assignments |
 | `day_entries`, `tasks`, `bonus_checks`, `week_meta`, `day_scores` | Notes, 5 task slots per day, bonus checks + `points_awarded`, week labels, and daily point view |
 | `edit_log` & `restore_edit(target)` | Trigger-recorded history capped at 1,000 newest rows, plus staff restore RPC |
@@ -174,6 +174,8 @@ Vitest (`vitest.config.ts`, `node` environment) covers core logic without touchi
 - `src/reloadBoard.test.ts` — `reload()` / `onReload()` fan-out and unsubscribe cleanup.
 - `src/rosterFilter.test.ts` — Active-roster filtering across `peopleFromRoster`, `seasonBoard`, and `weekWinners` while preserving saved rows.
 - `src/weekLayout.test.ts` — `top5-week-layout` preference mapping (`"grid"` and legacy `"matrix"` → `"grid"`).
+- `src/streaks.test.ts` — Per-season custom streak milestone scoring and next-milestone cues.
+- `src/exportCsv.test.ts` — Season standings and daily CSV formatting, quoting, and active-roster filtering.
 
 ---
 
@@ -201,6 +203,7 @@ src/
   types.ts                    DayRow and GridRow types
   points.ts                   withAutomaticTop5, dailyPoints, weekPoints, peopleInOrder, peopleFromRoster
   streaks.ts                  seasonBoard, weekWinners, teamStandings, streak milestones & season bounds
+  exportCsv.ts                Downloadable season standings and daily-row CSV builders
   weeks.ts                    Monday date math, blankWeek, missingRosterRows, 4-week planning cap
   weekLayout.ts               My week Board/Grid preference helper (reads/writes "grid", accepts "matrix")
   names.ts                    Nickname display helpers (shownName, pickerName)

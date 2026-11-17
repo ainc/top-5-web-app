@@ -10,7 +10,12 @@ import { fail, SaveButtonView, useSaveFlash, type AdminNotice, type Season } fro
 
 type Person = { id: string; name: string; role: string };
 
-export function RolesCard({ season, saved, failed }: AdminNotice & { season: Season }) {
+export function RolesCard({
+  season,
+  rosterVersion = 0,
+  saved,
+  failed,
+}: AdminNotice & { season: Season; rosterVersion?: number }) {
   const { role } = useAuth();
   const assignRoles = canAssignRoles(role);
   const [people, setPeople] = useState<Person[]>([]);
@@ -41,7 +46,7 @@ export function RolesCard({ season, saved, failed }: AdminNotice & { season: Sea
 
   useEffect(() => {
     load().catch((reason: unknown) => failed(reason, "Could not load roles."));
-  }, [load, failed]);
+  }, [load, failed, rosterVersion]);
 
   async function saveRoles() {
     if (!assignRoles) throw new Error("Only an admin can assign roles.");

@@ -3,8 +3,10 @@
 // Bonuses, the roster, teams, and roles load themselves for the season this
 // card reports upward.
 
-import { Calendar } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { buildDaysCsv, buildStandingsCsv, downloadCsv } from "../../exportCsv";
+import { loadSeasonArchive } from "../../remoteBoard";
 import { getSupabase } from "../../supabaseClient";
 import { addDays, mondayOf, parseISODate } from "../../weeks";
 import { fail, SaveButtonView, seasonLabel, seasonStatus, sortSeasons, useSaveFlash, type AdminNotice, type Season } from "./adminShared";
@@ -20,6 +22,7 @@ export function SeasonCard({ onSeason, saved, failed }: SeasonCardProps) {
   const [seasonChoices, setSeasonChoices] = useState<Season[]>([]);
   const [pointsPerTask, setPointsPerTask] = useState(0);
   const [working, setWorking] = useState(false);
+  const [exporting, setExporting] = useState<"standings" | "days" | null>(null);
   const selectedId = useRef<string | null>(null);
   const { flash, run } = useSaveFlash();
 
@@ -162,6 +165,18 @@ export function SeasonCard({ onSeason, saved, failed }: SeasonCardProps) {
     }
   }
 
+  async function exportSeason(kind: "standings" | "days") {
+    if (!season) return;
+    setExporting(kind);
+    try {
+      const archive = await loadSeasonArchive(season.id);
+      const csv = kind === "standings" ? buildStandingsCsv(archive) : buildDaysCsv(archive);
+      downloadCsv(archive.season.name, kind, csv);
+    } finally {
+      setExporting(null);
+    }
+  }
+
   if (!season) return null;
 
   const closed = season.status === "closed";
@@ -286,6 +301,26 @@ export function SeasonCard({ onSeason, saved, failed }: SeasonCardProps) {
             </button>
           </>
         ) : null}
+        <button
+          type="button"
+          disabled={exporting !== null}
+          onClick={() => {
+            exportSeason("standings").catch((reason: unknown) => failed(reason, "Could not export standings."));
+          }}
+        >
+          <Download aria-hidden="true" />
+          {exporting === "standings" ? "Exporting…" : "Export standings CSV"}
+        </button>
+        <button
+          type="button"
+          disabled={exporting !== null}
+          onClick={() => {
+            exportSeason("days").catch((reason: unknown) => failed(reason, "Could not export days."));
+          }}
+        >
+          <Download aria-hidden="true" />
+          {exporting === "days" ? "Exporting…" : "Export days CSV"}
+        </button>
       </div>
       <p className="field-help">Plan next season copies the live roster, teams, and scoring into a draft. Days and scores stay where they are. The draft starts at {DEFAULT_SEASON_WEEKS} weeks.</p>
     </div>

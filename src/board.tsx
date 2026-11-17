@@ -11,7 +11,7 @@ import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
 import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import { onReload, reload } from "./reloadBoard";
-import { seasonBounds, type SeasonSpan } from "./streaks";
+import { DEFAULT_STREAK_MILESTONES, seasonBounds, type SeasonSpan, type StreakMilestone } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import { sameTasks } from "./taskSlots";
 import type { DayRow, GridRow } from "./types";
@@ -50,6 +50,7 @@ type BoardValue = {
   season: SeasonSpan;
   nicknames: Record<string, string>;
   rates: ScoreRates;
+  milestones: readonly StreakMilestone[];
   onPatch: GridContext["onPatch"];
   importCsv: (file: File) => Promise<void>;
   selectWeek: (weekId: string) => void;
@@ -115,6 +116,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const [nicknames, setNicknames] = useState<Record<string, string>>({});
   const [roster, setRoster] = useState<Array<{ person: string; team: string | null }>>([]);
   const [rates, setRates] = useState<ScoreRates>(DEFAULT_RATES);
+  const [milestones, setMilestones] = useState<readonly StreakMilestone[]>(DEFAULT_STREAK_MILESTONES);
   const weeksRef = useRef(weeks);
   // Bumped on every local edit. A reload that started before this number
   // changed is a picture of the week from before that edit. Applying it
@@ -168,6 +170,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
         setScoringMode(state.scoringMode);
         setSeason(state.season);
         setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
+        setMilestones(state.milestones);
         setReady(true);
         if (state.empty) {
           setNotice({
@@ -203,6 +206,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
           setScoringMode(state.scoringMode);
           setSeason(state.season);
           setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
+          setMilestones(state.milestones);
           setNotice({ tone: "ok", text: `This week is now ${formatWeekLabel(monday)}.` });
         })
         .catch((error: unknown) => {
@@ -251,6 +255,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
           setScoringMode(state.scoringMode);
           setSeason(state.season);
           setRates({ ...state.bonusPoints, pointsPerTask: state.pointsPerTask });
+          setMilestones(state.milestones);
         })
         .catch((error: unknown) => {
           if (cancelled || ticket !== generation) return;
@@ -535,6 +540,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       season,
       nicknames,
       rates,
+      milestones,
       onPatch,
       importCsv,
       selectWeek,
@@ -563,6 +569,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       season,
       nicknames,
       rates,
+      milestones,
       onPatch,
       importCsv,
       selectWeek,

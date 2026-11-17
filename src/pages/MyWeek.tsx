@@ -58,7 +58,7 @@ function placeLabel(place: number): string {
 }
 
 export function MyWeek() {
-  const { rows, people, roster, ready, rates, season, selectedWeek, nicknames, weeks } = useBoard();
+  const { rows, people, roster, ready, rates, milestones, season, selectedWeek, nicknames, weeks } = useBoard();
   const { profileName, role, roleReady, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   // searchParams.get already decodes, so the key matches the roster key.
@@ -82,7 +82,10 @@ export function MyWeek() {
   const mine = useMemo(() => rows.filter((row) => personKey(row) === selected), [rows, selected]);
   const total = person ? weekPoints(rows, person.key, rates) : 0;
   const canEdit = Boolean(person) && roleReady && canEditPerson(role, profileName, person?.person ?? "");
-  const seasonPeople = useMemo(() => seasonBoard(weeks, undefined, rates, season, roster), [weeks, rates, season, roster]);
+  const seasonPeople = useMemo(
+    () => seasonBoard(weeks, undefined, rates, season, roster, milestones),
+    [weeks, rates, season, roster, milestones],
+  );
   const seasonRow = person ? seasonPeople.find((item) => item.key === person.key) : undefined;
   // Ties share a place, same as the leaderboard. A person with no season row
   // has no place to show.
@@ -109,7 +112,7 @@ export function MyWeek() {
   const streakDays = seasonRow?.currentStreak ?? 0;
   // The countdown is computed for the open season, then shown only when the
   // list on screen is the signed-in person.
-  const streakNote = person && person.person === profileName && seasonRow ? streakCue(seasonRow.currentStreak) : "";
+  const streakNote = person && person.person === profileName && seasonRow ? streakCue(seasonRow.currentStreak, milestones) : "";
 
   function chooseLayout(next: WeekLayout) {
     setLayout(next);

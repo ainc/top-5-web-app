@@ -15,6 +15,7 @@
 import type { RealtimeChannel, User } from "@supabase/supabase-js";
 import { googleDisplayName } from "./auth";
 import { DAY_NAMES, isBuiltinBonus, type BuiltinBonusKey } from "./points";
+import type { StreakMilestone } from "./streaks";
 import { getSupabase } from "./supabaseClient";
 import { applyStoredTask, blankTaskFields, storedTasksFromRow } from "./taskSlots";
 import type { DayRow } from "./types";
@@ -66,6 +67,7 @@ type Catalog = {
   bonuses: Record<BuiltinBonusKey, { id: string; name: string; points: number }>;
   extras: Array<{ id: string; key: string; name: string; points: number }>;
   knownBonuses: KnownBonus[];
+  milestones: StreakMilestone[];
   people: Map<string, PersonRecord>;
 };
 
@@ -91,6 +93,7 @@ export type LoadedBoard = {
     readingName: string;
     extras: Array<{ key: string; name: string; points: number }>;
   };
+  milestones: StreakMilestone[];
   season: { name: string; startsOn: string; lengthWeeks: number };
   nicknames: Record<string, string>;
 };
@@ -222,37 +225,35 @@ function comparePeople(a: PersonRecord, b: PersonRecord): number {
   return a.createdAt.localeCompare(b.createdAt) || a.person.localeCompare(b.person);
 }
 
-// The board reads the one active season. A draft stays off this load until
-// a commissioner activates it, which closes the season that was open.
-// Bonuses come from the database so a commissioner can change 15/5/5 without a code change.
-async function refreshCatalog(): Promise<Catalog> {
-  const supabase = getSupabase();
-  const { data: season, error: seasonError } = await supabase
-    .from("seasons")
-    .select("id, name, scoring_mode, starts_on, length_weeks")
-    .eq("is_open", true)
-    .maybeSingle();
-  fail(seasonError, "read season");
-  if (!season) throw new Error("No open season in Supabase. Apply the migration in supabase/migrations first.");
-  const scoringMode: ScoringMode = season.scoring_mode === "teams" ? "teams" : "individual";
-  const { data: rules, error: rulesError } = await supabase
-    .from("scoring_rules")
-    .select("points_per_task")
-    .eq("season_id", season.id)
-    .maybeSingle();
-  fail(rulesError, "read scoring rules");
-  const pointsPerTask = Number(rules?.points_per_task ?? 0);
+type SeasonRow = {
+  id: string;
+  name: string;
+  scoring_mode: string | null;
+  starts_on: string;
+  length_weeks: number;
+};
 
-  const { data: teamRows, error: teamError } = await supabase.from("teams").select("id, name").eq("season_id", season.id);
+// Loads the catalog for any season without touching the live singleton.
+async function loadCatalogForSeason(season: SeasonRow): Promise<Catalog> {
+  const supabase = getSupabase();
+  const scoringMode: ScoringMode = season.scoring_mode === "teams" ? "teams" : "individual";
+  const [{ data: rules, error: rulesError }, { data: teamRows, error: teamError }, { data: bonusRows, error: bonusError }, { data: milestoneRows, error: milestoneError }, { data: members, error: memberError }] = await Promise.all([
+    supabase.from("scoring_rules").select("points_per_task").eq("season_id", season.id).maybeSingle(),
+    supabase.from("teams").select("id, name").eq("season_id", season.id),
+    supabase.from("bonus_definitions").select("id, key, name, points, retired_at").eq("season_id", season.id),
+    supabase.from("streak_milestones").select("day, points").eq("season_id", season.id).order("day"),
+    supabase.from("season_members").select("profile_id, profiles(display_name, nickname, created_at)").eq("season_id", season.id),
+  ]);
+  fail(rulesError, "read scoring rules");
   fail(teamError, "read teams");
+  fail(bonusError, "read bonuses");
+  fail(milestoneError, "read streak milestones");
+  fail(memberError, "read roster");
+
+  const pointsPerTask = Number(rules?.points_per_task ?? 0);
   const teams = new Map<string, string>();
   for (const row of teamRows ?? []) teams.set(String(row.name), String(row.id));
 
-  const { data: bonusRows, error: bonusError } = await supabase
-    .from("bonus_definitions")
-    .select("id, key, name, points, retired_at")
-    .eq("season_id", season.id);
-  fail(bonusError, "read bonuses");
   const knownBonuses: KnownBonus[] = (bonusRows ?? []).map((row) => ({
     id: String(row.id),
     key: String(row.key),
@@ -274,11 +275,10 @@ async function refreshCatalog(): Promise<Catalog> {
     .filter((bonus) => !bonus.retired && !isBuiltinBonus(bonus.key))
     .map((bonus) => ({ id: bonus.id, key: bonus.key, name: bonus.name, points: bonus.points }));
 
-  const { data: members, error: memberError } = await supabase
-    .from("season_members")
-    .select("profile_id, profiles(display_name, nickname, created_at)")
-    .eq("season_id", season.id);
-  fail(memberError, "read roster");
+  const milestones: StreakMilestone[] = (milestoneRows ?? []).map((row) => ({
+    day: Number(row.day),
+    points: Number(row.points),
+  }));
 
   const teamByProfile = new Map<string, string>();
   if (scoringMode === "teams") {
@@ -312,7 +312,7 @@ async function refreshCatalog(): Promise<Catalog> {
     });
   }
 
-  catalog = {
+  return {
     seasonId: season.id,
     scoringMode,
     name: String(season.name),
@@ -323,8 +323,24 @@ async function refreshCatalog(): Promise<Catalog> {
     bonuses,
     extras,
     knownBonuses,
+    milestones,
     people,
   };
+}
+
+// The board reads the one active season. A draft stays off this load until
+// a commissioner activates it, which closes the season that was open.
+// Bonuses and milestones come from the database so a commissioner can change them without a code change.
+async function refreshCatalog(): Promise<Catalog> {
+  const supabase = getSupabase();
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("id, name, scoring_mode, starts_on, length_weeks")
+    .eq("is_open", true)
+    .maybeSingle();
+  fail(seasonError, "read season");
+  if (!season) throw new Error("No open season in Supabase. Apply the migration in supabase/migrations first.");
+  catalog = await loadCatalogForSeason(season as SeasonRow);
   return catalog;
 }
 
@@ -753,6 +769,42 @@ async function loadOnce(createRosterWeek: boolean): Promise<LoadedBoard> {
       readingName: cat.bonuses.reading.name,
       extras: cat.extras.map((bonus) => ({ key: bonus.key, name: bonus.name, points: bonus.points })),
     },
+    milestones: cat.milestones,
+    season: { name: cat.name, startsOn: cat.startsOn, lengthWeeks: cat.lengthWeeks },
+    nicknames: loadedWeeks.nicknames,
+  };
+}
+
+// Loads any season (closed, draft, or active) into the same LoadedBoard shape
+// for PastSeasons summaries and season CSV exports, without altering the live board.
+export async function loadSeasonArchive(seasonId: string): Promise<LoadedBoard> {
+  const supabase = getSupabase();
+  const { data: season, error: seasonError } = await supabase
+    .from("seasons")
+    .select("id, name, scoring_mode, starts_on, length_weeks")
+    .eq("id", seasonId)
+    .maybeSingle();
+  fail(seasonError, "read season");
+  if (!season) throw new Error("That season was not found.");
+  const cat = await loadCatalogForSeason(season as SeasonRow);
+  const loadedWeeks = await fetchWeeks(cat);
+  return {
+    weeks: loadedWeeks.weeks,
+    roster: rosterFromCatalog(cat),
+    migratedFromBrowser: false,
+    empty: Object.keys(loadedWeeks.weeks).length === 0,
+    scoringMode: cat.scoringMode,
+    pointsPerTask: cat.pointsPerTask,
+    bonusPoints: {
+      top5: cat.bonuses.top5.points,
+      exercise: cat.bonuses.exercise.points,
+      reading: cat.bonuses.reading.points,
+      top5Name: cat.bonuses.top5.name,
+      exerciseName: cat.bonuses.exercise.name,
+      readingName: cat.bonuses.reading.name,
+      extras: cat.extras.map((bonus) => ({ key: bonus.key, name: bonus.name, points: bonus.points })),
+    },
+    milestones: cat.milestones,
     season: { name: cat.name, startsOn: cat.startsOn, lengthWeeks: cat.lengthWeeks },
     nicknames: loadedWeeks.nicknames,
   };

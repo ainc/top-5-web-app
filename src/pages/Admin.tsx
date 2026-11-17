@@ -26,6 +26,7 @@ import type { Season } from "./admin/adminShared";
 export function Admin() {
   const [season, setSeason] = useState<Season | null>(null);
   const [people, setPeople] = useState<RosterName[]>([]);
+  const [rosterVersion, setRosterVersion] = useState(0);
   const [signInAsName, setSignInAsName] = useState("");
   const [signingInAs, setSigningInAs] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,6 +35,7 @@ export function Admin() {
 
   const onSeason = useCallback((next: Season) => setSeason(next), []);
   const onPeople = useCallback((next: RosterName[]) => setPeople(next), []);
+  const onRosterChange = useCallback(() => setRosterVersion((version) => version + 1), []);
   const saved = useCallback((text: string) => {
     setError("");
     setMessage(text);
@@ -112,8 +114,8 @@ export function Admin() {
         <>
           <BonusCard season={season} saved={saved} failed={failed} />
           <RosterLinksCard saved={saved} failed={failed} />
-          <RosterCard season={season} onPeople={onPeople} saved={saved} failed={failed} />
-          {season.scoring_mode === "teams" ? <TeamsCard season={season} saved={saved} failed={failed} /> : null}
+          <RosterCard season={season} onPeople={onPeople} onRosterChange={onRosterChange} saved={saved} failed={failed} />
+          {season.scoring_mode === "teams" ? <TeamsCard season={season} rosterVersion={rosterVersion} saved={saved} failed={failed} /> : null}
           {import.meta.env.DEV ? (
             <form
               className="admin-card"
@@ -141,7 +143,7 @@ export function Admin() {
               </div>
             </form>
           ) : null}
-          <RolesCard season={season} saved={saved} failed={failed} />
+          <RolesCard season={season} rosterVersion={rosterVersion} saved={saved} failed={failed} />
           <NotificationSettings />
           <PastSeasons />
           <EditLog people={people} />

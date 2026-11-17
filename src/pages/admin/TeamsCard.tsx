@@ -7,9 +7,14 @@ import { getSupabase } from "../../supabaseClient";
 import { fail, type AdminNotice, type Season } from "./adminShared";
 
 type Person = { id: string; name: string; teamId: string };
-type Team = { id: string; name: string };
+type Team = { id: string; name: string; savedName: string };
 
-export function TeamsCard({ season, saved, failed }: AdminNotice & { season: Season }) {
+export function TeamsCard({
+  season,
+  rosterVersion = 0,
+  saved,
+  failed,
+}: AdminNotice & { season: Season; rosterVersion?: number }) {
   const [people, setPeople] = useState<Person[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [newTeam, setNewTeam] = useState("");
@@ -26,7 +31,7 @@ export function TeamsCard({ season, saved, failed }: AdminNotice & { season: Sea
     fail(teamError, "read teams");
     fail(assignmentError, "read team assignments");
     const assigned = new Map((assignmentRows ?? []).map((row) => [String(row.profile_id), String(row.team_id)]));
-    setTeams((teamRows ?? []).map((row) => ({ id: row.id, name: row.name })));
+    setTeams((teamRows ?? []).map((row) => ({ id: String(row.id), name: String(row.name), savedName: String(row.name).trim() })));
     setPeople(
       (memberRows ?? [])
         .map((row) => {
@@ -43,7 +48,7 @@ export function TeamsCard({ season, saved, failed }: AdminNotice & { season: Sea
 
   useEffect(() => {
     load().catch((reason: unknown) => failed(reason, "Could not load teams."));
-  }, [load, failed]);
+  }, [load, failed, rosterVersion]);
 
   async function addTeam() {
     if (season.status === "closed") return;
@@ -53,6 +58,35 @@ export function TeamsCard({ season, saved, failed }: AdminNotice & { season: Sea
     fail(error, "add team");
     setNewTeam("");
     saved(`Team ${name} added.`);
+    await load();
+  }
+
+  async function renameTeam(team: Team, rawName: string) {
+    if (season.status === "closed") return;
+    const next = rawName.trim();
+    if (next === team.savedName) return;
+    if (!next) {
+      setTeams((current) => current.map((item) => (item.id === team.id ? { ...item, name: team.savedName } : item)));
+      throw new Error("A team needs a name.");
+    }
+    if (teams.some((item) => item.id !== team.id && item.savedName.toLowerCase() === next.toLowerCase())) {
+      setTeams((current) => current.map((item) => (item.id === team.id ? { ...item, name: team.savedName } : item)));
+      throw new Error(`Team ${next} already exists on this season.`);
+    }
+    const { error } = await getSupabase().from("teams").update({ name: next }).eq("id", team.id);
+    fail(error, "rename team");
+    saved(`${team.savedName} was renamed to ${next}.`);
+    await load();
+  }
+
+  async function removeTeam(team: Team) {
+    if (season.status === "closed") return;
+    const count = people.filter((person) => person.teamId === team.id).length;
+    const detail = count > 0 ? ` ${count} ${count === 1 ? "member" : "members"} will move to No team.` : "";
+    if (!window.confirm(`Remove team "${team.savedName}" from ${season.name}?${detail}`)) return;
+    const { error } = await getSupabase().from("teams").delete().eq("id", team.id);
+    fail(error, "remove team");
+    saved(`Team ${team.savedName} was removed.`);
     await load();
   }
 
@@ -92,6 +126,45 @@ export function TeamsCard({ season, saved, failed }: AdminNotice & { season: Sea
           Add team
         </button>
       </form>
+      {teams.length > 0 ? (
+        <ul className="admin-list">
+          {teams.map((team) => {
+            const count = people.filter((person) => person.teamId === team.id).length;
+            return (
+              <li className="team-manage-row" key={team.id}>
+                <input
+                  value={team.name}
+                  maxLength={60}
+                  aria-label={`Team name for ${team.savedName}`}
+                  disabled={closed}
+                  onChange={(event) =>
+                    setTeams((current) => current.map((item) => (item.id === team.id ? { ...item, name: event.target.value } : item)))
+                  }
+                  onBlur={(event) => {
+                    renameTeam(team, event.target.value).catch((reason: unknown) => failed(reason, "Could not rename that team."));
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      (event.target as HTMLInputElement).blur();
+                    }
+                  }}
+                />
+                <span className="field-help">
+                  {count} {count === 1 ? "member" : "members"}
+                </span>
+                <button
+                  type="button"
+                  disabled={closed}
+                  onClick={() => removeTeam(team).catch((reason: unknown) => failed(reason, "Could not remove that team."))}
+                >
+                  Remove
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       <ul className="admin-list">
         {people.map((person) => (
           <li key={person.id}>

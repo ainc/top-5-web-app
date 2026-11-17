@@ -60,7 +60,7 @@ import { DEFAULT_RATES, type ScoreRates } from "../points";
 import { shownName } from "../names";
 import { ScorecardLoading } from "../ScorecardLoading";
 import { WinnerConfetti, type WinnerConfettiHandle } from "../winnerConfetti";
-import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason, type SeasonSpan } from "../streaks";
+import { seasonBoard, streakBadge, teamStandings, weekWinners, type PersonSeason, type SeasonSpan, type StreakMilestone } from "../streaks";
 import { addDays, parseISODate, type WeekRecord } from "../weeks";
 
 type BoardView = "season" | "week";
@@ -161,6 +161,7 @@ export function SeasonBoards({
   you = "",
   detailKey = "",
   roster: activeRoster,
+  milestones,
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
@@ -174,9 +175,13 @@ export function SeasonBoards({
   // Current season_members roster. Filtering seasonBoard and weekWinners by
   // this list drops removed members without deleting their saved task history.
   roster?: Array<{ person: string; team: string | null }>;
+  milestones?: readonly StreakMilestone[];
 }) {
   const [view, setView] = useState<BoardView>("season");
-  const roster = useMemo(() => seasonBoard(weeks, undefined, rates, season, activeRoster), [activeRoster, rates, season, weeks]);
+  const roster = useMemo(
+    () => seasonBoard(weeks, undefined, rates, season, activeRoster, milestones),
+    [activeRoster, milestones, rates, season, weeks],
+  );
   const people = useMemo(
     () =>
       roster.filter((person) => {
@@ -463,7 +468,7 @@ function StreakDetail({ person, nicknames }: { person: PersonSeason; nicknames: 
 }
 
 export function LeaderboardPage() {
-  const { weeks, rates, scoringMode, season, nicknames, roster, ready } = useBoard();
+  const { weeks, rates, scoringMode, season, nicknames, roster, milestones, ready } = useBoard();
   const { profileName } = useAuth();
   const [searchParams] = useSearchParams();
   if (!ready) return <ScorecardLoading />;
@@ -479,6 +484,7 @@ export function LeaderboardPage() {
         you={profileName}
         detailKey={searchParams.get("person") ?? ""}
         roster={roster}
+        milestones={milestones}
       />
     </section>
   );

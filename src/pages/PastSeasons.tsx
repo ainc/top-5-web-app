@@ -1,11 +1,15 @@
 // Closed seasons leave the live week menu. Their days stay in the database
 // and can be opened here. The closed-season trigger refuses edits, so this
-// list has no save buttons. Weeks from before the edit log are included:
-// the log never copied them, and dropping an old log line does not drop a day.
+// list has no save buttons. Shows the final season standings, team totals,
+// CSV exports, and week-by-week saved days.
 
-import { Library } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Download, Library } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { buildDaysCsv, buildStandingsCsv, downloadCsv } from "../exportCsv";
+import { shownName } from "../names";
+import { loadSeasonArchive, type LoadedBoard } from "../remoteBoard";
 import { ScorecardLoading } from "../ScorecardLoading";
+import { seasonBoard, seasonBounds, teamStandings } from "../streaks";
 import { getSupabase } from "../supabaseClient";
 import { slotName } from "../taskSlots";
 import { addDays, formatWeekLabel, mondayOf, parseISODate } from "../weeks";
@@ -27,6 +31,7 @@ function fail(error: { message: string } | null, action: string): void {
 export function PastSeasons() {
   const [seasons, setSeasons] = useState<ClosedSeason[]>([]);
   const [seasonId, setSeasonId] = useState("");
+  const [archive, setArchive] = useState<LoadedBoard | null>(null);
   const [weeks, setWeeks] = useState<string[]>([]);
   const [weekId, setWeekId] = useState("");
   const [days, setDays] = useState<ArchiveDay[]>([]);
@@ -57,35 +62,43 @@ export function PastSeasons() {
 
   useEffect(() => {
     if (!seasonId) {
+      setArchive(null);
       setWeeks([]);
       setWeekId("");
       return;
     }
     let cancel = false;
+    setError("");
     const supabase = getSupabase();
     (async () => {
-      const found = new Set<string>();
-      for (let from = 0; ; from += 1000) {
-        const { data, error: dateError } = await supabase
-          .from("day_entries")
-          .select("entry_date")
-          .eq("season_id", seasonId)
-          .order("entry_date", { ascending: false })
-          .range(from, from + 999);
-        if (cancel) return;
-        fail(dateError, "read past days");
-        const batch = data ?? [];
-        for (const row of batch) {
-          if (typeof row.entry_date === "string") found.add(mondayOf(parseISODate(row.entry_date)));
-        }
-        if (batch.length < 1000) break;
-      }
+      const [loadedArchive, mondays] = await Promise.all([
+        loadSeasonArchive(seasonId),
+        (async () => {
+          const found = new Set<string>();
+          for (let from = 0; ; from += 1000) {
+            const { data, error: dateError } = await supabase
+              .from("day_entries")
+              .select("entry_date")
+              .eq("season_id", seasonId)
+              .order("entry_date", { ascending: false })
+              .range(from, from + 999);
+            if (cancel) return [];
+            fail(dateError, "read past days");
+            const batch = data ?? [];
+            for (const row of batch) {
+              if (typeof row.entry_date === "string") found.add(mondayOf(parseISODate(row.entry_date)));
+            }
+            if (batch.length < 1000) break;
+          }
+          return [...found].sort().reverse();
+        })(),
+      ]);
       if (cancel) return;
-      const mondays = [...found].sort().reverse();
+      setArchive(loadedArchive);
       setWeeks(mondays);
       setWeekId(mondays[0] ?? "");
     })().catch((reason: unknown) => {
-      if (!cancel) setError(reason instanceof Error ? reason.message : "Could not list weeks.");
+      if (!cancel) setError(reason instanceof Error ? reason.message : "Could not load that closed season.");
     });
     return () => {
       cancel = true;
@@ -143,6 +156,23 @@ export function PastSeasons() {
     };
   }, [seasonId, weekId]);
 
+  const finalStandings = useMemo(() => {
+    if (!archive) return [];
+    const bounds = seasonBounds(archive.season);
+    const rates = { ...archive.bonusPoints, pointsPerTask: archive.pointsPerTask };
+    const ranked = seasonBoard(archive.weeks, bounds.endsOn, rates, archive.season, archive.roster, archive.milestones);
+    let place = 1;
+    return ranked.map((person, index) => {
+      if (index > 0 && person.seasonTotal < ranked[index - 1].seasonTotal) place = index + 1;
+      return { ...person, place };
+    });
+  }, [archive]);
+
+  const finalTeams = useMemo(() => {
+    if (!archive || archive.scoringMode !== "teams") return [];
+    return teamStandings(finalStandings);
+  }, [archive, finalStandings]);
+
   return (
     <section className="admin-card tone-log">
       <h2>
@@ -179,7 +209,64 @@ export function PastSeasons() {
                 ))}
               </select>
             </label>
+            {archive ? (
+              <div className="admin-row">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const bounds = seasonBounds(archive.season);
+                    downloadCsv(archive.season.name, "standings", buildStandingsCsv(archive, bounds.endsOn));
+                  }}
+                >
+                  <Download aria-hidden="true" />
+                  Export standings CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadCsv(archive.season.name, "days", buildDaysCsv(archive));
+                  }}
+                >
+                  <Download aria-hidden="true" />
+                  Export days CSV
+                </button>
+              </div>
+            ) : null}
           </div>
+          {finalStandings.length > 0 ? (
+            <div className="past-summary">
+              <h3>Final standings</h3>
+              {finalTeams.length > 0 ? (
+                <p className="field-help">
+                  Teams: {finalTeams.map((team) => `${team.team} (${team.seasonTotal})`).join(" · ")}
+                </p>
+              ) : null}
+              <table className="scorecard board-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Name</th>
+                    <th className="num">Weekly</th>
+                    <th className="num">Streak bonus</th>
+                    <th className="num">Best streak</th>
+                    <th className="num">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {finalStandings.map((person) => (
+                    <tr key={person.key}>
+                      <td>{person.place}</td>
+                      <td>{shownName(person.person, archive?.nicknames ?? {})}</td>
+                      <td className="num">{person.weeklyPoints}</td>
+                      <td className="num">{person.streakBonus}</td>
+                      <td className="num">{person.longestStreak}</td>
+                      <td className="num is-season">{person.seasonTotal}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
           {loading ? <ScorecardLoading compact label="Loading that week…" /> : null}
           {!loading && weekId && days.length === 0 ? <p className="field-help">That week has no saved days.</p> : null}
           <div className="edit-log">

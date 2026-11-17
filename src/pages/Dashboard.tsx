@@ -119,7 +119,7 @@ function placeLabel(place: number): string {
 }
 
 export function Dashboard() {
-  const { rows, people: weekPeople, roster: activeRoster, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, season, nicknames } = useBoard();
+  const { rows, people: weekPeople, roster: activeRoster, ready, selectedWeek, weekLabel, isCurrentWeek, weeks, rates, milestones, season, nicknames } = useBoard();
   const { profileName } = useAuth();
   const [listKey, setListKey] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
@@ -179,7 +179,10 @@ export function Dashboard() {
     roster.find((person) => person.key === listKey) ??
     roster.find((person) => person.key === signedInKey) ??
     roster[0];
-  const seasonPeople = useMemo(() => seasonBoard(weeks, undefined, rates, season, activeRoster), [activeRoster, rates, season, weeks]);
+  const seasonPeople = useMemo(
+    () => seasonBoard(weeks, undefined, rates, season, activeRoster, milestones),
+    [activeRoster, milestones, rates, season, weeks],
+  );
   const seasonLeader = seasonPeople[0];
   // A tie for the top season total lists every name on the card. A season
   // where the best total is still 0 has no leader yet.

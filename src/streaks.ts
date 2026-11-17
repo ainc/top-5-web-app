@@ -19,7 +19,9 @@ import { shownName } from "./names";
 import { DAY_NAMES, dailyPoints, DEFAULT_RATES, personKey, type ScoreRates } from "./points";
 import { addDays, currentMonday, formatISODate, formatWeekLabel, mondayOf, parseISODate, type WeekRecord } from "./weeks";
 
-export const STREAK_MILESTONES = [
+export type StreakMilestone = { day: number; points: number };
+
+export const STREAK_MILESTONES: readonly StreakMilestone[] = [
   { day: 3, points: 5 },
   { day: 5, points: 5 },
   { day: 8, points: 5 },
@@ -27,7 +29,13 @@ export const STREAK_MILESTONES = [
   { day: 15, points: 20 },
   { day: 20, points: 25 },
   { day: 25, points: 25 },
-] as const;
+];
+
+export const DEFAULT_STREAK_MILESTONES = STREAK_MILESTONES;
+
+function orderedMilestones(milestones: readonly StreakMilestone[]): StreakMilestone[] {
+  return [...milestones].filter((milestone) => milestone.day > 0).sort((a, b) => a.day - b.day);
+}
 
 export type StreakAward = { day: number; points: number; date: string };
 
@@ -64,15 +72,15 @@ function streakEnd(today: string): string {
   return today;
 }
 
-function milestoneFor(length: number): (typeof STREAK_MILESTONES)[number] | undefined {
-  return STREAK_MILESTONES.find((milestone) => milestone.day === length);
+function milestoneFor(length: number, milestones: readonly StreakMilestone[]): StreakMilestone | undefined {
+  return milestones.find((milestone) => milestone.day === length);
 }
 
-// "1 more day for +5". Empty once the run is past the last milestone on the
-// sheet. My week is the only place that prints this, and only for the person
-// who is signed in. The leaderboard used to repeat it on every row.
-export function streakCue(current: number): string {
-  const next = STREAK_MILESTONES.find((milestone) => milestone.day > current);
+// "1 more day for +5". Empty once the run is past the last milestone for
+// this season. My week is the only place that prints this, and only for the
+// person who is signed in. The leaderboard used to repeat it on every row.
+export function streakCue(current: number, milestones: readonly StreakMilestone[] = STREAK_MILESTONES): string {
+  const next = orderedMilestones(milestones).find((milestone) => milestone.day > current);
   if (!next) return "";
   const left = next.day - current;
   return `${left} more ${left === 1 ? "day" : "days"} for +${next.points}`;
@@ -145,6 +153,7 @@ function summarize(
   days: DatedPoints[],
   today: string,
   bounds: { startsOn: string; endsOn: string } | null = null,
+  milestones: readonly StreakMilestone[] = STREAK_MILESTONES,
 ): Omit<PersonSeason, "key" | "person" | "team"> {
   const counted = days.filter((day) => inSpan(day.date, bounds));
   const endLimit = bounds ? (streakEnd(today) < bounds.endsOn ? streakEnd(today) : bounds.endsOn) : streakEnd(today);
@@ -179,7 +188,7 @@ function summarize(
       if (scored.has(date)) {
         run += 1;
         longest = Math.max(longest, run);
-        const hit = milestoneFor(run);
+        const hit = milestoneFor(run, milestones);
         if (hit) awards.push({ day: hit.day, points: hit.points, date });
       } else {
         run = 0;
@@ -216,14 +225,16 @@ export function seasonBoard(
   rates: ScoreRates = DEFAULT_RATES,
   span?: SeasonSpan,
   roster?: Array<{ person: string; team: string | null }>,
+  milestones: readonly StreakMilestone[] = STREAK_MILESTONES,
 ): PersonSeason[] {
   const bounds = span ? seasonBounds(span) : null;
   const active = roster ? new Set(roster.map((person) => person.person)) : null;
   const seen = new Set<string>();
+  const ladder = orderedMilestones(milestones);
   const rows = [...datedPoints(weeks, rates).entries()]
     .map(([key, record]) => {
       if (active && !active.has(record.person)) return null;
-      const summary = summarize(record.days, today, bounds);
+      const summary = summarize(record.days, today, bounds, ladder);
       const counted = record.days.some((day) => inSpan(day.date, bounds));
       if (!counted) return null;
       seen.add(record.person);
@@ -239,7 +250,7 @@ export function seasonBoard(
         key: member.team ? `${member.team}|${member.person}` : member.person,
         person: member.person,
         team: member.team,
-        ...summarize([], today, bounds),
+        ...summarize([], today, bounds, ladder),
       });
     }
   }
