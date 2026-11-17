@@ -7,20 +7,27 @@ import { getSupabase } from "../../supabaseClient";
 import { fail, type AdminNotice, type Season } from "./adminShared";
 
 type Person = { id: string; name: string; nickname: string; savedNickname: string };
+type DraftSeason = { id: string; name: string };
 
 export type RosterName = { id: string; name: string };
 
 export function RosterCard({ season, onPeople, saved, failed }: AdminNotice & { season: Season; onPeople: (people: RosterName[]) => void }) {
   const [people, setPeople] = useState<Person[]>([]);
+  const [drafts, setDrafts] = useState<DraftSeason[]>([]);
+  const [removeFromDrafts, setRemoveFromDrafts] = useState(true);
   const [newPerson, setNewPerson] = useState("");
   const closed = season.status === "closed";
 
   const load = useCallback(async () => {
-    const { data: memberRows, error } = await getSupabase()
-      .from("season_members")
-      .select("profile_id, profiles(display_name, nickname)")
-      .eq("season_id", season.id);
+    const supabase = getSupabase();
+    const [{ data: memberRows, error }, draftResult] = await Promise.all([
+      supabase.from("season_members").select("profile_id, profiles(display_name, nickname)").eq("season_id", season.id),
+      season.status === "active"
+        ? supabase.from("seasons").select("id, name").eq("status", "draft").order("starts_on")
+        : Promise.resolve({ data: [] as DraftSeason[], error: null }),
+    ]);
     fail(error, "read roster");
+    fail(draftResult.error, "read draft seasons");
     const next = (memberRows ?? [])
       .map((row) => {
         const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
@@ -32,9 +39,15 @@ export function RosterCard({ season, onPeople, saved, failed }: AdminNotice & { 
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+    setDrafts(
+      (draftResult.data ?? []).map((row) => ({
+        id: String(row.id),
+        name: String(row.name),
+      })),
+    );
     setPeople(next);
     onPeople(next.map((person) => ({ id: person.id, name: person.name })));
-  }, [season.id, onPeople]);
+  }, [season.id, season.status, onPeople]);
 
   useEffect(() => {
     load().catch((reason: unknown) => failed(reason, "Could not load the roster."));
@@ -69,12 +82,47 @@ export function RosterCard({ season, onPeople, saved, failed }: AdminNotice & { 
 
   async function removePerson(person: Person) {
     if (season.status === "closed") return;
-    const { error } = await getSupabase().from("season_members").delete().eq("season_id", season.id).eq("profile_id", person.id);
+    const supabase = getSupabase();
+    const { error } = await supabase.from("season_members").delete().eq("season_id", season.id).eq("profile_id", person.id);
     fail(error, "remove roster");
+    const { error: teamError } = await supabase.from("team_members").delete().eq("season_id", season.id).eq("profile_id", person.id);
+    fail(teamError, "clear team assignment");
+
+    const updatedDraftNames: string[] = [];
+    if (season.status === "active" && removeFromDrafts && drafts.length > 0) {
+      const draftIds = drafts.map((draft) => draft.id);
+      const { data: matchingDrafts, error: matchError } = await supabase
+        .from("season_members")
+        .select("season_id")
+        .eq("profile_id", person.id)
+        .in("season_id", draftIds);
+      fail(matchError, "check future draft rosters");
+      const matchedIds = (matchingDrafts ?? []).map((row) => String(row.season_id));
+      if (matchedIds.length > 0) {
+        const { error: draftMemberError } = await supabase
+          .from("season_members")
+          .delete()
+          .eq("profile_id", person.id)
+          .in("season_id", matchedIds);
+        fail(draftMemberError, "remove from future draft rosters");
+        const { error: draftTeamError } = await supabase
+          .from("team_members")
+          .delete()
+          .eq("profile_id", person.id)
+          .in("season_id", matchedIds);
+        fail(draftTeamError, "clear future draft team assignments");
+        for (const draft of drafts) {
+          if (matchedIds.includes(draft.id)) updatedDraftNames.push(draft.name);
+        }
+      }
+    }
+
     saved(
       season.status === "draft"
-        ? `${person.name} was removed from this draft. The live roster is unchanged.`
-        : `${person.name} left the roster. Days already saved stay on past weeks.`,
+        ? `${person.name} was removed from this draft. The live roster and saved task history are unchanged.`
+        : updatedDraftNames.length > 0
+          ? `${person.name} left ${season.name} and ${updatedDraftNames.join(", ")}. Their task history is preserved.`
+          : `${person.name} left the roster. Their task history is preserved.`,
     );
     await load();
   }
@@ -99,8 +147,14 @@ export function RosterCard({ season, onPeople, saved, failed }: AdminNotice & { 
       <p className="field-help">
         {season.status === "draft"
           ? "People copied onto this draft. Adding or removing someone changes the upcoming roster only. A nickname still changes that person's name on every page."
-          : "People who show up on the board. A nickname is what other pages show instead of the roster name. Leave it blank to keep the roster name. Removing someone hides them from new weeks. Days already saved stay."}
+          : "People who show up on the dashboard, leaderboard, and new weeks. A nickname is what other pages show instead of the roster name. Leave it blank to keep the roster name. Removing someone takes them off the dashboard and leaderboard while keeping their saved task history."}
       </p>
+      {season.status === "active" && drafts.length > 0 ? (
+        <label className="admin-check field-help">
+          <input type="checkbox" checked={removeFromDrafts} onChange={(event) => setRemoveFromDrafts(event.target.checked)} />
+          Also remove from future {drafts.length === 1 ? "draft" : "drafts"} ({drafts.map((draft) => draft.name).join(", ")})
+        </label>
+      ) : null}
       <form
         className="admin-row"
         onSubmit={(event) => {

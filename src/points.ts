@@ -160,6 +160,26 @@ export function peopleOnWeek(
   return [...onWeek, ...missing];
 }
 
+// The active roster for the current season, preserving sheet order for people
+// already on this week and appending anyone on the roster who has no rows yet.
+// Anyone removed from the roster is left out even if past rows remain saved.
+export function peopleFromRoster(
+  rows: DayRow[],
+  roster: Array<{ person: string; team: string | null }>,
+): Array<{ key: string; person: string; team: string | null }> {
+  const active = new Set(roster.map((person) => person.person));
+  const onWeek = peopleInOrder(rows).filter((person) => active.has(person.person));
+  const names = new Set(onWeek.map((person) => person.person));
+  const missing = roster
+    .filter((person) => !names.has(person.person))
+    .map((person) => ({
+      key: person.team ? `${person.team}|${person.person}` : person.person,
+      person: person.person,
+      team: person.team,
+    }));
+  return [...onWeek, ...missing];
+}
+
 // Sum of that person's days in the current set of rows. Max is 125.
 export function weekPoints(rows: DayRow[], key: string, rates: ScoreRates = DEFAULT_RATES): number {
   return rows.reduce((sum, row) => (personKey(row) === key ? sum + dailyPoints(row, rates) : sum), 0);

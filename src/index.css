@@ -3816,12 +3816,24 @@ button.save-flash {
   gap: 4px;
 }
 
-.admin-card input,
+.admin-card input:not([type="checkbox"]),
 .admin-card select {
   border: 1px solid var(--line-strong);
   background: var(--field);
   border-radius: 8px;
   padding: 7px 12px;
+}
+
+.admin-card label.admin-check {
+  gap: 8px;
+  cursor: pointer;
+}
+
+.admin-card label.admin-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--brand);
 }
 
 .admin-list {

@@ -215,17 +215,36 @@ export function seasonBoard(
   today = todayISO(),
   rates: ScoreRates = DEFAULT_RATES,
   span?: SeasonSpan,
+  roster?: Array<{ person: string; team: string | null }>,
 ): PersonSeason[] {
   const bounds = span ? seasonBounds(span) : null;
-  return [...datedPoints(weeks, rates).entries()]
+  const active = roster ? new Set(roster.map((person) => person.person)) : null;
+  const seen = new Set<string>();
+  const rows = [...datedPoints(weeks, rates).entries()]
     .map(([key, record]) => {
+      if (active && !active.has(record.person)) return null;
       const summary = summarize(record.days, today, bounds);
       const counted = record.days.some((day) => inSpan(day.date, bounds));
       if (!counted) return null;
+      seen.add(record.person);
       return { key, person: record.person, team: record.team, ...summary };
     })
-    .filter((person): person is PersonSeason => person !== null)
-    .sort((a, b) => b.seasonTotal - a.seasonTotal || a.person.localeCompare(b.person));
+    .filter((person): person is PersonSeason => person !== null);
+
+  if (roster) {
+    for (const member of roster) {
+      if (seen.has(member.person)) continue;
+      seen.add(member.person);
+      rows.push({
+        key: member.team ? `${member.team}|${member.person}` : member.person,
+        person: member.person,
+        team: member.team,
+        ...summarize([], today, bounds),
+      });
+    }
+  }
+
+  return rows.sort((a, b) => b.seasonTotal - a.seasonTotal || a.person.localeCompare(b.person));
 }
 
 export function weekWinners(
@@ -234,9 +253,11 @@ export function weekWinners(
   rates: ScoreRates = DEFAULT_RATES,
   span?: SeasonSpan,
   nicknames: Record<string, string> = {},
+  roster?: Array<{ person: string; team: string | null }>,
 ): WeekWinner[] {
   const currentWeek = currentMonday();
   const bounds = span ? seasonBounds(span) : null;
+  const active = roster ? new Set(roster.map((person) => person.person)) : null;
   return Object.keys(weeks)
     .filter((weekId) => weekId <= currentWeek && inSpan(weekId, bounds))
     .sort()
@@ -244,6 +265,7 @@ export function weekWinners(
     .map((weekId) => {
       const totals = new Map<string, { name: string; points: number }>();
       for (const row of weeks[weekId]?.rows ?? []) {
+        if (active && !active.has(row.person)) continue;
         const offset = DAY_NAMES.indexOf(row.day as (typeof DAY_NAMES)[number]);
         if (offset < 0) continue;
         const date = addDays(weekId, offset);

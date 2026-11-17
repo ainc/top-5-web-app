@@ -6,12 +6,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildColumns, darkGridTheme, gridTheme } from "./columns";
 import type { GridContext } from "./cells";
 import { importSummary, parseSheetCsv } from "./parseSheetCsv";
-import { dailyPoints, DEFAULT_RATES, peopleOnWeek, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
+import { dailyPoints, DEFAULT_RATES, peopleFromRoster, peopleOnWeek, personKey, weekPoints, withAutomaticTop5, type ScoreRates } from "./points";
 import { useAuth, canEditPerson, canOpenAdmin } from "./auth";
 import { useTheme } from "./theme";
 import { loadBoardState, saveDays, subscribeToBoard, writesInFlight, type LoadedBoard } from "./remoteBoard";
 import { onReload, reload } from "./reloadBoard";
-import type { SeasonSpan } from "./streaks";
+import { seasonBounds, type SeasonSpan } from "./streaks";
 import { fillBlankSampleTasks } from "./sampleTasks";
 import { sameTasks } from "./taskSlots";
 import type { DayRow, GridRow } from "./types";
@@ -39,6 +39,7 @@ type BoardValue = {
   source: string;
   notice: Notice | null;
   people: ReturnType<typeof peopleOnWeek>;
+  roster: Array<{ person: string; team: string | null }>;
   selectedWeek: string;
   weekLabel: string;
   isCurrentWeek: boolean;
@@ -78,9 +79,14 @@ function errorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-function ensureWeek(weeks: Record<string, WeekRecord>, weekId: string, fromWeek: string): Record<string, WeekRecord> {
+function ensureWeek(
+  weeks: Record<string, WeekRecord>,
+  weekId: string,
+  fromWeek: string,
+  activeRoster: Array<{ person: string; team: string | null }>,
+): Record<string, WeekRecord> {
   if (weeks[weekId]) return weeks;
-  const roster = rosterFrom(weeks, fromWeek);
+  const roster = activeRoster.length > 0 ? activeRoster : rosterFrom(weeks, fromWeek);
   return {
     ...weeks,
     [weekId]: {
@@ -117,9 +123,11 @@ export function BoardProvider({ children }: { children: ReactNode }) {
   const selectedRef = useRef(selectedWeek);
   const roleRef = useRef(role);
   const profileNameRef = useRef(profileName);
+  const rosterRef = useRef(roster);
   selectedRef.current = selectedWeek;
   roleRef.current = role;
   profileNameRef.current = profileName;
+  rosterRef.current = roster;
 
   const commitWeeks = useCallback((next: Record<string, WeekRecord>) => {
     weeksRef.current = next;
@@ -373,7 +381,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       // A member can open a week that is already saved. Creating one writes a
       // blank day for every person, which only an admin or commissioner may do.
       if (!existed && !canOpenAdmin(roleRef.current)) return;
-      const next = ensureWeek(weeksRef.current, weekId, fromWeek);
+      const next = ensureWeek(weeksRef.current, weekId, fromWeek, rosterRef.current);
       commitWeeks(next);
       setSelectedWeek(weekId);
       if (existed || next[weekId].rows.length === 0) return;
@@ -458,11 +466,12 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       return;
     }
     const weekId = currentMonday();
+    const onRoster = rosterRef.current.find((person) => person.person === name);
     const known = Object.values(weeksRef.current)
       .flatMap((week) => week.rows)
       .find((row) => row.person === name);
     const week = weeksRef.current[weekId] ?? { rows: [], source: "Supabase" };
-    const { rows: mine, changed, filled } = fillBlankSampleTasks(name, known?.team ?? null, weekId, week.rows);
+    const { rows: mine, changed, filled } = fillBlankSampleTasks(name, onRoster?.team ?? known?.team ?? null, weekId, week.rows);
     if (filled === 0 || changed.length === 0) {
       setSelectedWeek(weekId);
       setNotice({ tone: "ok", text: "Your week already has a task in every slot. Nothing was replaced." });
@@ -488,10 +497,20 @@ export function BoardProvider({ children }: { children: ReactNode }) {
     }
   }, [commitWeeks, reportSaveError]);
 
-  const rows = weeks[selectedWeek]?.rows ?? [];
+  const rawRows = weeks[selectedWeek]?.rows ?? [];
   const source = weeks[selectedWeek]?.source ?? "Supabase";
-  // People already on this week, then anyone on the season roster who is not.
-  const people = useMemo(() => peopleOnWeek(rows, roster), [rows, roster]);
+  const onActiveSeason = !season.name || selectedWeek >= seasonBounds(season).startsOn;
+  // On the open season and future weeks, keep only people on the current roster.
+  // Removed members still keep their saved rows in the database and past archives.
+  const rows = useMemo(() => {
+    if (!onActiveSeason) return rawRows;
+    const active = new Set(roster.map((person) => person.person));
+    return rawRows.filter((row) => active.has(row.person));
+  }, [onActiveSeason, rawRows, roster]);
+  const people = useMemo(
+    () => (onActiveSeason ? peopleFromRoster(rows, roster) : peopleOnWeek(rows, roster)),
+    [onActiveSeason, roster, rows],
+  );
   const weekIds = useMemo(() => Object.keys(weeks).sort().reverse(), [weeks]);
   const today = currentMonday();
   const isCurrentWeek = selectedWeek === today;
@@ -505,6 +524,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       source,
       notice,
       people,
+      roster,
       selectedWeek,
       weekLabel,
       isCurrentWeek,
@@ -532,6 +552,7 @@ export function BoardProvider({ children }: { children: ReactNode }) {
       source,
       notice,
       people,
+      roster,
       selectedWeek,
       weekLabel,
       isCurrentWeek,

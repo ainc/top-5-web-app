@@ -160,6 +160,7 @@ export function SeasonBoards({
   nicknames = {},
   you = "",
   detailKey = "",
+  roster: activeRoster,
 }: {
   weeks: Record<string, WeekRecord>;
   needle: string;
@@ -170,9 +171,10 @@ export function SeasonBoards({
   you?: string;
   // Set from /leaderboard?person=. Empty means the shared table only.
   detailKey?: string;
+  roster?: Array<{ person: string; team: string | null }>;
 }) {
   const [view, setView] = useState<BoardView>("season");
-  const roster = useMemo(() => seasonBoard(weeks, undefined, rates, season), [rates, season, weeks]);
+  const roster = useMemo(() => seasonBoard(weeks, undefined, rates, season, activeRoster), [activeRoster, rates, season, weeks]);
   const people = useMemo(
     () =>
       roster.filter((person) => {
@@ -186,7 +188,7 @@ export function SeasonBoards({
     if (!detail) return;
     document.getElementById("streak-detail")?.scrollIntoView({ block: "nearest" });
   }, [detail]);
-  const winners = useMemo(() => weekWinners(weeks, undefined, rates, season, nicknames), [nicknames, rates, season, weeks]);
+  const winners = useMemo(() => weekWinners(weeks, undefined, rates, season, nicknames, activeRoster), [activeRoster, nicknames, rates, season, weeks]);
   const teams = useMemo(() => (scoringMode === "teams" ? teamStandings(people) : []), [people, scoringMode]);
 
   // Zeros stay out of the rank math. Sorting them in would hand 4th place to
@@ -459,7 +461,7 @@ function StreakDetail({ person, nicknames }: { person: PersonSeason; nicknames: 
 }
 
 export function LeaderboardPage() {
-  const { weeks, rates, scoringMode, season, nicknames, ready } = useBoard();
+  const { weeks, rates, scoringMode, season, nicknames, roster, ready } = useBoard();
   const { profileName } = useAuth();
   const [searchParams] = useSearchParams();
   if (!ready) return <ScorecardLoading />;
@@ -474,6 +476,7 @@ export function LeaderboardPage() {
         nicknames={nicknames}
         you={profileName}
         detailKey={searchParams.get("person") ?? ""}
+        roster={roster}
       />
     </section>
   );
