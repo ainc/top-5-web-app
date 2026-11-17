@@ -1,0 +1,2 @@
+[functions.top5-ingest]
+verify_jwt = false
