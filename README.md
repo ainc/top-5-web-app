@@ -174,6 +174,7 @@ Vitest (`vitest.config.ts`, `node` environment) covers core logic without touchi
 - `src/reloadBoard.test.ts` — `reload()` / `onReload()` fan-out and unsubscribe cleanup.
 - `src/rosterFilter.test.ts` — Active-roster filtering across `peopleFromRoster`, `seasonBoard`, and `weekWinners` while preserving saved rows.
 - `src/weekLayout.test.ts` — `top5-week-layout` preference mapping (`"grid"` and legacy `"matrix"` → `"grid"`).
+- `src/weekCue.test.ts` — Sidebar encouragement (`Up X from last week`, `Matched last week`, or Awesome Inc Core Value / Rule).
 - `src/streaks.test.ts` — Per-season custom streak milestone scoring and next-milestone cues.
 - `src/exportCsv.test.ts` — Season standings and daily CSV formatting, quoting, and active-roster filtering.
 
@@ -206,6 +207,7 @@ src/
   exportCsv.ts                Downloadable season standings and daily-row CSV builders
   weeks.ts                    Monday date math, blankWeek, missingRosterRows, 4-week planning cap
   weekLayout.ts               My week Board/Grid preference helper (reads/writes "grid", accepts "matrix")
+  weekCue.ts                  Sidebar encouragement (Awesome Inc Core Values / Rules until passing last week)
   names.ts                    Nickname display helpers (shownName, pickerName)
   theme.tsx                   Light/dark ThemeProvider + ThemeToggle
   notifications.ts            Staff inbox queries, read marks, realtime notices, season-end refresh

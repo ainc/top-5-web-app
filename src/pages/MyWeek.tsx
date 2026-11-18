@@ -18,8 +18,8 @@
 // "grid", and browsers with an older "matrix" value still open Grid. Any
 // older "legacy" value falls back to Board.
 //
-// The right sidebar holds the week's total, the change from last week, the
-// current streak, the season place, and How scoring works. The streak
+// The right sidebar holds the week's total, an encouraging Awesome Inc cue or
+// gain over last week, the current streak, the season place, and How scoring works. The streak
 // countdown ("1 more day for +5") is only there when this list is the
 // signed-in person. Looking at someone else shows their total and place, not
 // a countdown they cannot act on.
@@ -40,6 +40,7 @@ import { addDays } from "../weeks";
 import { WeekBoard } from "./WeekBoard";
 import { ScorecardLoading } from "../ScorecardLoading";
 import { WeekMatrix } from "./WeekMatrix";
+import { weekEncouragement } from "../weekCue";
 import { readWeekLayout, writeWeekLayout, type WeekLayout } from "../weekLayout";
 
 function placeLabel(place: number): string {
@@ -101,14 +102,15 @@ export function MyWeek() {
   const priorWeek = weeks[addDays(selectedWeek, -7)];
   const priorExists = Boolean(person && priorWeek?.rows.some((row) => personKey(row) === person.key));
   const priorPoints = person && priorExists ? weekPoints(priorWeek?.rows ?? [], person.key, rates) : 0;
-  const delta = total - priorPoints;
-  const deltaLabel = !priorExists
-    ? ""
-    : delta > 0
-      ? `Up ${delta} from last week`
-      : delta < 0
-        ? `Down ${Math.abs(delta)} from last week`
-        : "Same as last week";
+  const weekCue = person
+    ? weekEncouragement({
+        total,
+        priorExists,
+        priorPoints,
+        selectedWeek,
+        personKey: person.key,
+      })
+    : null;
   const streakDays = seasonRow?.currentStreak ?? 0;
   // The countdown is computed for the open season, then shown only when the
   // list on screen is the signed-in person.
@@ -159,8 +161,8 @@ export function MyWeek() {
               {total}
               <span> / {maxWeekPoints(rates)}</span>
             </p>
-            {deltaLabel ? (
-              <p className={delta > 0 ? "week-delta is-up" : delta < 0 ? "week-delta is-down" : "week-delta"}>{deltaLabel}</p>
+            {weekCue ? (
+              <p className={weekCue.tone === "up" ? "week-delta is-up" : "week-delta"}>{weekCue.text}</p>
             ) : null}
             <div className="week-side-pair">
               <div>

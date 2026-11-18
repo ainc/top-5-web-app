@@ -1057,14 +1057,11 @@ select,
   color: #939597;
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.35;
 }
 
 .week-delta.is-up {
   color: #1f7a45;
-}
-
-.week-delta.is-down {
-  color: #c12029;
 }
 
 .week-side-pair {
