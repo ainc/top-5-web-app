@@ -1,8 +1,8 @@
 // Shell around every page. Nothing in here is a scorecard row.
 //
-// The bar across the top is the Awesome Inc logo, then "Top 5" in Exo 2.
-// The logo is the horizontal mark: charcoal letters on the light bar, white
-// letters on the dark bar. "Top 5" stays brand red. The logo links to
+// The bar across the top is the Awesome Inc triangle mark and "Awesome Inc"
+// in Exo 2, then "Top 5" in brand red Exo 2 at the same size. Charcoal letters
+// on the light bar, white letters on the dark bar. The logo links to
 // awesomeinc.org.
 // On a phone the three pages move to a bottom bar. They are the whole app,
 // so they stay on screen instead of sitting behind a hamburger. The top row
@@ -108,10 +108,10 @@ export function App() {
       <header className="topbar">
         <div className="brand">
           <a className="brand-logo" href="https://awesomeinc.org/" target="_blank" rel="noreferrer" aria-label="Awesome Inc">
-            <img className="logo-for-light" src="/ainc-logo-dark.png" alt="" />
-            <img className="logo-for-dark" src="/ainc-logo.png" alt="" />
+            <img className="brand-mark" src="/favicon.png" alt="" />
+            <span className="brand-word">Awesome Inc</span>
           </a>
-          {/* Exo 2, italic, heavy. Sized to the mark beside it. */}
+          {/* Exo 2, italic, heavy — same font and size as "Awesome Inc". */}
           <p className="top5-word">Top 5</p>
         </div>
         <nav aria-label="Pages">

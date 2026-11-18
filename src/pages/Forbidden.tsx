@@ -29,8 +29,8 @@ export function ForbiddenPage() {
             strokeWidth="8"
             strokeLinecap="round"
           />
-          <circle cx="60" cy="86" r="6" fill="#111111" />
-          <rect x="56.5" y="90" width="7" height="14" rx="3" fill="#111111" />
+          <circle cx="60" cy="86" r="6" fill="#323232" />
+          <rect x="56.5" y="90" width="7" height="14" rx="3" fill="#323232" />
         </svg>
       </div>
       <h1 className="forbidden-code">403</h1>

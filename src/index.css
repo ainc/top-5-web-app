@@ -23,7 +23,7 @@
   --hover: #f1f1f2;
   --hover-sheet: #ffffff;
   --ink: #323232;
-  --inverse: #111111;
+  --inverse: #323232;
   --lift: rgb(193 32 41 / 24%);
   --lift-strong: rgb(193 32 41 / 28%);
   --lock-bg: #fdecee;
@@ -34,7 +34,7 @@
   --ok-bg: #f0fdf4;
   --on-brand: #ffffff;
   --paper: #f6f6f7;
-  --podium-you: #111111;
+  --podium-you: #323232;
   --quiet: #323232;
   --raised: #f1f1f2;
   --sheet: #ffffff;
@@ -45,7 +45,7 @@
   --team-bar: #323232;
   --canvas: #ffffff;
   --zero: #5e5e5e;
-  --you-line: #111111;
+  --you-line: #323232;
   --on-fill: #ffffff;
   --line: #e4e4e6;
   --line-strong: #d1d2d4;
@@ -124,8 +124,7 @@ input {
   gap: 10px;
 }
 
-/* The logo and "TOP 5" share one line. The image has transparent padding,
-   so its box is a little taller than the red word and the two centers meet. */
+/* The triangle mark, "AWESOME INC", and "TOP 5" share one Exo 2 line and size. */
 .brand-logo,
 .top5-word {
   margin: 0;
@@ -133,30 +132,23 @@ input {
 }
 
 .brand-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  line-height: 0;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--bar-ink);
 }
 
-.brand-logo img {
-  height: 34px;
-  width: auto;
-}
-
-.logo-for-dark {
-  display: none;
-}
-
-html[data-theme="dark"] .logo-for-light {
-  display: none;
-}
-
-html[data-theme="dark"] .logo-for-dark {
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  flex: none;
   display: block;
 }
 
+.brand-word,
 .top5-word {
-  color: var(--brand);
   font-family: "Exo 2", "Open Sans", sans-serif;
   font-style: italic;
   font-weight: 800;
@@ -165,6 +157,10 @@ html[data-theme="dark"] .logo-for-dark {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.top5-word {
+  color: var(--brand);
 }
 
 .topbar nav a,
@@ -1229,7 +1225,7 @@ button:disabled {
   width: min(420px, 100%);
   padding: 8px 12px 0;
   border-radius: 20px;
-  background: #111111;
+  background: #323232;
 }
 
 .not-found-art img {
@@ -4002,8 +3998,8 @@ button.save-flash {
     justify-content: space-around;
     gap: 0;
     padding: 4px 8px calc(6px + env(safe-area-inset-bottom));
-    background: #111111;
-    border-top: 1px solid #2a2a2a;
+    background: #323232;
+    border-top: 1px solid #4a4a4a;
   }
 
   nav a {
@@ -4054,10 +4050,12 @@ button.save-flash {
     max-width: 96px;
   }
 
-  .brand-logo img {
-    height: 24px;
+  .brand-mark {
+    width: 20px;
+    height: 20px;
   }
 
+  .brand-word,
   .top5-word {
     font-size: 20px;
   }
@@ -4287,10 +4285,10 @@ html[data-theme="dark"] {
   --muted-strong: #d0c4bc;
   --ok-bg: #052e16;
   --paper: #1e1e1e;
-  --podium-you: #1a1a1a;
+  --podium-you: #222222;
   --quiet: #939597;
   --raised: #323232;
-  --sheet: #111111;
+  --sheet: #323232;
   --skim-shadow: rgb(0 0 0 / 28%);
   --streak-ink: #ffb4bc;
   --surface: #2a2a2a;
@@ -4302,7 +4300,7 @@ html[data-theme="dark"] {
   --on-fill: #f1f1f2;
   --line: #4a4a4a;
   --line-strong: #4a4a4a;
-  --sheet-line: #111111;
+  --sheet-line: #4a4a4a;
   --bar-ink: #ffffff;
   --ok-line: #166534;
   --ok-ink: #dcfce7;
@@ -4398,7 +4396,7 @@ html[data-theme="dark"] .account-menu-list .account-menu-signout {
 }
 
 html[data-theme="dark"] .topbar {
-  border-bottom-color: var(--sheet);
+  border-bottom-color: var(--sheet-line);
 }
 
 html[data-theme="dark"] .inbox-link {
