@@ -1,8 +1,9 @@
 import json
+from datetime import date
 from typing import Any
 from uuid import uuid4
 
-from top5.dates import current_local_date, shift_week_iso
+from top5.dates import current_local_date, shift_week_iso, week_monday_for
 from top5.models import DayBoard, WeekBoard
 
 HOME_VIEW_CALLBACK_ID = "top5_home_view"
@@ -59,7 +60,7 @@ def build_home_view(
                     "type": "mrkdwn",
                     "text": (
                         f"*{week.profile_name}* · {week.season_name} · "
-                        f"{week.weekly_points} / {week.weekly_max_points} pts · "
+                        f"*{week.weekly_points} / {week.weekly_max_points} pts* · "
                         f"<{web_app_url}|Open Top 5 web app>"
                     ),
                 }
@@ -109,10 +110,9 @@ def build_home_view(
     )
 
     if week.days:
-        blocks.append(_build_quick_add_tile(week, active_selected_date))
-
-    for day in week.days:
-        blocks.append(_build_day_tile(day, week.week_monday, is_today=(day.entry_date == today_iso)))
+        blocks.append(_build_top_panels_layout(week, active_selected_date))
+        blocks.append(_build_week_grid_table(week, today_iso))
+        blocks.append(_build_day_tiles_grid(week, today_iso))
 
     return {
         "type": "home",
@@ -203,6 +203,33 @@ def build_add_task_modal(entry_date: str, day_label: str, week_monday: str) -> d
     }
 
 
+def _build_top_panels_layout(week: WeekBoard, selected_date: str) -> dict[str, Any]:
+    quick_add_container = _build_quick_add_tile(week, selected_date)
+    score_container = _build_score_summary_tile(week)
+    return {
+        "type": "layout",
+        "block_id": "home_top_panels_layout",
+        "label": "Quick add and weekly score",
+        "rows": [
+            {
+                "items": [
+                    {"width": "wide", "block": quick_add_container},
+                    {"width": "narrow", "block": score_container},
+                ]
+            }
+        ],
+        "fallback": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*This week:* {week.weekly_points} / {week.weekly_max_points} pts · Use `/top5` to add tasks.",
+                },
+            }
+        ],
+    }
+
+
 def _build_quick_add_tile(week: WeekBoard, selected_date: str) -> dict[str, Any]:
     day_options = [
         {
@@ -258,6 +285,81 @@ def _build_quick_add_tile(week: WeekBoard, selected_date: str) -> dict[str, Any]
     }
 
 
+def _build_score_summary_tile(week: WeekBoard) -> dict[str, Any]:
+    return {
+        "type": "container",
+        "block_id": "home_score_summary_tile",
+        "title": {"type": "plain_text", "text": "This week"},
+        "subtitle": {"type": "plain_text", "text": f"{week.weekly_points} / {week.weekly_max_points} pts"},
+        "has_header_divider": True,
+        "child_blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "*How scoring works*\nTop 5 complete: *15*\nExercise: *5* · Reading: *5*\nFull day: *25* · Full week: *125*",
+                },
+            }
+        ],
+    }
+
+
+def _build_week_grid_table(week: WeekBoard, today_iso: str) -> dict[str, Any]:
+    header_row: list[dict[str, Any]] = [_rich_cell("#", bold=True)]
+    for day in week.days:
+        suffix = " (Today)" if day.entry_date == today_iso else ""
+        header_row.append(_rich_cell(f"{day.day_name} · {day.date_label}{suffix}", bold=True))
+
+    rows: list[list[dict[str, Any]]] = [header_row]
+    for slot in range(1, 6):
+        row_cells: list[dict[str, Any]] = [_rich_cell(str(slot), bold=True)]
+        for day in week.days:
+            task = next((item for item in day.tasks if item.slot == slot and item.is_filled), None)
+            if task is None:
+                row_cells.append({"type": "raw_text", "text": "—"})
+            elif task.done:
+                row_cells.append(_rich_cell(f"☑ {task.title}", strike=True))
+            else:
+                row_cells.append(_rich_cell(f"☐ {task.title}"))
+        rows.append(row_cells)
+
+    score_row: list[dict[str, Any]] = [_rich_cell("Pts", bold=True)]
+    for day in week.days:
+        score_row.append(_rich_cell(f"{day.points} pts", bold=True))
+    rows.append(score_row)
+
+    column_settings: list[dict[str, Any]] = [{"align": "center"}] + [{"is_wrapped": True} for _ in week.days]
+    return {
+        "type": "table",
+        "block_id": "home_week_grid_table",
+        "column_settings": column_settings,
+        "rows": rows,
+    }
+
+
+def _build_day_tiles_grid(week: WeekBoard, today_iso: str) -> dict[str, Any]:
+    day_items = [
+        {"block": _build_day_tile(day, week.week_monday, is_today=(day.entry_date == today_iso))} for day in week.days
+    ]
+    layout_rows = [{"items": day_items[i : i + 3]} for i in range(0, len(day_items), 3)]
+    fallback_lines = [
+        f"*{day.day_name} · {day.date_label}:* {day.completed_count}/5 done ({day.points} pts)" for day in week.days
+    ]
+    return {
+        "type": "layout",
+        "block_id": "home_day_tiles_grid",
+        "label": "Interactive day cards",
+        "is_label_visible": True,
+        "rows": layout_rows,
+        "fallback": [
+            {
+                "type": "section",
+                "text": {"type": "mrkdwn", "text": "\n".join(fallback_lines)},
+            }
+        ],
+    }
+
+
 def _build_day_tile(day: DayBoard, week_monday: str, is_today: bool) -> dict[str, Any]:
     today_suffix = " (Today)" if is_today else ""
     filled = day.filled_tasks
@@ -299,7 +401,7 @@ def _build_day_tile(day: DayBoard, week_monday: str, is_today: bool) -> dict[str
         child_blocks.append(
             {
                 "type": "section",
-                "text": {"type": "mrkdwn", "text": "_No tasks yet — slots 1–5 are open._"},
+                "text": {"type": "mrkdwn", "text": "_Slots 1–5 open._"},
             }
         )
 
@@ -348,6 +450,26 @@ def _build_day_tile(day: DayBoard, week_monday: str, is_today: bool) -> dict[str
     }
 
 
+def _rich_cell(text: str, bold: bool = False, strike: bool = False) -> dict[str, Any]:
+    style: dict[str, bool] = {}
+    if bold:
+        style["bold"] = True
+    if strike:
+        style["strike"] = True
+    element: dict[str, Any] = {"type": "text", "text": text}
+    if style:
+        element["style"] = style
+    return {
+        "type": "rich_text",
+        "elements": [
+            {
+                "type": "rich_text_section",
+                "elements": [element],
+            }
+        ],
+    }
+
+
 def _truncate_text(value: str, max_length: int) -> str:
     if len(value) <= max_length:
         return value
@@ -361,8 +483,4 @@ def _resolve_selected_date(week: WeekBoard, selected_date: str | None, timezone_
 
 
 def shift_week_iso_for_today(today_iso: str) -> str:
-    from datetime import date
-
-    from top5.dates import week_monday_for
-
     return week_monday_for(date.fromisoformat(today_iso)).isoformat()

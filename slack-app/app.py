@@ -4,9 +4,11 @@ import os
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from top5.bolt_app import create_app
+from top5.config import load_dotenv_file
 
 
 def main() -> None:
+    load_dotenv_file()
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO").upper())
     bolt_app = create_app()
     app_token = os.environ.get("SLACK_APP_TOKEN")

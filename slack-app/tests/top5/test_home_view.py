@@ -30,7 +30,7 @@ def _sample_week() -> WeekBoard:
     )
 
 
-def test_build_home_view_includes_quick_add_and_truncated_checkboxes():
+def test_build_home_view_includes_grid_table_quick_add_and_day_tiles():
     view = build_home_view(
         week=_sample_week(),
         timezone_name="America/New_York",
@@ -43,12 +43,20 @@ def test_build_home_view_includes_quick_add_and_truncated_checkboxes():
     metadata = json.loads(view["private_metadata"])
     assert metadata == {"week_monday": "2026-11-16", "selected_date": "2026-11-17"}
 
-    containers = [block for block in view["blocks"] if block["type"] == "container"]
-    assert len(containers) == 6
-    quick_add = containers[0]
+    top_layout = next(block for block in view["blocks"] if block.get("block_id") == "home_top_panels_layout")
+    quick_add = top_layout["rows"][0]["items"][0]["block"]
     assert quick_add["child_blocks"][1]["element"]["action_id"] == ACTION_QUICK_ADD_INPUT
 
-    mon_tile = containers[1]
+    grid_table = next(block for block in view["blocks"] if block["type"] == "table")
+    assert len(grid_table["rows"]) == 7
+    assert len(grid_table["rows"][0]) == 6
+
+    day_grid = next(block for block in view["blocks"] if block.get("block_id") == "home_day_tiles_grid")
+    assert len(day_grid["rows"]) == 2
+    assert len(day_grid["rows"][0]["items"]) == 3
+    assert len(day_grid["rows"][1]["items"]) == 2
+
+    mon_tile = day_grid["rows"][0]["items"][0]["block"]
     checkbox_el = mon_tile["child_blocks"][0]["elements"][0]
     assert len(checkbox_el["options"][0]["text"]["text"]) <= 75
     assert len(checkbox_el["initial_options"]) == 1
